@@ -16,13 +16,13 @@ rstudioapi::getSourceEditorContext()$path %>%
 
 source("R/custom_fct.R")
 # Loading data (path to change later)
-counts <- readcounts("/home/jules/Documents/phd/Data/Article_veranika/bulk/counts.csv", sep = ",", header = TRUE)
+rawcounts <- readcounts("/home/jules/Documents/phd/Data/Article_veranika/bulk/counts.csv", sep = ",", header = TRUE)
 meta <- read.table("/home/jules/Documents/phd/Data/Article_veranika/bulk/metadata.csv", sep = ",", header = TRUE)
 
 # Keeping only necessary samples
 meta <- filter(meta, type %in% c("dorsal", "ventral"), CRISPR == "control")
 
-counts <- counts[, meta$sample]
+counts <- rawcounts[, meta$sample]
 rownames(counts) <- gene_converter(rownames(counts), "ENSEMBL", "SYMBOL")
 counts <- counts[which(!is.na(rownames(counts))), ]
 
