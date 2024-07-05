@@ -54,6 +54,7 @@ meta <- data.frame(
     line = c(rep("LON", nrow(d9_meta)), rep("WTC", nrow(d12_meta))),
     type = c(d9_meta$type, d12_meta$type),
     CRISPR = c(rep("control", nrow(d9_meta)), d12_meta$CRISPR),
+    state = ifelse(c(d9_meta$type, d12_meta$type) == "ipsc", "ipsc", "neuroectoderm"),
     cyclo_dose_quant = c(d9_meta$cyclo_dose, d12_meta$cyclo_dose),
     cyclo_dose_qual = sapply(c(d9_meta$cyclo_dose, d12_meta$cyclo_dose), function(d) {
         if (d >= 0.5) {

@@ -4,8 +4,6 @@ library(tidyverse)
 library(ComplexHeatmap)
 library(org.Hs.eg.db)
 
-library(tibble)
-
 rstudioapi::getSourceEditorContext()$path %>%
     str_split("/") %>%
     unlist() %>%
@@ -61,9 +59,9 @@ markers <- c(
 
 # Get rows corresponding to markers
 retained_row <- counts[rownames(counts) %in% markers, ]
-retained_row
+
 # filtering out lowly expressed genes
-countsf <- counts[rowSums(counts) > ncol(counts), ]
+countsf <- counts[rowSums(counts) > 50, ]
 
 # putting back potential fitltered out markers
 if (length(which(!rownames(retained_row) %in% rownames(countsf))) == 1) {
@@ -76,18 +74,10 @@ if (length(which(!rownames(retained_row) %in% rownames(countsf))) == 1) {
 # With dorsal / ventral distinction
 norm <- countsf %>% DESeq2::varianceStabilizingTransformation()
 norm <- limma::removeBatchEffect(norm, meta$line)
-rank <- norm %>% apply(2, percent_rank)
-rownames(rank) <- rownames(norm)
-colnames(rank) <- colnames(norm)
 
-markers
-mat <- norm[markers, ]
-
-mat <- mat[, meta[order(meta$type), ]$sample]
-
-
+png(filename = "results/images/F1_1_marker_HM.png", width = 2000, height = 1800, res = 250)
 Heatmap(
-    mat[markers, ],
+    norm[markers, meta[order(meta$type), ]$sample],
     name = "Normalized expression",
     row_title_gp = gpar(fontsize = 16, fontface = "bold"),
     cluster_rows = FALSE,
@@ -97,13 +87,12 @@ Heatmap(
     show_column_names = TRUE,
     show_row_dend = FALSE,
     show_heatmap_legend = TRUE,
-    width = ncol(mat) * unit(4, "mm"),
-    height = nrow(mat) * unit(5, "mm"),
+    width = ncol(norm[markers, ]) * unit(4, "mm"),
+    height = nrow(norm[markers, ]) * unit(5, "mm"),
     col = colorRampPalette(c(
-        "darkblue",
-        "lightblue",
+        "blue",
         "white",
-        "red",
-        "darkred"
+        "red"
     ))(1000),
 )
+dev.off()
