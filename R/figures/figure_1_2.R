@@ -21,19 +21,19 @@ rawcounts <- readcounts("/home/jules/Documents/phd/Data/Article_veranika/bulk/co
 meta <- read.table("/home/jules/Documents/phd/Data/Article_veranika/bulk/metadata.csv", sep = ",", header = TRUE)
 
 # Keeping only necessary samples
-meta <- filter(meta, type %in% c("dorsal", "ventral", "ipsc"), CRISPR %in% c("ipsc", "control"))
+meta <- filter(meta, type %in% c("dorsal", "ventral"), CRISPR %in% c("control"))
 
 counts <- rawcounts[, meta$sample]
 counts <- counts[which(rowSums(counts) > ncol(counts)), ]
 norm <- varianceStabilizingTransformation(counts)
-norm <- limma::removeBatchEffect(norm, meta$line)
+# norm <- limma::removeBatchEffect(norm, meta$line)
 
 pca_results <- ggPCA(t(norm), ncp = 5, graph = FALSE, scale.unit = TRUE)
 
 meta_pca <- cbind(meta, pca_results$gg.ind)
 
 png(filename = "results/images/F1_2_PCA.png", width = 2100, height = 1600, res = 250)
-ggplot(data = meta_pca, aes(x = PC1, y = PC2, color = type, shape = line)) +
+ggplot(data = meta_pca, aes(x = PC3, y = PC4, color = type, shape = line)) +
     geom_point() +
     custom_theme()
 dev.off()
