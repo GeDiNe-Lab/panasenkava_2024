@@ -39,7 +39,7 @@ DEGs_DV <- DESeqDataSetFromMatrix(
     as.data.frame() %>%
     na.omit()
 
-DEGs_DV_f <- filter(DEGs_DV, padj < 0.01, abs(log2FoldChange) > 2)
+DEGs_DV_f <- filter(DEGs_DV, padj < 0.01, abs(log2FoldChange) > 1)
 DEGs_DV_f$gene <- gene_converter(rownames(DEGs_DV_f), "ENSEMBL", "SYMBOL")
 DEGs_DV_f <- filter(DEGs_DV_f, !is.na(gene))
 
