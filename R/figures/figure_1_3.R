@@ -71,3 +71,5 @@ Heatmap(
     ))(1000),
 )
 dev.off()
+
+counts["ENSG00000165588", ]
