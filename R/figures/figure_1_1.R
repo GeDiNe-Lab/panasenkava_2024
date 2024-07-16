@@ -56,9 +56,9 @@ markers <- c(
     "HOXB1",
     "HOXA1"
 )
-markers_bis <- read.table("/home/jules/Téléchargements/List DORSAL PROGENITOR.csv", header = TRUE)
-markers_bis <- markers_bis$genes
+markers_bis <- read.table("/home/jules/Documents/phd/Data/Article_veranika/GeneListFig1_15_07_24.csv", sep = ";", header = FALSE)
 markers_bis
+markers_bis <- markers_bis$V1
 setdiff(markers_bis, rownames(counts))
 markers_bis <- intersect(markers_bis, rownames(counts))
 # Get rows corresponding to markers
@@ -84,10 +84,10 @@ norm <- limma::removeBatchEffect(norm, meta$line)
 markers_bis %>% length()
 png(filename = "results/images/F1_1_marker_HM.png", width = 2000, height = 1800, res = 250)
 Heatmap(
-    norm[markers_bis[67:84], meta[order(meta$type), ]$sample],
+    norm[markers_bis, meta[order(meta$type), ]$sample],
     name = "Normalized expression",
     row_title_gp = gpar(fontsize = 16, fontface = "bold"),
-    cluster_rows = TRUE,
+    cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = TRUE,
     row_names_side = "left",
@@ -95,7 +95,7 @@ Heatmap(
     show_row_dend = FALSE,
     show_heatmap_legend = TRUE,
     width = ncol(norm[markers_bis, ]) * unit(4, "mm"),
-    height = nrow(norm[markers_bis, ]) * unit(3, "mm"),
+    height = nrow(norm[markers_bis, ]) * unit(4, "mm"),
     col = colorRampPalette(c(
         "blue",
         "white",

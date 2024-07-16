@@ -56,14 +56,13 @@ markers <- c(
     "HOXB1",
     "HOXA1"
 )
-# markers_bis <- read.table("/home/jules/Téléchargements/List DORSAL PROGENITOR.csv", header = TRUE)
-# markers_bis <- markers_bis$genes
-# markers_bis
-
-setdiff(markers, rownames(counts))
-markers <- intersect(markers, rownames(counts))
+markers_bis <- read.table("/home/jules/Documents/phd/Data/Article_veranika/GeneListFig1_15_07_24.csv", sep = ";", header = FALSE)
+markers_bis
+markers_bis <- markers_bis$V1
+setdiff(markers_bis, rownames(counts))
+markers_bis <- intersect(markers_bis, rownames(counts))
 # Get rows corresponding to markers
-retained_row <- counts[rownames(counts) %in% markers, ]
+retained_row <- counts[rownames(counts) %in% markers_bis, ]
 
 # filtering out lowly expressed genes
 countsf <- counts[rowSums(counts) > 50, ]
@@ -78,16 +77,15 @@ if (length(which(!rownames(retained_row) %in% rownames(countsf))) == 1) {
 
 # With dorsal / ventral distinction
 norm <- countsf %>% DESeq2::varianceStabilizingTransformation()
-rank_norm <- apply(norm, 2, percent_rank)
-colnames(rank_norm) <- colnames(norm)
-rownames(rank_norm) <- rownames(norm)
-# png(filename = "results/images/F1_1_marker_HM.png", width = 2000, height = 1800, res = 250)
-
-barplot(colSums(norm))
-countsf["SIX6", ]
+# norm <- limma::removeBatchEffect(norm, meta$line)
+# scaled_norm <- t(apply(norm, 1, scale))
+# colnames(scaled_norm) <- colnames(norm)
+# rownames(scaled_norm) <- rownames(norm)
+markers_bis %>% length()
+png(filename = "results/images/F1_1_marker_HM_diff13.png", width = 2000, height = 1800, res = 250)
 Heatmap(
-    rank_norm[markers, meta[order(meta$type), ]$sample],
-    name = "Ranked normalized expression",
+    norm[markers_bis, meta[order(meta$type), ]$sample],
+    name = "Normalized expression",
     row_title_gp = gpar(fontsize = 16, fontface = "bold"),
     cluster_rows = FALSE,
     cluster_columns = FALSE,
@@ -96,12 +94,12 @@ Heatmap(
     show_column_names = TRUE,
     show_row_dend = FALSE,
     show_heatmap_legend = TRUE,
-    width = ncol(norm[markers, ]) * unit(4, "mm"),
-    height = nrow(norm[markers, ]) * unit(3, "mm"),
+    width = ncol(norm[markers_bis, ]) * unit(4, "mm"),
+    height = nrow(norm[markers_bis, ]) * unit(4, "mm"),
     col = colorRampPalette(c(
         "blue",
         "white",
         "red"
     ))(1000),
 )
-# dev.off()
+dev.off()
