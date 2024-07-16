@@ -82,7 +82,7 @@ norm <- countsf %>% DESeq2::varianceStabilizingTransformation()
 # colnames(scaled_norm) <- colnames(norm)
 # rownames(scaled_norm) <- rownames(norm)
 markers_bis %>% length()
-png(filename = "results/images/F1_1_marker_HM_diff13.png", width = 2000, height = 1800, res = 250)
+png(filename = "results/images/Figure_1/F1_1_marker_HM_diff13.png", width = 2000, height = 1800, res = 250)
 Heatmap(
     norm[markers_bis, meta[order(meta$type), ]$sample],
     name = "Normalized expression",
