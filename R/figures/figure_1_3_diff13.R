@@ -44,13 +44,13 @@ DEGs_DV_f <- filter(DEGs_DV, padj < 0.01, abs(log2FoldChange) > 1)
 DEGs_DV_f$gene <- gene_converter(rownames(DEGs_DV_f), "ENSEMBL", "SYMBOL")
 DEGs_DV_f <- filter(DEGs_DV_f, !is.na(gene))
 
-# write.csv(DEGs_DV_f, "results/tables/dorsal_VS_ventral_DEGs.csv")
+write.csv(DEGs_DV_f, "results/tables/dorsal_VS_ventral_DEGs_diff13.csv")
 
 norm_DEGs <- norm[rownames(DEGs_DV_f), ]
 scaled_mat <- t(apply(norm_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(norm_DEGs)
-
-# png(filename = "results/images/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
+nrow(scaled_mat)
+png(filename = "results/images/Figure_1/F1_3_DE_HM_diff13.png", width = 1600, height = 1600, res = 250)
 Heatmap(
     scaled_mat,
     name = "Normalized expression",
@@ -70,6 +70,6 @@ Heatmap(
         "red"
     ))(1000),
 )
-# dev.off()
+dev.off()
 
 counts["ENSG00000165588", ]

@@ -38,7 +38,7 @@ vsd <- vst(dds_PCA, blind = FALSE)
 pca.data <- plotPCA(vsd, intgroup = c("type", "line"), returnData = TRUE)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
-# png(filename = "results/images/Figure_2A/F2A_1_PCA_type.png", width = 1600, height = 1200, res = 250)
+png(filename = "results/images/Figure_1/F1_2_PCA_diff13.png", width = 1600, height = 1200, res = 250)
 ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     geom_point(size = 2, stroke = 1) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
@@ -47,4 +47,4 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
     custom_theme() +
     ggtitle("PCA of dorsal and ventral kinetics")
-# dev.off()
+dev.off()

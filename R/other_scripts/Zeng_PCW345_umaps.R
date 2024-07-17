@@ -48,7 +48,8 @@ seurat_obj <- RunUMAP(seurat_obj, dims = 1:10)
 umap_res <- seurat_obj[["umap"]]@cell.embeddings %>% as.data.frame()
 meta_SN <- cbind(meta_SN, umap_res[meta_SN$index, ])
 
-marker_genes <- read.table("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/marker_for_umaps.csv")$V1 %>% unique()
+marker_genes <- read.table("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/UMAP_defining_genes.csv")$V1 %>% unique()
+marker_genes
 setdiff(marker_genes, rownames(seurat_obj@assays$RNA$data))
 marker_genes <- intersect(marker_genes, rownames(seurat_obj@assays$RNA$data))
 
@@ -64,7 +65,7 @@ for (gene in marker_genes) {
         ggtitle(gene) +
         scale_color_gradient(low = "lightblue", high = "darkred") +
         custom_theme()
-    ggsave(paste0("/home/jules/Documents/phd/Data/results/genes_umap_Zeng/", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+    ggsave(paste0("/home/jules/Documents/phd/Data/results/genes_umap_Zeng_2/", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
     gc()
 }
 ggplot(data = meta_SN, aes(x = umap_1, y = umap_2, color = week_stage)) +

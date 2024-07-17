@@ -56,25 +56,49 @@ ggplot(pca.data, aes(PC1, PC2, color = line, shape = day)) +
     ggtitle("PCA of dorsal and ventral kinetics")
 dev.off()
 
-norm <- vsd@assays@data[[1]]
-
-DEGs_DV <- DESeq(dds) %>%
-    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
+filter(meta, day %in% c("day02,", "day12"))
+DEGs_day_ventral <- DESeqDataSetFromMatrix(
+    countData = counts[, filter(meta, type == "ventral" & day %in% c("day02", "day12"))$sample],
+    colData = filter(meta, type == "ventral" & day %in% c("day02", "day12")),
+    design = ~ line + day
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("day", "day12", "day02")) %>%
     as.data.frame() %>%
     na.omit()
 
-DEGs_DV_f <- filter(DEGs_DV, padj < 0.05, abs(log2FoldChange) >= 1)
-DEGs_DV_f$gene <- gene_converter(rownames(DEGs_DV_f), "ENSEMBL", "SYMBOL")
-DEGs_DV_f <- filter(DEGs_DV_f, !is.na(gene))
+DEGs_day_ventral_f <- filter(DEGs_day_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
+DEGs_day_ventral_f$gene <- gene_converter(rownames(DEGs_day_ventral_f), "ENSEMBL", "SYMBOL")
+DEGs_day_ventral_f <- filter(DEGs_day_ventral_f, !is.na(gene))
+DEGs_day_ventral_f$type <- rep("ventral", nrow(DEGs_day_ventral_f))
 
 
+DEGs_day_dorsal <- DESeqDataSetFromMatrix(
+    countData = counts[, filter(meta, type == "dorsal" & day %in% c("day02", "day12"))$sample],
+    colData = filter(meta, type == "dorsal" & day %in% c("day02", "day12")),
+    design = ~ line + day
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("day", "day12", "day02")) %>%
+    as.data.frame() %>%
+    na.omit()
+
+DEGs_day_dorsal_f <- filter(DEGs_day_dorsal, padj < 0.01, abs(log2FoldChange) >= 1)
+DEGs_day_dorsal_f$gene <- gene_converter(rownames(DEGs_day_dorsal_f), "ENSEMBL", "SYMBOL")
+DEGs_day_dorsal_f <- filter(DEGs_day_dorsal_f, !is.na(gene))
+DEGs_day_dorsal_f$type <- rep("dorsal", nrow(DEGs_day_dorsal_f))
+
+write.csv(rbind(DEGs_day_dorsal_f, DEGs_day_ventral_f), "results/tables/DEG_kinetic_day02VSday12_dorsal_and_ventral.csv")
+
+
+degs_total <- union(rownames(DEGs_day_ventral_f), rownames(DEGs_day_dorsal_f))
+degs_total
 vstnorm <- vst(dds, blind = FALSE)
-mat <- assay(vstnorm)[rownames(DEGs_DV_f), ]
+mat <- assay(vstnorm)[degs_total, ]
 # scaling the matrix
 scaled_mat <- t(apply(mat, 1, scale))
 colnames(scaled_mat) <- colnames(mat)
 
-# png(filename = "results/images/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
 
 
 sample_order <- c(
@@ -82,6 +106,8 @@ sample_order <- c(
     filter(meta, type == "ventral")$sample[order(filter(meta, type == "ventral")$day)]
 )
 
+scaled_mat %>% nrow()
+png(filename = "results/images/Figure_2A/F2A_DE_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[, sample_order],
     name = "Normalized expression",
@@ -96,68 +122,83 @@ Heatmap(
     width = ncol(scaled_mat) * unit(2, "mm"),
     # height = nrow(mat) * unit(5, "mm"),
     col = colorRampPalette(c(
+        "darkblue",
         "blue",
         "white",
-        "red"
+        "red",
+        "darkred"
     ))(1000),
 )
-# dev.off()
+dev.off()
+
+load("/home/jules/Documents/phd/Data/literature/CORTECON/Cortecon_Barebones.RData")
+cortecon_counts <- RNA.raw %>% as.matrix()
+rm(ex.raw, RNA.raw, h19e, h19eg, lincRNA, RNAs)
+
+rownames(cortecon_counts) <- gene_converter(rownames(cortecon_counts), "ENTREZID", "ENSEMBL")
+cortecon_counts <- cortecon_counts[!duplicated(rownames(cortecon_counts)), ]
+cortecon_counts <- cortecon_counts[which(!is.na(rownames(cortecon_counts))), ]
+colnames(cortecon_counts) <- gsub(" ", "", colnames(cortecon_counts))
+colnames(cortecon_counts) <- gsub("\\.", "_", colnames(cortecon_counts))
+cortecton_meta <- read.table("/home/jules/Documents/phd/Data/literature/CORTECON/cortecon_meta.csv", sep = ",", header = TRUE)
 
 
-norm <- assay(vsd)
-rownames(norm) <- rownames(norm) %>% gene_converter("ENSEMBL", "SYMBOL")
-norm <- norm[!is.na(rownames(norm)), ]
+comm_genes <- intersect(rownames(cortecon_counts), rownames(rawcounts))
 
-IF <- c(
-    "PAX6",
-    "TBR1",
-    "EOMES",
-    "EMX2",
-    "NKX2-1",
-    "SHH",
-    "FOXA2",
-    "FOXA1",
-    "MEIS2",
-    "OLIG2",
-    "OTX2"
+merged_counts <- cbind(
+    rawcounts[comm_genes, ],
+    cortecon_counts[comm_genes, ]
+)
+merged_meta <- rbind(
+    meta,
+    cortecton_meta
+)
+merged_meta$dataset <- ifelse(merged_meta$sample %in% colnames(cortecon_counts), "cortecon", "lab")
+merged_meta <- filter(merged_meta, type == "dorsal" & day != "day00")
+merged_meta <- filter(merged_meta, dataset == "cortecon" | (dataset == "lab" & day == "day12"))
+merged_meta$grouped_day <- merged_meta$day %>% sapply(function(day) {
+    if (day %in% c("day02", "day04", "day06")) {
+        return("day02-06")
+    } else if (day %in% c("day07", "day08", "day10")) {
+        return("day7-10")
+    } else if (day %in% c("day26", "day33")) {
+        return("day26-33")
+    } else if (day %in% c("day49-77")) {
+        return("day49-77")
+    } else {
+        return(day)
+    }
+})
+View(merged_meta)
+
+merged_counts <- merged_counts[, merged_meta$sample]
+merged_counts <- merged_counts[which(rowSums(merged_counts) >= 50), ]
+
+merged_norm <- varianceStabilizingTransformation(merged_counts)
+
+# lab_norm <- varianceStabilizingTransformation(rawcounts[which(rowSums(rawcounts) >= 50), meta$sample])
+# corte_norm <- varianceStabilizingTransformation(cortecon_counts[which(rowSums(cortecon_counts) >= 50), ])
+# comm_genes_late <- intersect(rownames(lab_norm), rownames(corte_norm))
+# merged_norm_late <- cbind(
+#     lab_norm[comm_genes_late, ],
+#     corte_norm[comm_genes_late, ]
+# )
+# merged_norm_late <- merged_norm_late[, merged_meta$sample]
+
+merged_norm <- limma::removeBatchEffect(merged_norm, merged_meta$dataset)
+
+pca_res <- ggPCA(
+    t(merged_norm),
+    ncp = 5,
+    # ind.sup = which(colnames(merged_norm_late) %in% filter(merged_meta, dataset == "lab")$sample),
+    scale.unit = TRUE,
+    graph = FALSE
 )
 
-meta_IF <- cbind(meta, t(norm[IF, ]))
+meta_pca <- cbind(pca_res$gg.ind, merged_meta)
 
-meta_IF <- meta_IF[order(meta_IF$day), ]
-meta_IF %>% colnames()
-
-norm %>% min()
-norm %>% max()
-meta_IF_merged <- meta_IF %>%
-    group_by(type, line, day, sexe) %>%
-    summarise(
-        PAX6 = mean(PAX6, na.rm = TRUE),
-        TBR1 = mean(TBR1, na.rm = TRUE),
-        EOMES = mean(EOMES, na.rm = TRUE),
-        EMX2 = mean(EMX2, na.rm = TRUE),
-        `NKX2-1` = mean(`NKX2-1`, na.rm = TRUE),
-        SHH = mean(SHH, na.rm = TRUE),
-        FOXA2 = mean(FOXA2, na.rm = TRUE),
-        FOXA1 = mean(FOXA1, na.rm = TRUE),
-        MEIS2 = mean(MEIS2, na.rm = TRUE),
-        OLIG2 = mean(OLIG2, na.rm = TRUE),
-        OTX2 = mean(OTX2, na.rm = TRUE),
-    )
-meta_IF_merged
-meta_IF_merged$type_line <- paste(meta_IF_merged$type, meta_IF_merged$line, sep = "_")
-filter(meta_IF_merged, type == "ventral")
-
-for (gene in IF) {
-    print(paste0("results/images/check_IF/", gene, ".png"))
-    meta_IF_merged$gene <- meta_IF_merged[[gene]]
-    ggplot(data = meta_IF_merged, aes(x = day, y = gene, color = line, linetype = type, group = type_line)) +
-        geom_point() +
-        geom_line(stat = "identity") +
-        ylab(gene) +
-        geom_hline(yintercept = max(norm[IF, ]), linetype = "dotted") +
-        geom_hline(yintercept = max(norm), linetype = "dashed") +
-        ylim(min(norm), max(norm)) +
-        custom_theme()
-    ggsave(paste0("results/images/check_IF/", gene, ".png"))
-}
+png(filename = "results/images/Figure_2A/F2A_cortecon.png", width = 2400, height = 1600, res = 250)
+ggplot(data = meta_pca, aes(x = PC1, y = PC2, color = grouped_day, shape = dataset)) +
+    geom_point() +
+    custom_theme()
+dev.off()
