@@ -43,15 +43,36 @@ DEGs_DV_f <- filter(DEGs_DV, padj < 0.01, abs(log2FoldChange) > 1)
 DEGs_DV_f$gene <- gene_converter(rownames(DEGs_DV_f), "ENSEMBL", "SYMBOL")
 DEGs_DV_f <- filter(DEGs_DV_f, !is.na(gene))
 
-write.csv(DEGs_DV_f, "results/tables/Figure_1/dorsal_VS_ventral_DEGs.csv")
 
 norm_DEGs <- norm[rownames(DEGs_DV_f), ]
 scaled_mat <- t(apply(norm_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(norm_DEGs)
 
+clustering <- hclust(dist(scaled_mat))
+clusters_1 <- cutree(clustering, k = 2)
+clusters_2 <- cutree(clustering, k = 5)
+
+clusters_ha <- rowAnnotation(
+    cluster_1 = as.character(clusters_1[clustering$order]),
+    cluster_2 = as.character(clusters_2[clustering$order]),
+    col = list(
+        cluster_1 = c(
+            "1" = "red",
+            "2" = "blue"
+        ),
+        cluster_2 = c(
+            "1" = "red",
+            "2" = "blue",
+            "3" = "green",
+            "4" = "purple",
+            "5" = "orange"
+        )
+    )
+)
+
 sample_ha <- columnAnnotation(
-    line = meta[order(meta$type), ]$line,
-    type = meta[order(meta$type), ]$type,
+    line = meta$line,
+    type = meta$type,
     col = list(
         line = c("LON" = "#00f7ff", "WTC" = "#ff0000"),
         type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
@@ -59,12 +80,14 @@ sample_ha <- columnAnnotation(
 )
 png(filename = "results/images/Figure_1/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
 Heatmap(
-    scaled_mat,
+    scaled_mat[clustering$order, ],
     name = "Normalized expression",
     row_title_gp = gpar(fontsize = 16, fontface = "bold"),
-    cluster_rows = TRUE,
+    cluster_rows = FALSE,
     cluster_columns = TRUE,
     show_row_names = FALSE,
+    left_annotation = clusters_ha,
+    bottom_annotation = sample_ha,
     row_names_side = "left",
     show_column_names = TRUE,
     show_row_dend = FALSE,
@@ -80,4 +103,7 @@ Heatmap(
 )
 dev.off()
 
-counts["ENSG00000165588", ]
+DEGs_DV_f$cluster_1 <- clusters_1[rownames(DEGs_DV_f)]
+DEGs_DV_f$cluster_2 <- clusters_2[rownames(DEGs_DV_f)]
+
+write.csv(DEGs_DV_f, "results/tables/Figure_1/dorsal_VS_ventral_DEGs.csv")

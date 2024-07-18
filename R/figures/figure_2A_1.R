@@ -89,13 +89,21 @@ DEGs_day_dorsal_f$type <- rep("dorsal", nrow(DEGs_day_dorsal_f))
 
 degs_total <- union(rownames(DEGs_day_ventral_f), rownames(DEGs_day_dorsal_f))
 
+
+
+
 vstnorm <- vst(dds, blind = FALSE)
 mat <- assay(vstnorm)[degs_total, ]
 # scaling the matrix
 scaled_mat <- t(apply(mat, 1, scale))
 colnames(scaled_mat) <- colnames(mat)
 
-clustering <- hclust(dist(scaled_mat))
+sample_order <- c(
+    filter(meta, type == "ventral")$sample[order(filter(meta, type == "ventral")$day, decreasing = TRUE)],
+    filter(meta, type == "dorsal")$sample[order(filter(meta, type == "dorsal")$day)]
+)
+
+clustering <- hclust(dist(scaled_mat[, sample_order]))
 
 clusters_1 <- cutree(clustering, k = 5)
 clusters_2 <- cutree(clustering, k = 7)
@@ -137,10 +145,7 @@ clusters_ha <- rowAnnotation(
     )
 )
 
-sample_order <- c(
-    filter(meta, type == "dorsal")$sample[order(filter(meta, type == "dorsal")$day, decreasing = TRUE)],
-    filter(meta, type == "ventral")$sample[order(filter(meta, type == "ventral")$day)]
-)
+
 png(filename = "results/images/Figure_2A/F2A_DE_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering$order, sample_order],
@@ -166,8 +171,8 @@ Heatmap(
 dev.off()
 
 sample_order_LON <- c(
-    filter(meta, type == "dorsal" & line == "LON71")$sample[order(filter(meta, type == "dorsal" & line == "LON71")$day, decreasing = TRUE)],
-    filter(meta, type == "ventral" & line == "LON71")$sample[order(filter(meta, type == "ventral" & line == "LON71")$day)]
+    filter(meta, type == "ventral" & line == "LON71")$sample[order(filter(meta, type == "ventral" & line == "LON71")$day, decreasing = TRUE)],
+    filter(meta, type == "dorsal" & line == "LON71")$sample[order(filter(meta, type == "dorsal" & line == "LON71")$day)]
 )
 png(filename = "results/images/Figure_2A/F2A_DE_HM_LON.png", width = 2400, height = 1600, res = 250)
 Heatmap(
@@ -195,8 +200,8 @@ dev.off()
 
 
 sample_order_WTC <- c(
-    filter(meta, type == "dorsal" & line == "WTC")$sample[order(filter(meta, type == "dorsal" & line == "WTC")$day, decreasing = TRUE)],
-    filter(meta, type == "ventral" & line == "WTC")$sample[order(filter(meta, type == "ventral" & line == "WTC")$day)]
+    filter(meta, type == "ventral" & line == "WTC")$sample[order(filter(meta, type == "ventral" & line == "WTC")$day, decreasing = TRUE)],
+    filter(meta, type == "dorsal" & line == "WTC")$sample[order(filter(meta, type == "dorsal" & line == "WTC")$day)]
 )
 png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 250)
 Heatmap(
