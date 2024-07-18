@@ -48,11 +48,11 @@ seurat_obj <- RunUMAP(seurat_obj, dims = 1:10)
 umap_res <- seurat_obj[["umap"]]@cell.embeddings %>% as.data.frame()
 meta_SN <- cbind(meta_SN, umap_res[meta_SN$index, ])
 
-marker_genes <- read.table("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/UMAP_defining_genes.csv")$V1 %>% unique()
-marker_genes
+marker_genes <- read.table("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/List4_UMAP.csv")$V1 %>% unique()
+marker_genes <- c(marker_genes, c("EGR2"))
 setdiff(marker_genes, rownames(seurat_obj@assays$RNA$data))
 marker_genes <- intersect(marker_genes, rownames(seurat_obj@assays$RNA$data))
-
+marker_genes
 seurat_obj@assays$RNA$data <- seurat_obj@assays$RNA$data[marker_genes, meta_SN$index]
 all.genes <- rownames(seurat_obj@assays$RNA$data)
 seurat_obj <- ScaleData(seurat_obj, features = all.genes)
@@ -65,9 +65,10 @@ for (gene in marker_genes) {
         ggtitle(gene) +
         scale_color_gradient(low = "lightblue", high = "darkred") +
         custom_theme()
-    ggsave(paste0("/home/jules/Documents/phd/Data/results/genes_umap_Zeng_2/", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+    ggsave(paste0("/home/jules/Documents/phd/Data/results/genes_umap_Zeng_3/", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
     gc()
 }
-ggplot(data = meta_SN, aes(x = umap_1, y = umap_2, color = week_stage)) +
+week_umap_plot <- ggplot(data = meta_SN, aes(x = umap_1, y = umap_2, color = week_stage)) +
     geom_point(size = 1) +
     custom_theme()
+ggsave("/home/jules/Documents/phd/Data/results/PCW345_Zeng_weeks.png", plot = week_umap_plot, width = 14, height = 10, dpi = 300)

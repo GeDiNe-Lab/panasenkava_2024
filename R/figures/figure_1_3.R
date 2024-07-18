@@ -21,7 +21,7 @@ source("R/custom_fct.R")
 rawcounts <- readcounts("/home/jules/Documents/phd/Data/Article_veranika/bulk/counts.csv", sep = ",", header = TRUE)
 meta <- read.table("/home/jules/Documents/phd/Data/Article_veranika/bulk/metadata.csv", sep = ",", header = TRUE)
 # Keeping only necessary samples
-meta <- filter(meta, type %in% c("dorsal", "ventral", "ipsc"), CRISPR %in% c("ipsc", "control"))
+meta <- filter(meta, type %in% c("dorsal", "ventral"), CRISPR %in% c("control"))
 
 counts <- rawcounts[, meta$sample]
 counts <- counts[which(rowSums(counts) > 50), ]
@@ -43,14 +43,21 @@ DEGs_DV_f <- filter(DEGs_DV, padj < 0.01, abs(log2FoldChange) > 1)
 DEGs_DV_f$gene <- gene_converter(rownames(DEGs_DV_f), "ENSEMBL", "SYMBOL")
 DEGs_DV_f <- filter(DEGs_DV_f, !is.na(gene))
 
-write.csv(DEGs_DV_f, "results/tables/dorsal_VS_ventral_DEGs.csv")
+write.csv(DEGs_DV_f, "results/tables/Figure_1/dorsal_VS_ventral_DEGs.csv")
 
 norm_DEGs <- norm[rownames(DEGs_DV_f), ]
 scaled_mat <- t(apply(norm_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(norm_DEGs)
 
-
-png(filename = "results/images/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
+sample_ha <- columnAnnotation(
+    line = meta[order(meta$type), ]$line,
+    type = meta[order(meta$type), ]$type,
+    col = list(
+        line = c("LON" = "#00f7ff", "WTC" = "#ff0000"),
+        type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
+    )
+)
+png(filename = "results/images/Figure_1/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
 Heatmap(
     scaled_mat,
     name = "Normalized expression",
@@ -65,9 +72,10 @@ Heatmap(
     width = ncol(scaled_mat) * unit(4, "mm"),
     # height = nrow(mat) * unit(5, "mm"),
     col = colorRampPalette(c(
-        "blue",
-        "white",
-        "red"
+        "black",
+        "purple",
+        "orange",
+        "yellow"
     ))(1000),
 )
 dev.off()

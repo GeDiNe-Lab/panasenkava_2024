@@ -19,7 +19,7 @@ rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13
 meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 is a biiiiiig outlier
-meta <- filter(meta, sample != "LON71_D12_2", type %in% c("ventral", "dorsal"))
+meta <- filter(meta, sample != "LON71_D12_2", type %in% c("ventral", "dorsal"), line %in% c("LON71", "WTC"))
 counts <- rawcounts[which(rowSums(rawcounts) >= 50), meta$sample]
 
 dds <- DESeqDataSetFromMatrix(
@@ -56,7 +56,6 @@ ggplot(pca.data, aes(PC1, PC2, color = line, shape = day)) +
     ggtitle("PCA of dorsal and ventral kinetics")
 dev.off()
 
-filter(meta, day %in% c("day02,", "day12"))
 DEGs_day_ventral <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "ventral" & day %in% c("day02", "day12"))$sample],
     colData = filter(meta, type == "ventral" & day %in% c("day02", "day12")),
@@ -88,31 +87,67 @@ DEGs_day_dorsal_f$gene <- gene_converter(rownames(DEGs_day_dorsal_f), "ENSEMBL",
 DEGs_day_dorsal_f <- filter(DEGs_day_dorsal_f, !is.na(gene))
 DEGs_day_dorsal_f$type <- rep("dorsal", nrow(DEGs_day_dorsal_f))
 
-write.csv(rbind(DEGs_day_dorsal_f, DEGs_day_ventral_f), "results/tables/DEG_kinetic_day02VSday12_dorsal_and_ventral.csv")
-
-
 degs_total <- union(rownames(DEGs_day_ventral_f), rownames(DEGs_day_dorsal_f))
-degs_total
+
 vstnorm <- vst(dds, blind = FALSE)
 mat <- assay(vstnorm)[degs_total, ]
 # scaling the matrix
 scaled_mat <- t(apply(mat, 1, scale))
 colnames(scaled_mat) <- colnames(mat)
 
+clustering <- hclust(dist(scaled_mat))
 
+clusters_1 <- cutree(clustering, k = 5)
+clusters_2 <- cutree(clustering, k = 7)
+clusters_3 <- cutree(clustering, k = 10)
+
+clusters_ha <- rowAnnotation(
+    cluster_1 = as.character(clusters_1[clustering$order]),
+    cluster_2 = as.character(clusters_2[clustering$order]),
+    cluster_3 = as.character(clusters_3[clustering$order]),
+    col = list(
+        cluster_1 = c(
+            "1" = "red",
+            "2" = "blue",
+            "3" = "green",
+            "4" = "purple",
+            "5" = "orange"
+        ),
+        cluster_2 = c(
+            "1" = "red",
+            "2" = "blue",
+            "3" = "green",
+            "4" = "purple",
+            "5" = "orange",
+            "6" = "black",
+            "7" = "pink"
+        ),
+        cluster_3 = c(
+            "1" = "red",
+            "2" = "blue",
+            "3" = "green",
+            "4" = "purple",
+            "5" = "orange",
+            "6" = "black",
+            "7" = "pink",
+            "8" = "yellow",
+            "9" = "brown",
+            "10" = "grey"
+        )
+    )
+)
 
 sample_order <- c(
     filter(meta, type == "dorsal")$sample[order(filter(meta, type == "dorsal")$day, decreasing = TRUE)],
     filter(meta, type == "ventral")$sample[order(filter(meta, type == "ventral")$day)]
 )
-
-scaled_mat %>% nrow()
 png(filename = "results/images/Figure_2A/F2A_DE_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
-    scaled_mat[, sample_order],
+    scaled_mat[clustering$order, sample_order],
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
-    cluster_rows = TRUE,
+    cluster_rows = FALSE,
+    left_annotation = clusters_ha,
     cluster_columns = FALSE,
     show_row_names = FALSE,
     row_names_side = "left",
@@ -122,14 +157,78 @@ Heatmap(
     width = ncol(scaled_mat) * unit(2, "mm"),
     # height = nrow(mat) * unit(5, "mm"),
     col = colorRampPalette(c(
-        "darkblue",
-        "blue",
-        "white",
-        "red",
-        "darkred"
+        "black",
+        "purple",
+        "orange",
+        "yellow"
     ))(1000),
 )
 dev.off()
+
+sample_order_LON <- c(
+    filter(meta, type == "dorsal" & line == "LON71")$sample[order(filter(meta, type == "dorsal" & line == "LON71")$day, decreasing = TRUE)],
+    filter(meta, type == "ventral" & line == "LON71")$sample[order(filter(meta, type == "ventral" & line == "LON71")$day)]
+)
+png(filename = "results/images/Figure_2A/F2A_DE_HM_LON.png", width = 2400, height = 1600, res = 250)
+Heatmap(
+    scaled_mat[clustering$order, sample_order_LON],
+    name = "Normalized expression",
+    column_names_gp = gpar(fontsize = 6),
+    cluster_rows = FALSE,
+    left_annotation = clusters_ha,
+    cluster_columns = FALSE,
+    show_row_names = FALSE,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    show_row_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(scaled_mat[, sample_order_LON]) * unit(2, "mm"),
+    # height = nrow(mat) * unit(5, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+dev.off()
+
+
+sample_order_WTC <- c(
+    filter(meta, type == "dorsal" & line == "WTC")$sample[order(filter(meta, type == "dorsal" & line == "WTC")$day, decreasing = TRUE)],
+    filter(meta, type == "ventral" & line == "WTC")$sample[order(filter(meta, type == "ventral" & line == "WTC")$day)]
+)
+png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 250)
+Heatmap(
+    scaled_mat[clustering$order, sample_order_WTC],
+    name = "Normalized expression",
+    column_names_gp = gpar(fontsize = 6),
+    cluster_rows = FALSE,
+    left_annotation = clusters_ha,
+    cluster_columns = FALSE,
+    show_row_names = FALSE,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    show_row_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(scaled_mat[, sample_order_WTC]) * unit(2, "mm"),
+    # height = nrow(mat) * unit(5, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+dev.off()
+
+
+DE_day_dorso_ventral <- rbind(DEGs_day_dorsal_f, DEGs_day_ventral_f)
+DE_day_dorso_ventral$cluster_1 <- clusters_1[rownames(DE_day_dorso_ventral)]
+DE_day_dorso_ventral$cluster_2 <- clusters_2[rownames(DE_day_dorso_ventral)]
+DE_day_dorso_ventral$cluster_3 <- clusters_3[rownames(DE_day_dorso_ventral)]
+DE_day_dorso_ventral %>% View()
+write.csv(DE_day_dorso_ventral, "results/tables/DEG_kinetic_day02VSday12_dorsal_and_ventral.csv")
 
 load("/home/jules/Documents/phd/Data/literature/CORTECON/Cortecon_Barebones.RData")
 cortecon_counts <- RNA.raw %>% as.matrix()
@@ -155,7 +254,7 @@ merged_meta <- rbind(
 )
 merged_meta$dataset <- ifelse(merged_meta$sample %in% colnames(cortecon_counts), "cortecon", "lab")
 merged_meta <- filter(merged_meta, type == "dorsal" & day != "day00")
-merged_meta <- filter(merged_meta, dataset == "cortecon" | (dataset == "lab" & day == "day12"))
+# merged_meta <- filter(merged_meta, dataset == "cortecon" | (dataset == "lab" & day == "day12"))
 merged_meta$grouped_day <- merged_meta$day %>% sapply(function(day) {
     if (day %in% c("day02", "day04", "day06")) {
         return("day02-06")
@@ -169,24 +268,29 @@ merged_meta$grouped_day <- merged_meta$day %>% sapply(function(day) {
         return(day)
     }
 })
-View(merged_meta)
 
+merged_meta %>% View()
 merged_counts <- merged_counts[, merged_meta$sample]
 merged_counts <- merged_counts[which(rowSums(merged_counts) >= 50), ]
 
 merged_norm <- varianceStabilizingTransformation(merged_counts)
 
-# lab_norm <- varianceStabilizingTransformation(rawcounts[which(rowSums(rawcounts) >= 50), meta$sample])
-# corte_norm <- varianceStabilizingTransformation(cortecon_counts[which(rowSums(cortecon_counts) >= 50), ])
-# comm_genes_late <- intersect(rownames(lab_norm), rownames(corte_norm))
-# merged_norm_late <- cbind(
-#     lab_norm[comm_genes_late, ],
-#     corte_norm[comm_genes_late, ]
-# )
-# merged_norm_late <- merged_norm_late[, merged_meta$sample]
-
+lab_norm <- varianceStabilizingTransformation(rawcounts[which(rowSums(rawcounts) >= 50), meta$sample])
+corte_norm <- varianceStabilizingTransformation(cortecon_counts[which(rowSums(cortecon_counts) >= 50), ])
+comm_genes_late <- intersect(rownames(lab_norm), rownames(corte_norm))
+merged_norm_late <- cbind(
+    lab_norm[comm_genes_late, ],
+    corte_norm[comm_genes_late, ]
+)
+merged_norm_late <- merged_norm_late[, merged_meta$sample]
+merged_norm_late <- limma::removeBatchEffect(merged_norm, merged_meta$dataset)
 merged_norm <- limma::removeBatchEffect(merged_norm, merged_meta$dataset)
 
+
+test_kmean <- kmeans(t(merged_norm), centers = 8)
+test_kmean$cluster %>%
+    as.data.frame() %>%
+    View()
 pca_res <- ggPCA(
     t(merged_norm),
     ncp = 5,
@@ -199,6 +303,6 @@ meta_pca <- cbind(pca_res$gg.ind, merged_meta)
 
 png(filename = "results/images/Figure_2A/F2A_cortecon.png", width = 2400, height = 1600, res = 250)
 ggplot(data = meta_pca, aes(x = PC1, y = PC2, color = grouped_day, shape = dataset)) +
-    geom_point() +
+    geom_point(size = 3) +
     custom_theme()
 dev.off()
