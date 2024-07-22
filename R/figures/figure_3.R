@@ -67,9 +67,7 @@ DE_no_low <- DESeqDataSetFromMatrix(
 DE_no_low$gene <- gene_converter(rownames(DE_no_low), "ENSEMBL", "SYMBOL")
 DE_no_low <- filter(DE_no_low, padj < 0.05 & abs(log2FoldChange) > 1 & !is.na(gene))
 
-write.csv(DE_no_high, "results/tables/DEG_cyclo_vAN_VS_high.csv")
-write.csv(DE_low_high, "results/tables/DEG_cyclo_low_VS_high.csv")
-write.csv(DE_no_low, "results/tables/DEG_cyclo_vAN_VS_low.csv")
+
 
 scaled_mat <- t(apply(norm[rownames(DE_no_high), ], 1, scale))
 colnames(scaled_mat) <- colnames(norm)
@@ -108,11 +106,7 @@ clusters_ha <- rowAnnotation(
     )
 )
 
-GO_enrichment <- clusterProfiler::enrichGO(names(clusters_1[which(clusters_1 == 1)]),
-    OrgDb = "org.Hs.eg.db",
-    keyType = "ENSEMBL",
-    ont = "BP"
-)
+
 
 for (cluster in unique(clusters_1)) {
     print(cluster)
@@ -154,6 +148,13 @@ Heatmap(
 )
 dev.off()
 
+DE_no_high$cluster_1 <- clusters_1[rownames(DE_no_high)]
+DE_no_high$cluster_2 <- clusters_2[rownames(DE_no_high)]
+DE_no_high$cluster_3 <- clusters_3[rownames(DE_no_high)]
+
+write.csv(DE_no_high, "results/tables/Figure_3/DEG_cyclo_vAN_VS_high.csv")
+write.csv(DE_low_high, "results/tables/Figure_3/DEG_cyclo_low_VS_high.csv")
+write.csv(DE_no_low, "results/tables/Figure_3/DEG_cyclo_vAN_VS_low.csv")
 
 ventral <- c(
     "AFF2", "ATP2C2", "AUTS2", "BAHCC1", "CAPN6", "CNTN6", "EDNRA", "FOXA1", "FOXA2", "FRZB", "GPM6B", "GRIK3", "HTR1D", "LDB2", "LINC00261", "MBIP", "MPPED1", "MYRF", "NAALAD2", "NACC2", "NKX2-1", "NKX2-1-AS1", "NKX2-2", "NTN1", "PDZRN3", "PLCL1", "PNMA2", "PNRC2", "PPM1L", "PTCH1", "QKI", "RGMA", "RORA", "RPS6KA6", "RXRA", "SERPINF1", "SERPINI1", "SFRP1", "SHH", "SLC38A2", "SLC38A4", "SLIT1", "SMIM32", "SPON1", "SPTSSB", "TMTC2", "TRIM9", "USP2"
