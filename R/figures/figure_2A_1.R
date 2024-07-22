@@ -146,6 +146,21 @@ clusters_ha <- rowAnnotation(
 )
 
 
+for (cluster in unique(clusters_1)) {
+    print(cluster)
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_1[which(clusters_1 == cluster)]),
+        OrgDb = "org.Hs.eg.db",
+        keyType = "ENSEMBL",
+        ont = "BP"
+    )
+    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, ".csv"))
+    goplot <- clusterProfiler::dotplot(GO_enrichment,
+        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
+        showCategory = 15
+    )
+    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
+}
+
 png(filename = "results/images/Figure_2A/F2A_DE_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering$order, sample_order],

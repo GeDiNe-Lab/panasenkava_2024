@@ -70,6 +70,21 @@ clusters_ha <- rowAnnotation(
     )
 )
 
+for (cluster in unique(clusters_1)) {
+    print(cluster)
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_1[which(clusters_1 == cluster)]),
+        OrgDb = "org.Hs.eg.db",
+        keyType = "ENSEMBL",
+        ont = "BP"
+    )
+    write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
+    goplot <- clusterProfiler::dotplot(GO_enrichment,
+        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
+        showCategory = 15
+    )
+    ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
+}
+
 sample_ha <- columnAnnotation(
     line = meta$line,
     type = meta$type,
