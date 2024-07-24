@@ -36,9 +36,9 @@ PCA colored by dorso/ventral patterning (type) or lineage (line)
 
 ## Kinetic Heatmap
 ### F2A_DE_HM
-Heatmap of the differentially expressed genes between day02 and day12, DE analysis has been made twice : one with the dorsal samples, one with the ventral samples, the final gene list is the union of both DE gene list (absolute log2FC >= 1, pvalue < 0.01). There is 3 level of clustering
+Heatmap of the differentially expressed genes between dorsal and ventral, (absolute log2FC >= 1, pvalue < 0.01). There is 2 level of clustering subclustering has been made using gene from each cluster of the first level respectively
 
-Associated tables : DEG_kinetic_day02VSday12_dorsal_and_ventral.csv
+Associated tables : DEG_kinetic_dorsal_VS_ventral.csv
 
 ### F1_DE_GO
 (First level of clustering : clusters 1 to 5) top 15 GO biological process term for each DE genes clusters
@@ -49,10 +49,11 @@ Associated tables : GO_enrichment_cluster_n.csv
 (absolute log2FC >= 1 and pvalue < 0.01
 ### DE between day
 tables : DEGs_dayX_Y_dorsal.csv and DEGs_dayX_Y_ventral.csv
+images: in the volcano_plots folder
 
 ### DE between type
 tables : DEGs_DV_dayX.csv
-
+iùages: in the volcano_plots folder
 
 # Figure 3
 ## Differentially expressed genes between no cylo and high clyclo dosage
@@ -67,6 +68,9 @@ Associated tables : DEG_cyclo_vAN_VS_high.csv
 
 Associated tables : GO_enrichment_cluster_n.csv
 
+## Coexpressed genes
+### Cytoscape_SHH
+genes retained in the coexpression analysis with either 0.8 or 0.85 absolute pearson correlation with one the genes used (SHH, NKX2.1, PAX6), tehre is an image for the genes positively co-expressed with SHH and one for the genes negatively co-expressed with SHH, color are : gold -> already known genes, red -> gene selected through literature curation and potentially tested in mice.
 
 
 
