@@ -161,6 +161,8 @@ ventral <- c(
 )
 dorsal <- c("PAX6", "ADD3", "ATP2B1", "CNN3", "COLGALT2", "EPHA4", "FZD3", "GLI2", "GLI3", "HOMER1", "NLGN1", "NUAK2", "OPTN", "PALLD", "PDP1", "PLK2", "PRDX6", "SLC3A2", "VCL", "ZIC2", "ZIC5", "ZNF385B", "ZFHX4")
 known_genes <- c("GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2-1", "PAX6", "PTCH1")
+good_markers <- c()
+
 # co-expression :
 counts_coex <- rawcounts[, meta$samples]
 counts_coex <- counts_coex[which(rowSums(counts_coex) >= 100), ]
@@ -172,67 +174,78 @@ corr_df$abs_max_cor <- apply(corr_df, 1, function(x) max(abs(x)))
 corr_df$gene <- gene_converter(rownames(corr_df), "ENSEMBL", "SYMBOL")
 corr_df <- filter(corr_df, !is.na(gene))
 
-genelist <- filter(corr_df, abs_max_cor >= 0.8)$gene
-lit_gene_list <- intersect(genelist, union(ventral, dorsal))
-corr_df_f <- filter(corr_df, abs_max_cor >= 0.8)
+corr_df_f1 <- filter(corr_df, abs_max_cor >= 0.8)
+corr_df_f2 <- filter(corr_df, abs_max_cor >= 0.85)
 
-
-
-cytoscape <- corr[rownames(filter(corr_df, gene %in% lit_gene_list)), rownames(filter(corr_df, gene %in% lit_gene_list))]
-cytoscape[lower.tri(cytoscape, diag = TRUE)] <- NA
-cytoscape <- data.table::melt(cytoscape)
-
-cytoscape <- filter(cytoscape, is.na(value) == FALSE)
-
-cytoscape$abs_cor <- cytoscape$value %>% abs()
-cytoscape$Var1 <- cytoscape$Var1 %>%
-    as.vector() %>%
-    gene_converter("ENSEMBL", "SYMBOL")
-cytoscape$Var2 <- cytoscape$Var2 %>%
-    as.vector() %>%
-    gene_converter("ENSEMBL", "SYMBOL")
-cytoscape$link <- ifelse(cytoscape$value > 0, "pos", "neg")
-cytoscape$knownV1 <- c(1:nrow(cytoscape)) %>% sapply(function(x) {
-    if (cytoscape$Var1[x] %in% known_genes) {
+SHH_pos_1 <- data.frame(
+    cor = filter(corr_df_f1, ENSG00000164690 > 0)$abs_max_cor,
+    link = rep(1, nrow(filter(corr_df_f1, ENSG00000164690 > 0))),
+    target = filter(corr_df_f1, ENSG00000164690 > 0)$gene,
+    source = rep("SHH", nrow(filter(corr_df_f1, ENSG00000164690 > 0)))
+)
+SHH_pos_1$target_info <- SHH_pos_1$target %>% sapply(function(x) {
+    if (x %in% known_genes) {
         return("known")
-    } else if (cytoscape$Var1[x] == "SHH") {
-        return("SHH")
+    } else if (x %in% union(dorsal, ventral)) {
+        return("selected")
     } else {
         return("no")
     }
 })
-cytoscape$knownV2 <- c(1:nrow(cytoscape)) %>% sapply(function(x) {
-    if (cytoscape$Var2[x] %in% known_genes) {
+SHH_pos_1$ttarget_info <- SHH_pos_1$target_info
+
+SHH_neg_1 <- data.frame(
+    cor = filter(corr_df_f1, ENSG00000164690 < 0)$abs_max_cor,
+    link = rep(1, nrow(filter(corr_df_f1, ENSG00000164690 < 0))),
+    target = filter(corr_df_f1, ENSG00000164690 < 0)$gene,
+    source = rep("SHH", nrow(filter(corr_df_f1, ENSG00000164690 < 0)))
+)
+SHH_neg_1$target_info <- SHH_neg_1$target %>% sapply(function(x) {
+    if (x %in% known_genes) {
         return("known")
-    } else if (cytoscape$Var2[x] == "SHH") {
-        return("SHH")
+    } else if (x %in% union(dorsal, ventral)) {
+        return("selected")
     } else {
         return("no")
     }
 })
+SHH_neg_1$ttarget_info <- SHH_neg_1$target_info
 
-# Add a column for node degree
-cytoscape$degree <- sapply(cytoscape$Var1, function(node) sum(cytoscape$Var1 == node | cytoscape_all$Var2 == node))
-View(filter(cytoscape, abs_cor >= 0.9))
-write.csv(filter(cytoscape, abs_cor >= 0.9), "results/tables/Figure_3/cytoscape_all.csv")
-write.csv(genelist, "results/tables/Figure_3/coex_genelist.csv")
+SHH_pos_2 <- data.frame(
+    cor = filter(corr_df_f2, ENSG00000164690 > 0)$abs_max_cor,
+    link = rep(1, nrow(filter(corr_df_f2, ENSG00000164690 > 0))),
+    target = filter(corr_df_f2, ENSG00000164690 > 0)$gene,
+    source = rep("SHH", nrow(filter(corr_df_f2, ENSG00000164690 > 0)))
+)
+SHH_pos_2$target_info <- SHH_pos_2$target %>% sapply(function(x) {
+    if (x %in% known_genes) {
+        return("known")
+    } else if (x %in% union(dorsal, ventral)) {
+        return("selected")
+    } else {
+        return("no")
+    }
+})
+SHH_pos_2$ttarget_info <- SHH_pos_2$target_info
 
-SHH_pos <- filter(cytoscape, value >= 0.8 & (Var1 == "ENSG00000164690" | Var2 == "ENSG00000164690"))
-SHH_pos$Var1 <- SHH_pos$Var1 %>%
-    as.vector() %>%
-    gene_converter("ENSEMBL", "SYMBOL")
-SHH_pos$Var2 <- SHH_pos$Var2 %>%
-    as.vector() %>%
-    gene_converter("ENSEMBL", "SYMBOL")
+SHH_neg_2 <- data.frame(
+    cor = filter(corr_df_f2, ENSG00000164690 < 0)$abs_max_cor,
+    link = rep(1, nrow(filter(corr_df_f2, ENSG00000164690 < 0))),
+    target = filter(corr_df_f2, ENSG00000164690 < 0)$gene,
+    source = rep("SHH", nrow(filter(corr_df_f2, ENSG00000164690 < 0)))
+)
+SHH_neg_2$target_info <- SHH_neg_2$target %>% sapply(function(x) {
+    if (x %in% known_genes) {
+        return("known")
+    } else if (x %in% union(dorsal, ventral)) {
+        return("selected")
+    } else {
+        return("no")
+    }
+})
+SHH_neg_2$ttarget_info <- SHH_neg_2$target_info
 
-SHH_neg <- filter(cytoscape, value <= -0.8 & (Var1 == "ENSG00000164690" | Var2 == "ENSG00000164690"))
-SHH_neg$Var1 <- SHH_neg$Var1 %>%
-    as.vector() %>%
-    gene_converter("ENSEMBL", "SYMBOL")
-SHH_neg$Var2 <- SHH_neg$Var2 %>%
-    as.vector() %>%
-    gene_converter("ENSEMBL", "SYMBOL")
-
-
-write.csv(SHH_pos, "results/tables/Figure_3/SHH_coex_pos.csv")
-write.csv(SHH_neg, "results/tables/Figure_3/SHH_coex_neg.csv")
+write.csv(SHH_pos_1, file = "results/tables/Figure_3/cytoscape_SHH_pos_0_80.csv", row.names = FALSE)
+write.csv(SHH_neg_1, file = "results/tables/Figure_3/cytoscape_SHH_neg_0_80.csv", row.names = FALSE)
+write.csv(SHH_pos_2, file = "results/tables/Figure_3/cytoscape_SHH_pos_0_85.csv", row.names = FALSE)
+write.csv(SHH_neg_2, file = "results/tables/Figure_3/cytoscape_SHH_neg_0_85.csv", row.names = FALSE)

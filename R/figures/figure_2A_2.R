@@ -24,6 +24,20 @@ meta <- filter(meta, sample != "LON71_D12_2", type %in% c("ventral", "dorsal"), 
 counts <- rawcounts[which(rowSums(rawcounts) >= 50), meta$sample]
 
 # DEGs dorsal VS ventral at day02
+DEGs_dorso_ventral <- DESeqDataSetFromMatrix(
+    countData = counts[, meta$sample],
+    colData = meta,
+    design = ~ line + type
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
+    as.data.frame() %>%
+    na.omit()
+DEGs_dorso_ventral_f <- filter(DEGs_dorso_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
+DEGs_dorso_ventral_f$gene <- gene_converter(rownames(DEGs_dorso_ventral_f), "ENSEMBL", "SYMBOL")
+DEGs_dorso_ventral_f <- filter(DEGs_dorso_ventral_f, !is.na(gene))
+
+# DEGs dorsal VS ventral at day02
 DEGs_DV_day02 <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, day == "day02")$sample],
     colData = filter(meta, day == "day02"),
@@ -38,22 +52,7 @@ DEGs_DV_day02_f$gene <- gene_converter(rownames(DEGs_DV_day02_f), "ENSEMBL", "SY
 DEGs_DV_day02_f <- filter(DEGs_DV_day02_f, !is.na(gene))
 
 write.csv(DEGs_DV_day02_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day02.csv", row.names = FALSE)
-# if (nrow(filter(DEGs_DV_day02_f, padj < 0.01, abs(log2FoldChange) >= 1)) > 25) {
-#     DEGs_DV_day02_f$volcano <- rep(NA, nrow(DEGs_DV_day02_f))
-#     FC_top25 <- sort(abs(filter(DEGs_DV_day02_f, padj < 0.01)$log2FoldChange), decreasing = TRUE)[25]
-#     DEGs_DV_day02_f$volcano[abs(DEGs_DV_day02_f$log2FoldChange) >= FC_top25 & DEGs_DV_day02_f$padj < 0.01] <- DEGs_DV_day02_f$gene[abs(DEGs_DV_day02_f$log2FoldChange) >= FC_top25 & DEGs_DV_day02_f$padj < 0.01]
-# } else {
-#     DEGs_DV_day02_f$volcano <- DEGs_DV_day02_f$gene
-# }
-# png(filename = "results/images/Figure_2A/volcano_plots/DEGs_DV_day02.png", width = 1600, height = 1200, res = 250)
-# ggplot(DEGs_DV_day02_f, aes(x = log2FoldChange, y = -log10(padj), label = volcano)) +
-#     geom_point(size = 1) +
-#     geom_text() +
-#     custom_theme() +
-#     geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
-#     geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-#     labs(x = "log2FoldChange", y = "-log10(padj)", title = "DEGs dorsal VS ventral at day02")
-# dev.off()
+
 
 # DEGs dorsal VS ventral at day04
 DEGs_DV_day04 <- DESeqDataSetFromMatrix(
@@ -137,8 +136,6 @@ DEGs_DV_day12_f <- filter(DEGs_DV_day12_f, !is.na(gene))
 write.csv(DEGs_DV_day12_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day12.csv", row.names = FALSE)
 
 
-
-# DEGs dorsal VS ventral at day12
 DEGs_day02_04_dorsal <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "dorsal")$sample],
     colData = filter(meta, type == "dorsal"),
@@ -294,3 +291,46 @@ DEGs_day10_12_ventral_f$gene <- gene_converter(rownames(DEGs_day10_12_ventral_f)
 DEGs_day10_12_ventral_f <- filter(DEGs_day10_12_ventral_f, !is.na(gene))
 
 write.csv(DEGs_day10_12_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day10_12_ventral.csv", row.names = FALSE)
+
+DE_days_ventral <- list(
+    day02_04 = DEGs_day02_04_ventral_f,
+    day04_06 = DEGs_day04_06_ventral_f,
+    day06_08 = DEGs_day06_08_ventral_f,
+    day08_10 = DEGs_day08_10_ventral_f,
+    day10_12 = DEGs_day10_12_ventral_f
+)
+names(DE_days_ventral)
+
+for (dayrange in names(DE_days_ventral)) {
+    print(dayrange)
+    DE <- DE_days_ventral[[dayrange]]
+    ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
+        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        custom_theme() +
+        geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+        geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for ventral samples between ", dayrange))
+    ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_ventral_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+}
+
+
+DE_days_dorsal <- list(
+    day02_04 = DEGs_day02_04_dorsal_f,
+    day04_06 = DEGs_day04_06_dorsal_f,
+    day06_08 = DEGs_day06_08_dorsal_f,
+    day08_10 = DEGs_day08_10_dorsal_f,
+    day10_12 = DEGs_day10_12_dorsal_f
+)
+names(DE_days_dorsal)
+
+for (dayrange in names(DE_days_dorsal)) {
+    print(dayrange)
+    DE <- DE_days_dorsal[[dayrange]]
+    ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
+        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        custom_theme() +
+        geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+        geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for dorsal samples between ", dayrange))
+    ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_dorsal_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+}
