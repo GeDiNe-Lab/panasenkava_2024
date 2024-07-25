@@ -72,6 +72,18 @@ Associated tables : GO_enrichment_cluster_n.csv
 ### Cytoscape_SHH
 genes retained in the coexpression analysis with either 0.8 or 0.85 absolute pearson correlation with one the genes used (SHH, NKX2.1, PAX6), tehre is an image for the genes positively co-expressed with SHH and one for the genes negatively co-expressed with SHH, color are : gold -> already known genes, red -> gene selected through literature curation and potentially tested in mice.
 
+# Figure 4
+## PCA_type
+PCA on the WTC CRISPR lineage without dorsal samples
 
+## volcano plots
+Volcano plots for the DEGs with 3 group of sample respectively : ventral, low cyclopamin (lowC, 0.125 and 0.25 uL), and high clycopamin (highC, 0.5 and 1 uL)
+contrast are :
+ * C_vs_Het : for Control vs Heterozygous
+ * C_vs_Hom : for Control vs Homozygous
+ * Het_vs_Hom : for Heterozygous vs Homozygous
 
+## barplots
+Barplots of the scaled normalized expression for 4 marker genes for vAN and dAN samples
+(values are the normalized readcounts rescaled so the minimum normalized value (accounting for 0 read) is equal to 0)
 
