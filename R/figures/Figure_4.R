@@ -18,9 +18,9 @@ rstudioapi::getSourceEditorContext()$path %>%
 
 source("R/custom_fct.R")
 rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/IPSdiff12/IPSdiff12_counts.csv")
-meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/IPSdiff12/IPSdiff12_metadata.csv", sep = ",", header = T)
+rawmeta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/IPSdiff12/IPSdiff12_metadata.csv", sep = ",", header = T)
 View(meta)
-meta <- filter(meta, type %in% c("cyclo", "ventral"))
+meta <- filter(rawmeta, type %in% c("cyclo", "ventral"))
 counts <- rawcounts[which(rowSums(rawcounts) >= 50), meta$SAMPLE_NAME]
 counts %>% colnames()
 meta$cyclo_dose_qual <- meta$cyclo_dose %>% sapply(function(x) {
@@ -278,3 +278,73 @@ for (contrast in names(DE_highC_CRISPR)) {
         labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DE highC: ", contrast))
     ggsave(filename = paste0("results/images/Figure_4/Volcano_highC_", contrast, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
+
+meta <- filter(rawmeta, type %in% c("ventral", "dorsal"))
+counts <- rawcounts[which(rowSums(rawcounts) >= 25), meta$SAMPLE_NAME]
+dds <- DESeqDataSetFromMatrix(
+    countData = counts,
+    colData = meta,
+    design = ~ CRISPR + type
+)
+
+vsd <- varianceStabilizingTransformation(dds)
+
+norm <- assay(vsd)
+rownames(norm) <- gene_converter(rownames(norm), "ENSEMBL", "SYMBOL")
+
+meta$SHH <- norm["SHH", ] - min(norm)
+meta$NKX21 <- norm["NKX2-1", ] - min(norm)
+meta$PAX6 <- norm["PAX6", ] - min(norm)
+meta$TBR1 <- norm["TBR1", ] - min(norm)
+meta$CRISPR_type <- paste(meta$CRISPR, meta$type, sep = "_")
+grouped_df <- meta %>%
+    group_by(CRISPR_type, type) %>%
+    summarize(
+        SHH_mean = mean(SHH),
+        SHH_sd = sd(SHH),
+        NKX21_mean = mean(NKX21),
+        NKX21_sd = sd(NKX21),
+        PAX6_mean = mean(PAX6),
+        PAX6_sd = sd(PAX6),
+        TBR1_mean = mean(TBR1),
+        TBR1_sd = sd(TBR1)
+    )
+grouped_df <- grouped_df[order(grouped_df$type, decreasing = TRUE), ]
+
+grouped_df$CRISPR_type <- factor(c("vAN +/+", "vAN +/-", "vAN -/-", "dAN +/+", "dAN +/-", "dAN -/-"), levels = c("vAN +/+", "vAN +/-", "vAN -/-", "dAN +/+", "dAN +/-", "dAN -/-"))
+
+png(filename = "results/images/Figure_4/F4_SHH_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = SHH_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = SHH_mean - SHH_sd, ymax = SHH_mean + SHH_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#A1A1DE", "#80AD3C")) +
+    custom_theme(diag_text = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_4/F4_NKX21_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = NKX21_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = NKX21_mean - NKX21_sd, ymax = NKX21_mean + NKX21_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#A1A1DE", "#80AD3C")) +
+    custom_theme(diag_text = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_4/F4_PAX6_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = PAX6_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = PAX6_mean - PAX6_sd, ymax = PAX6_mean + PAX6_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#A1A1DE", "#80AD3C")) +
+    custom_theme(diag_text = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_4/F4_TBR1_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = TBR1_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = TBR1_mean - TBR1_sd, ymax = TBR1_mean + TBR1_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#A1A1DE", "#80AD3C")) +
+    custom_theme(diag_text = TRUE)
+dev.off()
