@@ -249,3 +249,22 @@ write.csv(SHH_pos_1, file = "results/tables/Figure_3/cytoscape_SHH_pos_0_80.csv"
 write.csv(SHH_neg_1, file = "results/tables/Figure_3/cytoscape_SHH_neg_0_80.csv", row.names = FALSE)
 write.csv(SHH_pos_2, file = "results/tables/Figure_3/cytoscape_SHH_pos_0_85.csv", row.names = FALSE)
 write.csv(SHH_neg_2, file = "results/tables/Figure_3/cytoscape_SHH_neg_0_85.csv", row.names = FALSE)
+
+
+DE_cyclo <- list(
+    no_VS_high = DE_no_high,
+    low_VS_high = DE_low_high,
+    no_VS_low = DE_no_low
+)
+
+for (contrast in names(DE_cyclo)) {
+    print(contrast)
+    DE <- DE_cyclo[[contrast]]
+    ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
+        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        custom_theme() +
+        geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+        geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DE: ", contrast, " ", nrow(DE), " DE genes total"))
+    ggsave(filename = paste0("results/images/Figure_3/Volcano_", contrast, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+}

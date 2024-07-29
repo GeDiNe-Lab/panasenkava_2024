@@ -115,16 +115,22 @@ ggAddPCA <- function(meta, pca_result, idcol = NULL) {
 #'
 #' @param diag_text A logical value indicating whether to display diagonal text on the x-axis labels. Default is \code{FALSE}.
 #' @param hide_x_lab A logical value indicating whether to hide the x-axis labels. Default is \code{FALSE}.
+#' @param hide_legend A logical value indicating whether to hide the legend. Default is \code{FALSE}.
 #'
 #' @return A \code{theme} object with customized settings for plot elements.
 #'
 #' @details This function allows you to create a custom theme for your plots by specifying various settings for plot elements such as title, background, grid lines, axis lines, axis labels, legend text, and legend title.
 #'
 #' @examples
-#' custom_theme(diag_text = TRUE, hide_x_lab = FALSE)
+#' custom_theme(diag_text = TRUE, hide_x_lab = FALSE, hide_legend = FALSE)
 #'
 #' @export
-custom_theme <- function(diag_text = FALSE, hide_x_lab = FALSE) {
+custom_theme <- function(diag_text = FALSE, hide_legend = FALSE, hide_x_lab = FALSE) {
+  if (hide_legend == TRUE) {
+    hide_legend <- "none"
+  } else {
+    hide_legend <- "right"
+  }
   if (diag_text == TRUE) {
     text_angle <- 45
   } else {
@@ -144,7 +150,8 @@ custom_theme <- function(diag_text = FALSE, hide_x_lab = FALSE) {
     axis.text.x = axis_text_x,
     axis.text.y = element_text(size = 12),
     legend.text = element_text(size = 12),
-    legend.title = element_text(size = 14)
+    legend.title = element_text(size = 14),
+    legend.position = hide_legend
   ))
 }
 

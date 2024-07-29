@@ -310,7 +310,6 @@ grouped_df <- meta %>%
         TBR1_sd = sd(TBR1)
     )
 grouped_df <- grouped_df[order(grouped_df$type, decreasing = TRUE), ]
-
 grouped_df$CRISPR_type <- factor(c("vAN +/+", "vAN +/-", "vAN -/-", "dAN +/+", "dAN +/-", "dAN -/-"), levels = c("vAN +/+", "vAN +/-", "vAN -/-", "dAN +/+", "dAN +/-", "dAN -/-"))
 
 png(filename = "results/images/Figure_4/F4_SHH_barplot.png", width = 1600, height = 1400, res = 250)
@@ -348,3 +347,71 @@ ggplot(grouped_df, aes(x = CRISPR_type, y = TBR1_mean, fill = type)) +
     scale_fill_manual(values = c("#A1A1DE", "#80AD3C")) +
     custom_theme(diag_text = TRUE)
 dev.off()
+
+corr_pos <- read.csv("results/tables/Figure_3/cytoscape_SHH_pos_0_80.csv")
+corr_pos <- filter(corr_pos, target_info %in% c("selected", "known"))
+corr_neg <- read.csv("results/tables/Figure_3/cytoscape_SHH_neg_0_80.csv")
+corr_neg <- filter(corr_neg, target_info %in% c("selected", "known"))
+
+
+meta <- filter(rawmeta, type %in% c("ventral"))
+counts <- rawcounts[which(rowSums(rawcounts) >= 25), meta$SAMPLE_NAME]
+dds <- DESeqDataSetFromMatrix(
+    countData = counts,
+    colData = meta,
+    design = ~CRISPR
+)
+
+vsd <- varianceStabilizingTransformation(dds)
+
+norm <- assay(vsd)
+norm <- norm - min(norm)
+rownames(norm) <- gene_converter(rownames(norm), "ENSEMBL", "SYMBOL")
+setdiff(corr_pos$target, rownames(norm))
+maximum_exp <- max(norm[rownames(norm) %in% union(corr_pos$target, corr_neg$target), ])
+maximum_exp
+max(norm)
+meta_pos <- meta
+meta_pos$CRISPR_type <- paste(meta_pos$CRISPR, meta_pos$type, sep = "_")
+rownames(norm)[rownames(norm) %in% corr_pos$target]
+for (gene in rownames(norm)[rownames(norm) %in% corr_pos$target]) {
+    meta_pos$gene <- norm[gene, ]
+    grp_df_pos <- meta_pos %>%
+        group_by(CRISPR) %>%
+        summarize(
+            gene_mean = mean(gene),
+            gene_sd = sd(gene)
+        )
+    grp_df_pos$CRISPR_type <- factor(c("vAN +/+", "vAN +/-", "vAN -/-"), levels = c("vAN +/+", "vAN +/-", "vAN -/-"))
+    ggplot(grp_df_pos, aes(x = CRISPR_type, y = gene_mean, fill = CRISPR)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = gene_mean - gene_sd, ymax = gene_mean + gene_sd), width = 0.2) +
+        ylim(-1, maximum_exp) +
+        scale_fill_manual(values = c("#80AD3C", "#b9e27b", "#dfe981")) +
+        custom_theme(diag_text = TRUE, hide_legend = TRUE)
+    ggtitle(paste0("Scaled normalized expression of ", gene))
+    ggsave(filename = paste0("results/images/Figure_4/coex_genes_barplot/positive_correlation/barplot_", gene, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+}
+
+meta_neg <- meta
+maximum_exp <- max(norm[rownames(norm) %in% union(corr_neg$target, corr_neg$target), ])
+meta_neg$CRISPR_type <- paste(meta_neg$CRISPR, meta_neg$type, sep = "_")
+rownames(norm)[rownames(norm) %in% corr_neg$target]
+for (gene in rownames(norm)[rownames(norm) %in% corr_neg$target]) {
+    meta_neg$gene <- norm[gene, ]
+    grp_df_neg <- meta_neg %>%
+        group_by(CRISPR) %>%
+        summarize(
+            gene_mean = mean(gene),
+            gene_sd = sd(gene)
+        )
+    grp_df_neg$CRISPR_type <- factor(c("vAN +/+", "vAN +/-", "vAN -/-"), levels = c("vAN +/+", "vAN +/-", "vAN -/-"))
+    ggplot(grp_df_neg, aes(x = CRISPR_type, y = gene_mean, fill = CRISPR)) +
+        geom_bar(stat = "identity") +
+        geom_errorbar(aes(ymin = gene_mean - gene_sd, ymax = gene_mean + gene_sd), width = 0.2) +
+        ylim(-1, maximum_exp) +
+        scale_fill_manual(values = c("#80AD3C", "#b9e27b", "#dfe981")) +
+        custom_theme(diag_text = TRUE, hide_legend = TRUE)
+    ggtitle(paste0("Scaled normalized expression of ", gene))
+    ggsave(filename = paste0("results/images/Figure_4/coex_genes_barplot/negative_correlation/barplot_", gene, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+}
