@@ -14,17 +14,19 @@ rstudioapi::getSourceEditorContext()$path %>%
     str_c("/") %>%
     setwd()
 
+# Loading custom functions
 source("R/custom_fct.R")
 # Loading data (path to change later)
 rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_counts.csv", sep = ",", header = TRUE)
 meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_meta.csv", sep = ",", header = TRUE)
 
-# LON71_D12_2 is a biiiiiig outlier
+# LON71_D12_2 does not have any reads in the count file
+# though, the fastQC report shows that the sample is good
 meta <- filter(meta, sample != "LON71_D12_2", type %in% c("ventral", "dorsal"), line %in% c("LON71", "WTC"))
 counts <- rawcounts[which(rowSums(rawcounts) >= 50), meta$sample]
 
-# DEGs dorsal VS ventral at day02
-DEGs_dorso_ventral <- DESeqDataSetFromMatrix(
+# DEGs ventral VS dorsal with all samples
+DEGs_vAN_vs_dAN <- DESeqDataSetFromMatrix(
     countData = counts[, meta$sample],
     colData = meta,
     design = ~ line + type
@@ -33,12 +35,14 @@ DEGs_dorso_ventral <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_dorso_ventral_f <- filter(DEGs_dorso_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_dorso_ventral_f$gene <- gene_converter(rownames(DEGs_dorso_ventral_f), "ENSEMBL", "SYMBOL")
-DEGs_dorso_ventral_f <- filter(DEGs_dorso_ventral_f, !is.na(gene))
+DEGs_vAN_vs_dAN$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN), "ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN, !is.na(gene))
+DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-# DEGs dorsal VS ventral at day02
-DEGs_DV_day02 <- DESeqDataSetFromMatrix(
+write.csv(DEGs_vAN_vs_dAN, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN.csv", row.names = FALSE)
+
+# DEGs ventral VS dorsal at day02
+DEGs_vAN_vs_dAN_day02 <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, day == "day02")$sample],
     colData = filter(meta, day == "day02"),
     design = ~ line + type
@@ -47,15 +51,15 @@ DEGs_DV_day02 <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_DV_day02_f <- filter(DEGs_DV_day02, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_DV_day02_f$gene <- gene_converter(rownames(DEGs_DV_day02_f), "ENSEMBL", "SYMBOL")
-DEGs_DV_day02_f <- filter(DEGs_DV_day02_f, !is.na(gene))
+DEGs_vAN_vs_dAN_day02$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day02), "ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_day02_f <- filter(DEGs_vAN_vs_dAN_day02, !is.na(gene))
+DEGs_vAN_vs_dAN_day02_f <- filter(DEGs_vAN_vs_dAN_day02_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_DV_day02_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day02.csv", row.names = FALSE)
+write.csv(DEGs_vAN_vs_dAN_day02, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day02.csv", row.names = FALSE)
 
 
-# DEGs dorsal VS ventral at day04
-DEGs_DV_day04 <- DESeqDataSetFromMatrix(
+# DEGs ventral VS dorsal at day04
+DEGs_vAN_vs_dAN_day04 <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, day == "day04")$sample],
     colData = filter(meta, day == "day04"),
     design = ~ line + type
@@ -64,14 +68,14 @@ DEGs_DV_day04 <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_DV_day04_f <- filter(DEGs_DV_day04, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_DV_day04_f$gene <- gene_converter(rownames(DEGs_DV_day04_f), "ENSEMBL", "SYMBOL")
-DEGs_DV_day04_f <- filter(DEGs_DV_day04_f, !is.na(gene))
+DEGs_vAN_vs_dAN_day04$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day04), "ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_day04_f <- filter(DEGs_vAN_vs_dAN_day04, !is.na(gene))
+DEGs_vAN_vs_dAN_day04_f <- filter(DEGs_vAN_vs_dAN_day04_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_DV_day04_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day04.csv", row.names = FALSE)
+write.csv(DEGs_vAN_vs_dAN_day04, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day04.csv", row.names = FALSE)
 
-# DEGs dorsal VS ventral at day06
-DEGs_DV_day06 <- DESeqDataSetFromMatrix(
+# DEGs ventral VS dorsal at day06
+DEGs_vAN_vs_dAN_day06 <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, day == "day06")$sample],
     colData = filter(meta, day == "day06"),
     design = ~ line + type
@@ -80,15 +84,15 @@ DEGs_DV_day06 <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_DV_day06_f <- filter(DEGs_DV_day06, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_DV_day06_f$gene <- gene_converter(rownames(DEGs_DV_day06_f), "ENSEMBL", "SYMBOL")
-DEGs_DV_day06_f <- filter(DEGs_DV_day06_f, !is.na(gene))
+DEGs_vAN_vs_dAN_day06$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day06), "ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_day06_f <- filter(DEGs_vAN_vs_dAN_day06, !is.na(gene))
+DEGs_vAN_vs_dAN_day06_f <- filter(DEGs_vAN_vs_dAN_day06_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_DV_day06_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day06.csv", row.names = FALSE)
+write.csv(DEGs_vAN_vs_dAN_day06, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day06.csv", row.names = FALSE)
 
 
-# DEGs dorsal VS ventral at day08
-DEGs_DV_day08 <- DESeqDataSetFromMatrix(
+# DEGs ventral VS dorsal at day08
+DEGs_vAN_vs_dAN_day08 <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, day == "day08")$sample],
     colData = filter(meta, day == "day08"),
     design = ~ line + type
@@ -97,14 +101,14 @@ DEGs_DV_day08 <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_DV_day08_f <- filter(DEGs_DV_day08, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_DV_day08_f$gene <- gene_converter(rownames(DEGs_DV_day08_f), "ENSEMBL", "SYMBOL")
-DEGs_DV_day08_f <- filter(DEGs_DV_day08_f, !is.na(gene))
+DEGs_vAN_vs_dAN_day08$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day08), "ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_day08_f <- filter(DEGs_vAN_vs_dAN_day08, !is.na(gene))
+DEGs_vAN_vs_dAN_day08_f <- filter(DEGs_vAN_vs_dAN_day08_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_DV_day08_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day08.csv", row.names = FALSE)
+write.csv(DEGs_vAN_vs_dAN_day08, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day08.csv", row.names = FALSE)
 
-# DEGs dorsal VS ventral at day10
-DEGs_DV_day10 <- DESeqDataSetFromMatrix(
+# DEGs ventral VS dorsal at day10
+DEGs_vAN_vs_dAN_day10 <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, day == "day10")$sample],
     colData = filter(meta, day == "day10"),
     design = ~ line + type
@@ -113,14 +117,14 @@ DEGs_DV_day10 <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_DV_day10_f <- filter(DEGs_DV_day10, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_DV_day10_f$gene <- gene_converter(rownames(DEGs_DV_day10_f), "ENSEMBL", "SYMBOL")
-DEGs_DV_day10_f <- filter(DEGs_DV_day10_f, !is.na(gene))
+DEGs_vAN_vs_dAN_day10$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day10), "ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_day10_f <- filter(DEGs_vAN_vs_dAN_day10, !is.na(gene))
+DEGs_vAN_vs_dAN_day10_f <- filter(DEGs_vAN_vs_dAN_day10_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_DV_day10_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day10.csv", row.names = FALSE)
+write.csv(DEGs_vAN_vs_dAN_day10, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day10.csv", row.names = FALSE)
 
-# DEGs dorsal VS ventral at day12
-DEGs_DV_day12 <- DESeqDataSetFromMatrix(
+# DEGs ventral VS dorsal at day12
+DEGs_vAN_vs_dAN_day12 <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, day == "day12")$sample],
     colData = filter(meta, day == "day12"),
     design = ~ line + type
@@ -129,175 +133,203 @@ DEGs_DV_day12 <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_DV_day12_f <- filter(DEGs_DV_day12, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_DV_day12_f$gene <- gene_converter(rownames(DEGs_DV_day12_f), "ENSEMBL", "SYMBOL")
-DEGs_DV_day12_f <- filter(DEGs_DV_day12_f, !is.na(gene))
+DEGs_vAN_vs_dAN_day12$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day12), "ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_day12_f <- filter(DEGs_vAN_vs_dAN_day12, !is.na(gene))
+DEGs_vAN_vs_dAN_day12_f <- filter(DEGs_vAN_vs_dAN_day12_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_DV_day12_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_DV_day12.csv", row.names = FALSE)
+write.csv(DEGs_vAN_vs_dAN_day12, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day12.csv", row.names = FALSE)
 
+# Making Volcano plots
+DE_vAN_vs_dAN <- list(
+    day_02 = DEGs_vAN_vs_dAN_day02,
+    day_04 = DEGs_vAN_vs_dAN_day04,
+    day_06 = DEGs_vAN_vs_dAN_day06,
+    day_08 = DEGs_vAN_vs_dAN_day08,
+    day_10 = DEGs_vAN_vs_dAN_day10,
+    day_12 = DEGs_vAN_vs_dAN_day12
+)
+names(DE_vAN_vs_dAN)
 
-DEGs_day02_04_dorsal <- DESeqDataSetFromMatrix(
+for (days in names(DE_vAN_vs_dAN)) {
+    print(days)
+    DE <- DE_vAN_vs_dAN[[days]]
+    ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
+        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        custom_theme() +
+        geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+        geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs vAN vs dAN at ", days))
+    ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_vAN_vs_dAN_", days, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+}
+
+# DEGs day04 vs day02 for dorsal samples
+DEGs_day_04_vs_02_dorsal <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "dorsal")$sample],
     colData = filter(meta, type == "dorsal"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day02", "day04")) %>%
+    results(alpha = 0.05, contrast = c("day", "day04", "day02")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day02_04_dorsal_f <- filter(DEGs_day02_04_dorsal, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day02_04_dorsal_f$gene <- gene_converter(rownames(DEGs_day02_04_dorsal_f), "ENSEMBL", "SYMBOL")
-DEGs_day02_04_dorsal_f <- filter(DEGs_day02_04_dorsal_f, !is.na(gene))
+DEGs_day_04_vs_02_dorsal$gene <- gene_converter(rownames(DEGs_day_04_vs_02_dorsal), "ENSEMBL", "SYMBOL")
+DEGs_day_04_vs_02_dorsal_f <- filter(DEGs_day_04_vs_02_dorsal, !is.na(gene))
+DEGs_day_04_vs_02_dorsal_f <- filter(DEGs_day_04_vs_02_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day02_04_dorsal_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day02_04_dorsal.csv", row.names = FALSE)
+write.csv(DEGs_day_04_vs_02_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_04_vs_02_dorsal.csv", row.names = FALSE)
 
-
-DEGs_day02_04_ventral <- DESeqDataSetFromMatrix(
+# DEGs day04 vs day02 for ventral samples
+DEGs_day_04_vs_02_ventral <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "ventral")$sample],
     colData = filter(meta, type == "ventral"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day02", "day04")) %>%
+    results(alpha = 0.05, contrast = c("day", "day04", "day02")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day02_04_ventral_f <- filter(DEGs_day02_04_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day02_04_ventral_f$gene <- gene_converter(rownames(DEGs_day02_04_ventral_f), "ENSEMBL", "SYMBOL")
-DEGs_day02_04_ventral_f <- filter(DEGs_day02_04_ventral_f, !is.na(gene))
+DEGs_day_04_vs_02_ventral$gene <- gene_converter(rownames(DEGs_day_04_vs_02_ventral), "ENSEMBL", "SYMBOL")
+DEGs_day_04_vs_02_ventral_f <- filter(DEGs_day_04_vs_02_ventral, !is.na(gene))
+DEGs_day_04_vs_02_ventral_f <- filter(DEGs_day_04_vs_02_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day02_04_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day02_04_ventral.csv", row.names = FALSE)
+write.csv(DEGs_day_04_vs_02_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_04_vs_02_ventral.csv", row.names = FALSE)
 
-
-# day 4 to 8
-DEGs_day04_06_dorsal <- DESeqDataSetFromMatrix(
+# DEGs day06 vs day04 for dorsal samples
+DEGs_day_06_vs_04_dorsal <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "dorsal")$sample],
     colData = filter(meta, type == "dorsal"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day04", "day06")) %>%
+    results(alpha = 0.05, contrast = c("day", "day06", "day04")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day04_06_dorsal_f <- filter(DEGs_day04_06_dorsal, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day04_06_dorsal_f$gene <- gene_converter(rownames(DEGs_day04_06_dorsal_f), "ENSEMBL", "SYMBOL")
-DEGs_day04_06_dorsal_f <- filter(DEGs_day04_06_dorsal_f, !is.na(gene))
+DEGs_day_06_vs_04_dorsal$gene <- gene_converter(rownames(DEGs_day_06_vs_04_dorsal), "ENSEMBL", "SYMBOL")
+DEGs_day_06_vs_04_dorsal_f <- filter(DEGs_day_06_vs_04_dorsal, !is.na(gene))
+DEGs_day_06_vs_04_dorsal_f <- filter(DEGs_day_06_vs_04_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day04_06_dorsal_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day04_06_dorsal.csv", row.names = FALSE)
+write.csv(DEGs_day_06_vs_04_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_06_vs_04_dorsal.csv", row.names = FALSE)
 
-DEGs_day04_06_ventral <- DESeqDataSetFromMatrix(
+# DEGs day06 vs day04 for ventral samples
+DEGs_day_06_vs_04_ventral <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "ventral")$sample],
     colData = filter(meta, type == "ventral"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day04", "day06")) %>%
+    results(alpha = 0.05, contrast = c("day", "day06", "day04")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day04_06_ventral_f <- filter(DEGs_day04_06_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day04_06_ventral_f$gene <- gene_converter(rownames(DEGs_day04_06_ventral_f), "ENSEMBL", "SYMBOL")
-DEGs_day04_06_ventral_f <- filter(DEGs_day04_06_ventral_f, !is.na(gene))
+DEGs_day_06_vs_04_ventral$gene <- gene_converter(rownames(DEGs_day_06_vs_04_ventral), "ENSEMBL", "SYMBOL")
+DEGs_day_06_vs_04_ventral_f <- filter(DEGs_day_06_vs_04_ventral, !is.na(gene))
+DEGs_day_06_vs_04_ventral_f <- filter(DEGs_day_06_vs_04_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day04_06_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day04_06_ventral.csv", row.names = FALSE)
+write.csv(DEGs_day_06_vs_04_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_06_vs_04_ventral.csv", row.names = FALSE)
 
-# day 6 to 8
-DEGs_day06_08_dorsal <- DESeqDataSetFromMatrix(
+# DEGs day08 vs day06 for dorsal samples
+DEGs_day_08_vs_06_dorsal <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "dorsal")$sample],
     colData = filter(meta, type == "dorsal"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day06", "day08")) %>%
+    results(alpha = 0.05, contrast = c("day", "day08", "day06")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day06_08_dorsal_f <- filter(DEGs_day06_08_dorsal, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day06_08_dorsal_f$gene <- gene_converter(rownames(DEGs_day06_08_dorsal_f), "ENSEMBL", "SYMBOL")
-DEGs_day06_08_dorsal_f <- filter(DEGs_day06_08_dorsal_f, !is.na(gene))
+DEGs_day_08_vs_06_dorsal$gene <- gene_converter(rownames(DEGs_day_08_vs_06_dorsal), "ENSEMBL", "SYMBOL")
+DEGs_day_08_vs_06_dorsal_f <- filter(DEGs_day_08_vs_06_dorsal, !is.na(gene))
+DEGs_day_08_vs_06_dorsal_f <- filter(DEGs_day_08_vs_06_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day06_08_dorsal_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day06_08_dorsal.csv", row.names = FALSE)
+write.csv(DEGs_day_08_vs_06_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_08_vs_06_dorsal.csv", row.names = FALSE)
 
-DEGs_day06_08_ventral <- DESeqDataSetFromMatrix(
+# DEGs day08 vs day06 for ventral samples
+DEGs_day_08_vs_06_ventral <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "ventral")$sample],
     colData = filter(meta, type == "ventral"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day06", "day08")) %>%
+    results(alpha = 0.05, contrast = c("day", "day08", "day06")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day06_08_ventral_f <- filter(DEGs_day06_08_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day06_08_ventral_f$gene <- gene_converter(rownames(DEGs_day06_08_ventral_f), "ENSEMBL", "SYMBOL")
-DEGs_day06_08_ventral_f <- filter(DEGs_day06_08_ventral_f, !is.na(gene))
+DEGs_day_08_vs_06_ventral$gene <- gene_converter(rownames(DEGs_day_08_vs_06_ventral), "ENSEMBL", "SYMBOL")
+DEGs_day_08_vs_06_ventral_f <- filter(DEGs_day_08_vs_06_ventral, !is.na(gene))
+DEGs_day_08_vs_06_ventral_f <- filter(DEGs_day_08_vs_06_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day06_08_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day06_08_ventral.csv", row.names = FALSE)
 
-# day 6 to 8
-DEGs_day08_10_dorsal <- DESeqDataSetFromMatrix(
+write.csv(DEGs_day_08_vs_06_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_08_vs_06_ventral.csv", row.names = FALSE)
+
+# DEGs day10 vs day08 for dorsal samples
+DEGs_day_10_vs_08_dorsal <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "dorsal")$sample],
     colData = filter(meta, type == "dorsal"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day08", "day10")) %>%
+    results(alpha = 0.05, contrast = c("day", "day10", "day08")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day08_10_dorsal_f <- filter(DEGs_day08_10_dorsal, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day08_10_dorsal_f$gene <- gene_converter(rownames(DEGs_day08_10_dorsal_f), "ENSEMBL", "SYMBOL")
-DEGs_day08_10_dorsal_f <- filter(DEGs_day08_10_dorsal_f, !is.na(gene))
+DEGs_day_10_vs_08_dorsal$gene <- gene_converter(rownames(DEGs_day_10_vs_08_dorsal), "ENSEMBL", "SYMBOL")
+DEGs_day_10_vs_08_dorsal_f <- filter(DEGs_day_10_vs_08_dorsal, !is.na(gene))
+DEGs_day_10_vs_08_dorsal_f <- filter(DEGs_day_10_vs_08_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day08_10_dorsal_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day08_10_dorsal.csv", row.names = FALSE)
+write.csv(DEGs_day_10_vs_08_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_10_vs_08_dorsal.csv", row.names = FALSE)
 
-DEGs_day08_10_ventral <- DESeqDataSetFromMatrix(
+# DEGs day10 vs day08 for ventral samples
+DEGs_day_10_vs_08_ventral <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "ventral")$sample],
     colData = filter(meta, type == "ventral"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day08", "day10")) %>%
+    results(alpha = 0.05, contrast = c("day", "day10", "day08")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day08_10_ventral_f <- filter(DEGs_day08_10_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day08_10_ventral_f$gene <- gene_converter(rownames(DEGs_day08_10_ventral_f), "ENSEMBL", "SYMBOL")
-DEGs_day08_10_ventral_f <- filter(DEGs_day08_10_ventral_f, !is.na(gene))
+DEGs_day_10_vs_08_ventral$gene <- gene_converter(rownames(DEGs_day_10_vs_08_ventral), "ENSEMBL", "SYMBOL")
+DEGs_day_10_vs_08_ventral_f <- filter(DEGs_day_10_vs_08_ventral, !is.na(gene))
+DEGs_day_10_vs_08_ventral_f <- filter(DEGs_day_10_vs_08_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day08_10_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day08_10_ventral.csv", row.names = FALSE)
+write.csv(DEGs_day_10_vs_08_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_10_vs_08_ventral.csv", row.names = FALSE)
 
-# day 6 to 8
-DEGs_day10_12_dorsal <- DESeqDataSetFromMatrix(
+# DEGs day12 vs day10 for dorsal samples
+DEGs_day_12_vs_10_dorsal <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "dorsal")$sample],
     colData = filter(meta, type == "dorsal"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day10", "day12")) %>%
+    results(alpha = 0.05, contrast = c("day", "day12", "day10")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day10_12_dorsal_f <- filter(DEGs_day10_12_dorsal, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day10_12_dorsal_f$gene <- gene_converter(rownames(DEGs_day10_12_dorsal_f), "ENSEMBL", "SYMBOL")
-DEGs_day10_12_dorsal_f <- filter(DEGs_day10_12_dorsal_f, !is.na(gene))
+DEGs_day_12_vs_10_dorsal$gene <- gene_converter(rownames(DEGs_day_12_vs_10_dorsal), "ENSEMBL", "SYMBOL")
+DEGs_day_12_vs_10_dorsal_f <- filter(DEGs_day_12_vs_10_dorsal, !is.na(gene))
+DEGs_day_12_vs_10_dorsal_f <- filter(DEGs_day_12_vs_10_dorsal, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day10_12_dorsal_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day10_12_dorsal.csv", row.names = FALSE)
+write.csv(DEGs_day_12_vs_10_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_10_dorsal.csv", row.names = FALSE)
 
-DEGs_day10_12_ventral <- DESeqDataSetFromMatrix(
+# DEGs day12 vs day10 for ventral samples
+DEGs_day_12_vs_10_ventral <- DESeqDataSetFromMatrix(
     countData = counts[, filter(meta, type == "ventral")$sample],
     colData = filter(meta, type == "ventral"),
     design = ~ line + day
 ) %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("day", "day10", "day12")) %>%
+    results(alpha = 0.05, contrast = c("day", "day12", "day10")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day10_12_ventral_f <- filter(DEGs_day10_12_ventral, padj < 0.01, abs(log2FoldChange) >= 1)
-DEGs_day10_12_ventral_f$gene <- gene_converter(rownames(DEGs_day10_12_ventral_f), "ENSEMBL", "SYMBOL")
-DEGs_day10_12_ventral_f <- filter(DEGs_day10_12_ventral_f, !is.na(gene))
+DEGs_day_12_vs_10_ventral$gene <- gene_converter(rownames(DEGs_day_12_vs_10_ventral), "ENSEMBL", "SYMBOL")
+DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral, !is.na(gene))
+DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral, padj < 0.01, abs(log2FoldChange) >= 2)
 
-write.csv(DEGs_day10_12_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day10_12_ventral.csv", row.names = FALSE)
+write.csv(DEGs_day_12_vs_10_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_10_ventral.csv", row.names = FALSE)
 
+# Making Volcano plots for ventral samples
 DE_days_ventral <- list(
-    day02_04 = DEGs_day02_04_ventral_f,
-    day04_06 = DEGs_day04_06_ventral_f,
-    day06_08 = DEGs_day06_08_ventral_f,
-    day08_10 = DEGs_day08_10_ventral_f,
-    day10_12 = DEGs_day10_12_ventral_f
+    day_04_vs_02 = DEGs_day_04_vs_02_ventral_f,
+    day_06_vs_04 = DEGs_day_06_vs_04_ventral_f,
+    day_08_vs_06 = DEGs_day_08_vs_06_ventral_f,
+    day_10_vs_08 = DEGs_day_10_vs_08_ventral_f,
+    day_12_vs_10 = DEGs_day_12_vs_10_ventral_f
 )
 names(DE_days_ventral)
 
@@ -309,17 +341,17 @@ for (dayrange in names(DE_days_ventral)) {
         custom_theme() +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for ventral samples between ", dayrange))
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for ventral samples ", dayrange))
     ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_ventral_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
 
-
+# Making Volcano plots for dorsal samples
 DE_days_dorsal <- list(
-    day02_04 = DEGs_day02_04_dorsal_f,
-    day04_06 = DEGs_day04_06_dorsal_f,
-    day06_08 = DEGs_day06_08_dorsal_f,
-    day08_10 = DEGs_day08_10_dorsal_f,
-    day10_12 = DEGs_day10_12_dorsal_f
+    day_04_vs_02 = DEGs_day_04_vs_02_dorsal_f,
+    day_06_vs_04 = DEGs_day_06_vs_04_dorsal_f,
+    day_08_vs_06 = DEGs_day_08_vs_06_dorsal_f,
+    day_10_vs_08 = DEGs_day_10_vs_08_dorsal_f,
+    day_12_vs_10 = DEGs_day_12_vs_10_dorsal_f
 )
 names(DE_days_dorsal)
 
@@ -331,6 +363,6 @@ for (dayrange in names(DE_days_dorsal)) {
         custom_theme() +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for dorsal samples between ", dayrange))
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for dorsal samples ", dayrange))
     ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_dorsal_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }

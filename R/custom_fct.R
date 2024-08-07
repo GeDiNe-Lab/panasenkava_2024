@@ -51,6 +51,49 @@
 #' @importFrom stats sum
 #' @importFrom utils data
 
+plotPCA.DESeqTransform <- function(object, intgroup = "condition",
+                                   ntop = 500, returnData = FALSE, pcsToUse = 1:20, batch = NULL) {
+  message(paste0("using ntop=", ntop, " top features by variance"))
+
+  # calculate the variance for each gene
+  rv <- rowVars(assay(object))
+
+  # select the ntop genes by variance
+  select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
+
+  # perform a PCA on the data in assay(x) for the selected genes
+  pca <- prcomp(t(assay(object)[select, ]))
+
+  # the contribution to the total variance for each component
+  percentVar <- pca$sdev^2 / sum(pca$sdev^2)
+
+  if (!all(intgroup %in% names(colData(object)))) {
+    stop("the argument 'intgroup' should specify columns of colData(dds)")
+  }
+
+  intgroup.df <- as.data.frame(colData(object)[, intgroup, drop = FALSE])
+
+  # add the intgroup factors together to create a new grouping factor
+  group <- if (length(intgroup) > 1) {
+    factor(apply(intgroup.df, 1, paste, collapse = ":"))
+  } else {
+    colData(object)[[intgroup]]
+  }
+
+  # assembly the data
+  pcs <- paste0("PC", pcsToUse)
+  d <- pcsToUse %>% lapply(function(PC) {
+    return(pca$x[, PC])
+  })
+  d <- do.call(cbind, d)
+  d <- cbind(d, data.frame(group = group, intgroup.df, name = colnames(object)))
+  colnames(d)[pcsToUse] <- pcs
+
+  attr(d, "percentVar") <- percentVar[pcsToUse]
+  attr(d, "pca_var") <- prcomp(assay(object)[select, ])
+  return(d)
+}
+
 ggPCA <- function(X, scale.unit = TRUE, ncp = 5, ind.sup = NULL,
                   quanti.sup = NULL, quali.sup = NULL, row.w = NULL,
                   col.w = NULL, graph = TRUE, axes = c(1, 2)) {

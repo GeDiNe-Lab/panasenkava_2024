@@ -1,0 +1,253 @@
+# Loading packages and functions
+library(Matrix)
+library(tidyverse)
+library(ComplexHeatmap)
+library(org.Hs.eg.db)
+library(DESeq2)
+
+# Setting working directory
+rstudioapi::getSourceEditorContext()$path %>%
+    str_split("/") %>%
+    unlist() %>%
+    head(-3) %>%
+    str_c(collapse = "/") %>%
+    str_c("/") %>%
+    setwd()
+
+# Loading custom functions
+source("R/custom_fct.R")
+# Loading data (path to change later)
+rawcounts <- readcounts("/home/jules/Documents/phd/Data/Article_veranika/bulk/counts.csv", sep = ",", header = TRUE)
+meta <- read.table("/home/jules/Documents/phd/Data/Article_veranika/bulk/metadata.csv", sep = ",", header = TRUE)
+
+# Keeping only necessary samples
+meta <- filter(meta, type %in% c("dorsal", "ventral"), CRISPR == "control")
+rawcounts <- rawcounts[, meta$sample]
+
+# Get defined marker genes
+markers_symbol <- read.table("/home/jules/Documents/phd/Data/Article_veranika/GeneListFig1_18_07_24.csv", sep = ",", header = TRUE)
+markers_symbol <- markers_symbol$gene
+markers <- markers_symbol %>% gene_converter("SYMBOL", "ENSEMBL")
+markers <- intersect(markers, rownames(rawcounts))
+
+# Get rows corresponding to markers
+retained_row <- rawcounts[rownames(rawcounts) %in% markers, ]
+
+# filtering out lowly expressed genes
+counts <- rawcounts[rowSums(rawcounts) > 50, ]
+
+# putting back potential fitltered out markers
+if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
+    counts <- rbind(counts, retained_row[which(!rownames(retained_row) %in% rownames(counts)), ])
+    rownames(counts)[nrow(counts)] <- rownames(retained_row)[which(!rownames(retained_row) %in% rownames(counts))]
+} else if (length(which(!rownames(retained_row) %in% rownames(counts))) > 1) {
+    counts <- rbind(counts, retained_row[which(!rownames(retained_row) %in% rownames(counts)), ])
+}
+
+# making DESeq object with lineage and type as covariates
+dds <- DESeqDataSetFromMatrix(
+    countData = counts[, meta$sample],
+    colData = meta,
+    design = ~ line + type
+)
+# Variance stabilizing transformation
+vsd <- vst(dds, blind = FALSE)
+
+# sybset for markers
+vsd_symbol <- assay(vsd[markers, ])
+rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMBOL")
+
+# heatmap sample annotation
+sample_ha <- columnAnnotation(
+    line = meta[order(meta$type), ]$line,
+    type = meta[order(meta$type), ]$type,
+    col = list(
+        line = c("LON" = "#c1c1c1", "WTC" = "#7d7d7d"),
+        type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
+    )
+)
+png(filename = "results/images/Figure_1/F1_1_marker_HM.png", width = 2000, height = 1800, res = 250)
+Heatmap(
+    vsd_symbol[, meta[order(meta$type), ]$sample],
+    name = "Normalized expression",
+    row_title_gp = gpar(fontsize = 16, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    show_row_names = TRUE,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    bottom_annotation = sample_ha,
+    show_row_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(vsd_symbol) * unit(4, "mm"),
+    height = nrow(vsd_symbol) * unit(4, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+dev.off()
+
+# PCA plot
+pca.data <- plotPCA.DESeqTransform(vsd, intgroup = c("line", "type"), returnData = TRUE)
+percentVar <- round(100 * attr(pca.data, "percentVar"))
+
+png(filename = "results/images/Figure_1/F1_2_PCA.png", width = 1600, height = 1200, res = 250)
+ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
+    geom_point(size = 2, stroke = 1) +
+    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    scale_color_manual(values = c("#A1A1DE", "#80AD3C")) +
+    custom_theme() +
+    ggtitle("PCA of dorsal and ventral kinetics")
+dev.off()
+
+# PCs variance percentages :
+png(filename = "results/images/Figure_1/F1_2a_percentVar.png", width = 1600, height = 1200, res = 250)
+ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
+    geom_bar(stat = "identity") +
+    custom_theme(diag_text = TRUE) +
+    ylim(0, 100) +
+    ggtitle("PCA variance explained by each PC")
+dev.off()
+
+# Compute dorso_ventral DEGs with lineage covariate
+DEGs_vAN_vs_dAN_linecov <- dds %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
+    as.data.frame() %>%
+    na.omit()
+
+# Compute dorso_ventral DEGs without lineage covariate
+DEGs_vAN_vs_dAN_nocov <- DESeqDataSetFromMatrix(
+    countData = counts,
+    colData = meta,
+    design = ~type
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
+    as.data.frame() %>%
+    na.omit()
+
+DEGs_vAN_vs_dAN_nocov$gene <- rownames(DEGs_vAN_vs_dAN_nocov) %>% gene_converter("ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_nocov_f <- DEGs_vAN_vs_dAN_nocov %>% filter(!is.na(gene))
+DEGs_vAN_vs_dAN_nocov_f <- filter(DEGs_vAN_vs_dAN_nocov_f, padj < 0.01, abs(log2FoldChange) >= 1)
+
+DEGs_vAN_vs_dAN_linecov$gene <- rownames(DEGs_vAN_vs_dAN_linecov) %>% gene_converter("ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_linecov_f <- DEGs_vAN_vs_dAN_linecov %>% filter(!is.na(gene))
+DEGs_vAN_vs_dAN_linecov_f <- filter(DEGs_vAN_vs_dAN_linecov_f, padj < 0.01, abs(log2FoldChange) >= 1)
+
+# Venn diagram of DEGs with and without lineage covariate
+VennDiagram::venn.diagram(
+    x = list(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene),
+    main = "DEGs Dorsal VS Ventral with and without lineage covariate",
+    sub = paste0(
+        round((length(intersect(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene)) / length(union(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene))) * 100, 2),
+        "% of common DEGs"
+    ),
+    category.names = c("with", "whithout"),
+    filename = "results/images/Figure_1/venn_lineage_covariate.png",
+    output = TRUE,
+    disable.logging = TRUE
+)
+
+# getting DE genes common to both analyses
+common_genes <- intersect(rownames(DEGs_vAN_vs_dAN_linecov_f), rownames(DEGs_vAN_vs_dAN_nocov_f))
+DEGs_vAN_vs_dAN_linecov$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_linecov) %in% common_genes, "common", "exclusive")
+DEGs_vAN_vs_dAN_nocov$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_nocov) %in% common_genes, "common", "exclusive")
+DEGs_vAN_vs_dAN_linecov_f$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_linecov_f) %in% common_genes, "common", "exclusive")
+DEGs_vAN_vs_dAN_nocov_f$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_nocov_f) %in% common_genes, "common", "exclusive")
+
+# Heatmap of vAN vs dAN DEGs
+vsd_DEGs <- assay(vsd[common_genes, ])
+scaled_mat <- t(apply(vsd_DEGs, 1, scale))
+colnames(scaled_mat) <- colnames(vsd_DEGs)
+
+# two level of clustering
+clustering <- hclust(dist(scaled_mat))
+clusters_1 <- cutree(clustering, k = 2)
+clusters_2 <- cutree(clustering, k = 5)
+
+#  gene annotations
+clusters_ha <- rowAnnotation(
+    cluster_1 = as.character(clusters_1[clustering$order]),
+    col = list(
+        cluster_1 = c(
+            "1" = "red",
+            "2" = "blue"
+        ),
+        cluster_2 = c(
+            "1" = "red",
+            "2" = "blue",
+            "3" = "green",
+            "4" = "purple",
+            "5" = "orange"
+        )
+    )
+)
+
+# performing GO enrichment on clusters
+for (cluster in unique(clusters_1)) {
+    print(cluster)
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_1[which(clusters_1 == cluster)]),
+        OrgDb = "org.Hs.eg.db",
+        keyType = "ENSEMBL",
+        ont = "BP"
+    )
+    write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
+    goplot <- clusterProfiler::dotplot(GO_enrichment,
+        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
+        showCategory = 15
+    )
+    ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
+}
+
+# sample annotation
+sample_ha <- columnAnnotation(
+    line = meta$line,
+    type = meta$type,
+    col = list(
+        line = c("LON" = "#c1c1c1", "WTC" = "#7d7d7d"),
+        type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
+    )
+)
+
+png(filename = "results/images/Figure_1/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
+Heatmap(
+    scaled_mat[clustering$order, ],
+    name = "Normalized expression",
+    row_title_gp = gpar(fontsize = 16, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    left_annotation = clusters_ha,
+    bottom_annotation = sample_ha,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    show_row_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(scaled_mat) * unit(4, "mm"),
+    # height = nrow(mat) * unit(5, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+dev.off()
+
+write.csv(DEGs_vAN_vs_dAN_linecov, "results/tables/Figure_1/DEGs_vAN_vs_dAN_linecov.csv")
+write.csv(DEGs_vAN_vs_dAN_nocov, "results/tables/Figure_1/DEGs_vAN_vs_dAN_nocov.csv")
+
+colnames(DEGs_vAN_vs_dAN_linecov) <- paste0("linecov_", colnames(DEGs_vAN_vs_dAN_linecov))
+colnames(DEGs_vAN_vs_dAN_nocov) <- paste0("nocov_", colnames(DEGs_vAN_vs_dAN_nocov))
+
+DEGs_vAN_vs_dAN <- cbind(DEGs_vAN_vs_dAN_linecov, DEGs_vAN_vs_dAN_nocov)
+
+DEGs_vAN_vs_dAN$cluster_1 <- clusters_1[rownames(DEGs_vAN_vs_dAN)]
+DEGs_vAN_vs_dAN$cluster_2 <- clusters_2[rownames(DEGs_vAN_vs_dAN)]
+
+write.csv(DEGs_vAN_vs_dAN, "results/tables/Figure_1/DEGs_vAN_vs_dAN.csv")
