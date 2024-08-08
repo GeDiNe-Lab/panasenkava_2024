@@ -42,6 +42,7 @@ dds_vAN <- DESeqDataSetFromMatrix(
     colData = filter(meta, type == "ventral"),
     design = ~CRISPR
 )
+# Normalization with variance stabilizing transformation
 vsd_vAN <- varianceStabilizingTransformation(dds_vAN)
 
 # Making DESeq objects for dorsal samples
@@ -50,6 +51,7 @@ dds_dAN <- DESeqDataSetFromMatrix(
     colData = filter(meta, type == "dorsal"),
     design = ~CRISPR
 )
+# Normalization with variance stabilizing transformation
 vsd_dAN <- varianceStabilizingTransformation(dds_dAN)
 
 # Making DESeq objects for ventral and dorsal samples
@@ -58,6 +60,7 @@ dds_vAN_dAN <- DESeqDataSetFromMatrix(
     colData = meta,
     design = ~ type + CRISPR
 )
+# Normalization with variance stabilizing transformation
 vsd_vAN_dAN <- varianceStabilizingTransformation(dds_vAN_dAN)
 
 # PCA plot
@@ -70,7 +73,7 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = CRISPR)) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#80AD3C")) +
     custom_theme() +
-    ggtitle("PCA of ventral and cyclo sample in CRISPR line")
+    ggtitle("PCA of ventral samples in CRISPR line")
 dev.off()
 
 pca.data <- plotPCA(vsd_dAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
@@ -82,7 +85,7 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = CRISPR)) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#A1A1DE")) +
     custom_theme() +
-    ggtitle("PCA of ventral and cyclo sample in CRISPR line")
+    ggtitle("PCA of dorsal samples in CRISPR line")
 dev.off()
 
 pca.data <- plotPCA(vsd_vAN_dAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
@@ -94,7 +97,7 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = CRISPR)) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#80AD3C", "#A1A1DE")) +
     custom_theme() +
-    ggtitle("PCA of ventral and cyclo sample in CRISPR line")
+    ggtitle("PCA of ventral and dorsal samples in CRISPR line")
 dev.off()
 
 # DEGs between control and heterozygous for ventral, dorsal, and ventral+dorsal samples
@@ -125,8 +128,7 @@ DE_vAN_dAN_control_vs_het$gene <- gene_converter(rownames(DE_vAN_dAN_control_vs_
 DE_vAN_dAN_control_vs_het_f <- filter(DE_vAN_dAN_control_vs_het, !is.na(gene))
 DE_vAN_dAN_control_vs_het_f <- filter(DE_vAN_dAN_control_vs_het, padj < 0.01, abs(log2FoldChange) >= 2)
 
-
-# DEGs between control and homozygos for ventral, dorsal, and ventral+dorsal samples
+# DEGs between control and homozygous for ventral, dorsal, and ventral+dorsal samples
 DE_vAN_control_vs_homo <- dds_dAN %>%
     DESeq() %>%
     results(alpha = 0.05, contrast = c("CRISPR", "control", "homo")) %>%
@@ -153,7 +155,6 @@ DE_vAN_dAN_control_vs_homo <- dds_dAN %>%
 DE_vAN_dAN_control_vs_homo$gene <- gene_converter(rownames(DE_vAN_dAN_control_vs_homo), "ENSEMBL", "SYMBOL")
 DE_vAN_dAN_control_vs_homo_f <- filter(DE_vAN_dAN_control_vs_homo, !is.na(gene))
 DE_vAN_dAN_control_vs_homo_f <- filter(DE_vAN_dAN_control_vs_homo, padj < 0.01, abs(log2FoldChange) >= 2)
-
 
 # DEGs between heterozygous and homozygous for ventral, dorsal, and ventral+dorsal samples
 DE_vAN_het_vs_homo <- dds_vAN_dAN %>%
@@ -224,6 +225,7 @@ for (contrast in names(DE_CRISPR)) {
 norm <- assay(vsd_vAN_dAN)
 rownames(norm) <- gene_converter(rownames(norm), "ENSEMBL", "SYMBOL")
 
+# scaling data so the minimum normalized counts is set to 0
 meta$SHH <- norm["SHH", ] - min(norm)
 meta$NKX21 <- norm["NKX2-1", ] - min(norm)
 meta$PAX6 <- norm["PAX6", ] - min(norm)
@@ -280,7 +282,7 @@ ggplot(grouped_df, aes(x = CRISPR_type, y = TBR1_mean, fill = type)) +
     custom_theme(diag_text = TRUE)
 dev.off()
 
-# Getting co-expressed genes with SHH
+# Getting genes co-expressed with SHH
 corr_pos <- read.csv("results/tables/Figure_3/cytoscape_SHH_pos_0_80.csv")
 corr_pos <- filter(corr_pos, target_info %in% c("selected", "known"))
 corr_neg <- read.csv("results/tables/Figure_3/cytoscape_SHH_neg_0_80.csv")

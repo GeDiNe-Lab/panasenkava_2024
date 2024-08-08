@@ -59,21 +59,21 @@ DE_high_vs_no <- dds %>%
     results(alpha = 0.01, contrast = c("cyclo_dose_qual", "high", "no_cyclo")) %>%
     as.data.frame()
 DE_high_vs_no$gene <- gene_converter(rownames(DE_high_vs_no), "ENSEMBL", "SYMBOL")
-DE_high_vs_no_f <- filter(DE_high_vs_no, padj < 0.05 & abs(log2FoldChange) > 1 & !is.na(gene))
+DE_high_vs_no_f <- filter(DE_high_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
 DE_high_vs_low <- dds %>%
     DESeq() %>%
     results(alpha = 0.01, contrast = c("cyclo_dose_qual", "high", "low")) %>%
     as.data.frame()
 DE_high_vs_low$gene <- gene_converter(rownames(DE_high_vs_low), "ENSEMBL", "SYMBOL")
-DE_high_vs_low_f <- filter(DE_high_vs_low, padj < 0.05 & abs(log2FoldChange) > 1 & !is.na(gene))
+DE_high_vs_low_f <- filter(DE_high_vs_low, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
 DE_low_vs_no <- dds %>%
     DESeq() %>%
     results(alpha = 0.01, contrast = c("cyclo_dose_qual", "low", "no_cyclo")) %>%
     as.data.frame()
 DE_low_vs_no$gene <- gene_converter(rownames(DE_low_vs_no), "ENSEMBL", "SYMBOL")
-DE_low_vs_no_f <- filter(DE_low_vs_no, padj < 0.05 & abs(log2FoldChange) > 1 & !is.na(gene))
+DE_low_vs_no_f <- filter(DE_low_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
 # Preparation for heatmap, clustering and GO enrichment
 sample_order <- meta$samples[order(meta$cyclo_dose)]
@@ -161,9 +161,9 @@ cyclo_genes_df <- Reduce(cbind, list(
     dplyr::select(DE_high_vs_low, c("HvsL_padj", "HvsL_log2FoldChange")),
     dplyr::select(DE_low_vs_no, c("LvsN_padj", "LvsN_log2FoldChange"))
 ))
-cyclo_genes_df$HvsN_thr <- ifelse(abs(cyclo_genes_df$HvsN_log2FoldChange) > 1 & cyclo_genes_df$HvsN_padj < 0.01, "DE", "no")
-cyclo_genes_df$HvsL_thr <- ifelse(abs(cyclo_genes_df$HvsL_log2FoldChange) > 1 & cyclo_genes_df$HvsL_padj < 0.01, "DE", "no")
-cyclo_genes_df$LvsN_thr <- ifelse(abs(cyclo_genes_df$LvsN_log2FoldChange) > 1 & cyclo_genes_df$LvsN_padj < 0.01, "DE", "no")
+cyclo_genes_df$HvsN_thr <- ifelse(abs(cyclo_genes_df$HvsN_log2FoldChange) >= 2 & cyclo_genes_df$HvsN_padj < 0.01, "DE", "no")
+cyclo_genes_df$HvsL_thr <- ifelse(abs(cyclo_genes_df$HvsL_log2FoldChange) >= 2 & cyclo_genes_df$HvsL_padj < 0.01, "DE", "no")
+cyclo_genes_df$LvsN_thr <- ifelse(abs(cyclo_genes_df$LvsN_log2FoldChange) >= 2 & cyclo_genes_df$LvsN_padj < 0.01, "DE", "no")
 
 cyclo_genes_df$cyclo_cor <- ifelse(rownames(cyclo_genes_df) %in% rownames(cyclo_genes_f), "yes", "no")
 cyclo_genes_df$cluster <- rownames(cyclo_genes_df) %>% sapply(function(gene) {
@@ -198,7 +198,7 @@ known_genes <- c("GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2-1", "PAX6", "PT
 
 # getting normalized counts for co-expression
 counts_coex <- rawcounts[, meta$samples]
-counts_coex <- counts_coex[which(rowSums(counts_coex) >= 100), ]
+counts_coex <- counts_coex[which(rowSums(counts_coex) >= 200), ]
 dds_coex <- DESeqDataSetFromMatrix(
     countData = counts_coex,
     colData = meta,

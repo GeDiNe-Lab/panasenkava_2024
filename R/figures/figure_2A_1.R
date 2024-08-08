@@ -34,7 +34,7 @@ dds <- DESeqDataSetFromMatrix(
     design = ~ line + day + type
 )
 
-# Variance stabilizing transformation
+# Normalization by variance stabilizing transformation
 vsd <- vst(dds, blind = FALSE)
 
 # PCA with all genes
@@ -80,7 +80,7 @@ ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), level
     geom_bar(stat = "identity") +
     custom_theme(diag_text = TRUE) +
     ylim(0, 100) +
-    ggtitle("PCA variance explained by each PC with all genes")
+    ggtitle("Variation explained by each PCs with all genes")
 dev.off()
 
 # PCA with top 500 variable genes
@@ -125,7 +125,7 @@ ggplot(data.frame(perc = percentVar500, PC = factor(colnames(pca.data500[1:20]),
     geom_bar(stat = "identity") +
     custom_theme(diag_text = TRUE) +
     ylim(0, 100) +
-    ggtitle("PCA variance explained by each PC with top 500 variable genes")
+    ggtitle("Variation explained by each PCs with top 500 variable genes")
 dev.off()
 
 # PC3 is associated with lineage difference, we want genes higlhy correlated with PC1 and PC2 but not PC3
@@ -141,13 +141,16 @@ top_PC3 <- cor(pca.data$PC3, t(assay(vsd))) %>% as.vector()
 names(top_PC3) <- rownames(vsd)
 top_PC3 <- sort(abs(top_PC3), decreasing = TRUE)[1:1000] %>% names()
 
+# get Heatmap genes
 hm_genes <- setdiff(union(top_PC1, top_PC2), top_PC3)
 
+# making matrix for heatmap, clustering and GO enrichment
 vsd_DEGs <- assay(vsd)[hm_genes, ]
 
 scaled_mat <- t(apply(vsd_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(vsd_DEGs)
 
+# get a fix sample order for the kinetic heatmap
 sample_order <- c(
     filter(meta, type == "ventral")$sample[order(filter(meta, type == "ventral")$day, decreasing = TRUE)],
     filter(meta, type == "dorsal")$sample[order(filter(meta, type == "dorsal")$day)]
@@ -205,7 +208,6 @@ for (cluster in unique(clusters)) {
     )
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
 }
-
 
 png(filename = "results/images/Figure_2A/F2A_DE_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(

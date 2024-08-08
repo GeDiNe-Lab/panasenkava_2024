@@ -34,9 +34,9 @@ markers <- intersect(markers, rownames(rawcounts))
 retained_row <- rawcounts[rownames(rawcounts) %in% markers, ]
 
 # filtering out lowly expressed genes
-counts <- rawcounts[rowSums(rawcounts) > 50, ]
+counts <- rawcounts[rowSums(rawcounts) >= 50, ]
 
-# putting back potential fitltered out markers
+# putting back potentially filtered out markers (posterior markers for example as they should not be expressed)
 if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
     counts <- rbind(counts, retained_row[which(!rownames(retained_row) %in% rownames(counts)), ])
     rownames(counts)[nrow(counts)] <- rownames(retained_row)[which(!rownames(retained_row) %in% rownames(counts))]
@@ -50,10 +50,10 @@ dds <- DESeqDataSetFromMatrix(
     colData = meta,
     design = ~ line + type
 )
-# Variance stabilizing transformation
+# Normalization by variance stabilizing transformation
 vsd <- vst(dds, blind = FALSE)
 
-# sybset for markers
+# subset rows for markers
 vsd_symbol <- assay(vsd[markers, ])
 rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMBOL")
 
@@ -90,7 +90,7 @@ Heatmap(
 )
 dev.off()
 
-# PCA plot
+# PCA plot of the top 500 most variable genes
 pca.data <- plotPCA.DESeqTransform(vsd, intgroup = c("line", "type"), returnData = TRUE)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
@@ -101,26 +101,26 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#A1A1DE", "#80AD3C")) +
     custom_theme() +
-    ggtitle("PCA of dorsal and ventral kinetics")
+    ggtitle("PCA of dorsal and ventral samples at day12")
 dev.off()
 
-# PCs variance percentages :
+# PCs variation percentages :
 png(filename = "results/images/Figure_1/F1_2a_percentVar.png", width = 1600, height = 1200, res = 250)
 ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
     geom_bar(stat = "identity") +
     custom_theme(diag_text = TRUE) +
     ylim(0, 100) +
-    ggtitle("PCA variance explained by each PC")
+    ggtitle("Variation explained by each PC")
 dev.off()
 
-# Compute dorso_ventral DEGs with lineage covariate
+# Compute ventral vs dorsal DEGs with lineage covariate
 DEGs_vAN_vs_dAN_linecov <- dds %>%
     DESeq() %>%
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
 
-# Compute dorso_ventral DEGs without lineage covariate
+# Compute ventral vs dorsal DEGs without lineage covariate
 DEGs_vAN_vs_dAN_nocov <- DESeqDataSetFromMatrix(
     countData = counts,
     colData = meta,
@@ -142,7 +142,7 @@ DEGs_vAN_vs_dAN_linecov_f <- filter(DEGs_vAN_vs_dAN_linecov_f, padj < 0.01, abs(
 # Venn diagram of DEGs with and without lineage covariate
 VennDiagram::venn.diagram(
     x = list(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene),
-    main = "DEGs Dorsal VS Ventral with and without lineage covariate",
+    main = "DEGs ventral VS dorsal with and without lineage covariate",
     sub = paste0(
         round((length(intersect(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene)) / length(union(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene))) * 100, 2),
         "% of common DEGs"
@@ -153,7 +153,7 @@ VennDiagram::venn.diagram(
     disable.logging = TRUE
 )
 
-# getting DE genes common to both analyses
+# getting DE genes common to both analysis
 common_genes <- intersect(rownames(DEGs_vAN_vs_dAN_linecov_f), rownames(DEGs_vAN_vs_dAN_nocov_f))
 DEGs_vAN_vs_dAN_linecov$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_linecov) %in% common_genes, "common", "exclusive")
 DEGs_vAN_vs_dAN_nocov$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_nocov) %in% common_genes, "common", "exclusive")
@@ -188,7 +188,7 @@ clusters_ha <- rowAnnotation(
     )
 )
 
-# performing GO enrichment on clusters
+# performing GO enrichment on 1st layer clusters
 for (cluster in unique(clusters_1)) {
     print(cluster)
     GO_enrichment <- clusterProfiler::enrichGO(names(clusters_1[which(clusters_1 == cluster)]),
