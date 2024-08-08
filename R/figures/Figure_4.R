@@ -64,41 +64,78 @@ dds_vAN_dAN <- DESeqDataSetFromMatrix(
 vsd_vAN_dAN <- varianceStabilizingTransformation(dds_vAN_dAN)
 
 # PCA plot
-pca.data <- plotPCA(vsd_vAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
-percentVar <- round(100 * attr(pca.data, "percentVar"))
+pca.data_vAN <- plotPCA.DESeqTransform(vsd_vAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
+percentVar_vAN <- round(100 * attr(pca.data_vAN, "percentVar"))
 png(filename = "results/images/Figure_4/F4_PCA_vAN.png", width = 1600, height = 1200, res = 250)
-ggplot(pca.data, aes(PC1, PC2, color = type, shape = CRISPR)) +
+ggplot(pca.data_vAN, aes(PC1, PC2, color = type, shape = CRISPR)) +
     geom_point(size = 3, stroke = 1) +
-    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
-    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    xlab(paste0("PC1: ", percentVar_vAN[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_vAN[2], "% variance")) +
     scale_color_manual(values = c("#80AD3C")) +
     custom_theme() +
     ggtitle("PCA of ventral samples in CRISPR line")
 dev.off()
 
-pca.data <- plotPCA(vsd_dAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
-percentVar <- round(100 * attr(pca.data, "percentVar"))
+pca.data_dAN <- plotPCA.DESeqTransform(vsd_dAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
+percentVar_dAN <- round(100 * attr(pca.data_dAN, "percentVar"))
 png(filename = "results/images/Figure_4/F4_dAN_type.png", width = 1600, height = 1200, res = 250)
-ggplot(pca.data, aes(PC1, PC2, color = type, shape = CRISPR)) +
+ggplot(pca.data_dAN, aes(PC1, PC2, color = type, shape = CRISPR)) +
     geom_point(size = 3, stroke = 1) +
-    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
-    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    xlab(paste0("PC1: ", percentVar_dAN[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_dAN[2], "% variance")) +
     scale_color_manual(values = c("#A1A1DE")) +
     custom_theme() +
     ggtitle("PCA of dorsal samples in CRISPR line")
 dev.off()
 
-pca.data <- plotPCA(vsd_vAN_dAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
-percentVar <- round(100 * attr(pca.data, "percentVar"))
+pca.data_vAN_dAN <- plotPCA.DESeqTransform(vsd_vAN_dAN, intgroup = c("type", "CRISPR"), returnData = TRUE)
+percentVar_vAN_dAN <- round(100 * attr(pca.data_vAN_dAN, "percentVar"))
 png(filename = "results/images/Figure_4/F4_PCA_vAN_dAN.png", width = 1600, height = 1200, res = 250)
-ggplot(pca.data, aes(PC1, PC2, color = type, shape = CRISPR)) +
+ggplot(pca.data_vAN_dAN, aes(PC1, PC2, color = type, shape = CRISPR)) +
     geom_point(size = 3, stroke = 1) +
-    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
-    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    xlab(paste0("PC1: ", percentVar_vAN_dAN[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar_vAN_dAN[2], "% variance")) +
     scale_color_manual(values = c("#80AD3C", "#A1A1DE")) +
     custom_theme() +
     ggtitle("PCA of ventral and dorsal samples in CRISPR line")
 dev.off()
+
+meta_bin <- meta %>%
+    dplyr::select(c("type", "CRISPR")) %>%
+    apply(2, function(x) {
+        return(as.numeric(factor(x)) - 1)
+    }) %>%
+    as.matrix()
+
+PC_covariate_cor <- cor(pca.data_vAN_dAN[, 1:5], meta_bin) %>% abs()
+rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar_vAN_dAN[1:5], "%)")
+PC_covariate_cor
+
+png(filename = "results/images/Figure_4/F4_PC_covariate_correlation_vAN_dAN.png", width = 2000, height = 1800, res = 250)
+Heatmap(
+    PC_covariate_cor,
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", PC_covariate_cor[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
+    },
+    name = "absolute Pearson correlation",
+    row_title_gp = gpar(fontsize = 20, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    row_names_side = "left",
+    column_names_side = "top",
+    column_names_rot = 0,
+    column_names_centered = TRUE,
+    show_column_names = TRUE,
+    show_heatmap_legend = TRUE,
+    width = ncol(PC_covariate_cor) * unit(1.5, "cm"),
+    height = nrow(PC_covariate_cor) * unit(1, "cm"),
+    col = colorRampPalette(c(
+        "lightblue",
+        "darkblue"
+    ))(1000),
+)
+dev.off()
+
 
 # DEGs between control and heterozygous for ventral, dorsal, and ventral+dorsal samples
 DE_vAN_control_vs_het <- dds_vAN %>%

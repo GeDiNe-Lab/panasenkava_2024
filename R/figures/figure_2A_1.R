@@ -83,6 +83,44 @@ ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), level
     ggtitle("Variation explained by each PCs with all genes")
 dev.off()
 
+meta_bin_all_genes <- meta %>%
+    dplyr::select(c("line", "type", "day")) %>%
+    apply(2, function(x) {
+        return(as.numeric(factor(x)) - 1)
+    }) %>%
+    as.matrix()
+
+PC_covariate_cor_all_genes <- cor(pca.data[, 1:5], meta_bin_all_genes) %>% abs()
+rownames(PC_covariate_cor_all_genes) <- paste0(rownames(PC_covariate_cor_all_genes), " (", percentVar[1:5], "%)")
+PC_covariate_cor_all_genes
+
+png(filename = "results/images/Figure_2A/F2A_PC_covariate_correlation_all_genes.png", width = 2000, height = 1800, res = 250)
+Heatmap(
+    PC_covariate_cor_all_genes,
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", PC_covariate_cor_all_genes[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
+    },
+    name = "Absolute pearson correlation",
+    row_title_gp = gpar(fontsize = 20, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    row_names_side = "left",
+    column_names_side = "top",
+    column_names_rot = 0,
+    column_names_centered = TRUE,
+    show_column_names = TRUE,
+    show_heatmap_legend = TRUE,
+    width = ncol(PC_covariate_cor_all_genes) * unit(1.5, "cm"),
+    height = nrow(PC_covariate_cor_all_genes) * unit(1, "cm"),
+    col = colorRampPalette(c(
+        "lightblue",
+        "darkblue"
+    ))(1000),
+)
+dev.off()
+
+
+
 # PCA with top 500 variable genes
 pca.data500 <- plotPCA.DESeqTransform(vsd, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = 500)
 percentVar500 <- round(100 * attr(pca.data500, "percentVar"))
@@ -126,6 +164,42 @@ ggplot(data.frame(perc = percentVar500, PC = factor(colnames(pca.data500[1:20]),
     custom_theme(diag_text = TRUE) +
     ylim(0, 100) +
     ggtitle("Variation explained by each PCs with top 500 variable genes")
+dev.off()
+
+meta_bin_500 <- meta %>%
+    dplyr::select(c("line", "type", "day")) %>%
+    apply(2, function(x) {
+        return(as.numeric(factor(x)) - 1)
+    }) %>%
+    as.matrix()
+
+PC_covariate_cor_500 <- cor(pca.data500[, 1:5], meta_bin_500) %>% abs()
+rownames(PC_covariate_cor_500) <- paste0(rownames(PC_covariate_cor_500), " (", percentVar500[1:5], "%)")
+PC_covariate_cor_500
+
+png(filename = "results/images/Figure_2A/F2A_PC_covariate_correlation_500.png", width = 2000, height = 1800, res = 250)
+Heatmap(
+    PC_covariate_cor_500,
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", PC_covariate_cor_500[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
+    },
+    name = "Absolute pearson correlation",
+    row_title_gp = gpar(fontsize = 20, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    row_names_side = "left",
+    column_names_side = "top",
+    column_names_rot = 0,
+    column_names_centered = TRUE,
+    show_column_names = TRUE,
+    show_heatmap_legend = TRUE,
+    width = ncol(PC_covariate_cor_500) * unit(1.5, "cm"),
+    height = nrow(PC_covariate_cor_500) * unit(1, "cm"),
+    col = colorRampPalette(c(
+        "lightblue",
+        "darkblue"
+    ))(1000),
+)
 dev.off()
 
 # PC3 is associated with lineage difference, we want genes higlhy correlated with PC1 and PC2 but not PC3
