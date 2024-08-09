@@ -46,6 +46,57 @@ dds <- DESeqDataSetFromMatrix(
 # Variance stabilizing transformation
 vsd <- vst(dds, blind = FALSE)
 
+pca.data <- plotPCA.DESeqTransform(vsd, intgroup = c("type", "cyclo_dose_qual"), returnData = TRUE)
+percentVar <- round(100 * attr(pca.data, "percentVar"))
+
+png(filename = "results/images/Figure_2A/F3_PCA_1_2.png", width = 1600, height = 1200, res = 250)
+ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_qual)) +
+    geom_point(size = 2, stroke = 1) +
+    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    scale_color_manual(values = c("#ecb039", "#80AD3C")) +
+    scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
+    custom_theme() +
+    ggtitle("First and second PCs of dorsal and ventral kinetics all genes")
+dev.off()
+
+meta_bin <- meta %>%
+    dplyr::select(c("type", "cyclo_dose")) %>%
+    apply(2, function(x) {
+        return(as.numeric(factor(x)) - 1)
+    }) %>%
+    as.matrix()
+
+PC_covariate_cor <- cor(pca.data[, 1:5], meta_bin) %>% abs()
+rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
+PC_covariate_cor
+
+png(filename = "results/images/Figure_2A/F3_PC_covariate_correlation.png", width = 2000, height = 1800, res = 250)
+Heatmap(
+    PC_covariate_cor,
+    cell_fun = function(j, i, x, y, width, height, fill) {
+        grid.text(sprintf("%.2f", PC_covariate_cor[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
+    },
+    name = "Absolute pearson correlation",
+    row_title_gp = gpar(fontsize = 20, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    row_names_side = "left",
+    column_names_side = "top",
+    column_names_rot = 0,
+    column_names_centered = TRUE,
+    show_column_names = TRUE,
+    show_heatmap_legend = TRUE,
+    width = ncol(PC_covariate_cor) * unit(2.5, "cm"),
+    height = nrow(PC_covariate_cor) * unit(1.5, "cm"),
+    col = colorRampPalette(c(
+        "lightblue",
+        "darkblue"
+    ))(1000),
+)
+dev.off()
+
+
 # getting genes correlated to cyclopamine dose
 cyclo_genes <- cor(t(assay(vsd)[, meta$samples[order(meta$cyclo_dose)]]), sort(meta$cyclo_dose)) %>% as.data.frame()
 colnames(cyclo_genes) <- c("cor")

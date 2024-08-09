@@ -43,7 +43,7 @@ dds_vAN <- DESeqDataSetFromMatrix(
     design = ~CRISPR
 )
 # Normalization with variance stabilizing transformation
-vsd_vAN <- varianceStabilizingTransformation(dds_vAN)
+vsd_vAN <- vst(dds_vAN, blind = FALSE)
 
 # Making DESeq objects for dorsal samples
 dds_dAN <- DESeqDataSetFromMatrix(
@@ -52,7 +52,7 @@ dds_dAN <- DESeqDataSetFromMatrix(
     design = ~CRISPR
 )
 # Normalization with variance stabilizing transformation
-vsd_dAN <- varianceStabilizingTransformation(dds_dAN)
+vsd_dAN <- vst(dds_dAN, blind = FALSE)
 
 # Making DESeq objects for ventral and dorsal samples
 dds_vAN_dAN <- DESeqDataSetFromMatrix(
@@ -61,7 +61,7 @@ dds_vAN_dAN <- DESeqDataSetFromMatrix(
     design = ~ type + CRISPR
 )
 # Normalization with variance stabilizing transformation
-vsd_vAN_dAN <- varianceStabilizingTransformation(dds_vAN_dAN)
+vsd_vAN_dAN <- vst(dds_vAN_dAN, blind = FALSE)
 
 # PCA plot
 pca.data_vAN <- plotPCA.DESeqTransform(vsd_vAN, intgroup = c("type", "CRISPR"), returnData = TRUE)

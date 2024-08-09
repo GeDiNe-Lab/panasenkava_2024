@@ -50,48 +50,11 @@ dds <- DESeqDataSetFromMatrix(
     colData = meta,
     design = ~ line + type
 )
-# Normalization by variance stabilizing transformation
-vsd <- vst(dds, blind = FALSE)
-
-# subset rows for markers
-vsd_symbol <- assay(vsd[markers, ])
-rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMBOL")
-
-# heatmap sample annotation
-sample_ha <- columnAnnotation(
-    line = meta[order(meta$type), ]$line,
-    type = meta[order(meta$type), ]$type,
-    col = list(
-        line = c("LON" = "#c1c1c1", "WTC" = "#7d7d7d"),
-        type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
-    )
-)
-png(filename = "results/images/Figure_1/F1_1_marker_HM.png", width = 2000, height = 1800, res = 250)
-Heatmap(
-    vsd_symbol[, meta[order(meta$type), ]$sample],
-    name = "Normalized expression",
-    row_title_gp = gpar(fontsize = 16, fontface = "bold"),
-    cluster_rows = FALSE,
-    cluster_columns = FALSE,
-    show_row_names = TRUE,
-    row_names_side = "left",
-    show_column_names = TRUE,
-    bottom_annotation = sample_ha,
-    show_row_dend = FALSE,
-    show_heatmap_legend = TRUE,
-    width = ncol(vsd_symbol) * unit(4, "mm"),
-    height = nrow(vsd_symbol) * unit(4, "mm"),
-    col = colorRampPalette(c(
-        "black",
-        "purple",
-        "orange",
-        "yellow"
-    ))(1000),
-)
-dev.off()
+# Normalization by variance stabilizing transformation without covariates
+vsd_blind <- vst(dds, blind = TRUE)
 
 # PCA plot of the top 500 most variable genes
-pca.data <- plotPCA.DESeqTransform(vsd, intgroup = c("line", "type"), returnData = TRUE)
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("line", "type"), returnData = TRUE, ntop = nrow(assay(vsd_blind)))
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
 png(filename = "results/images/Figure_1/F1_2_PCA.png", width = 1600, height = 1200, res = 250)
@@ -104,16 +67,28 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     ggtitle("PCA of dorsal and ventral samples at day12")
 dev.off()
 
-meta_bin <- meta %>%
+PC_covariate <- cbind(pca.data[, 1:5], meta %>%
     dplyr::select(c("line", "type")) %>%
     apply(2, function(x) {
         return(as.numeric(factor(x)) - 1)
     }) %>%
-    as.matrix()
+    as.matrix())
 
-PC_covariate_cor <- cor(pca.data[, 1:5], meta_bin) %>% abs()
-rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
+PC_covariate_cor <- cor(PC_covariate[, 1:5], PC_covariate[, 6:ncol(PC_covariate)]) %>% abs()
 PC_covariate_cor
+
+PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
+    apply(PC_covariate[, 1:5], 2, function(x) {
+        aov(x ~ PC_covariate[, i])
+    }) %>% sapply(function(x) {
+        summary(x)[[1]]$`Pr(>F)`[1]
+    })
+})
+PC_covariate_ANOVA <- Reduce(cbind, PC_covariate_ANOVA)
+colnames(PC_covariate_ANOVA) <- colnames(PC_covariate)[6:ncol(PC_covariate)]
+PC_covariate_ANOVA
+
+rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
 
 png(filename = "results/images/Figure_1/F1_2B_PC_covariate_correlation.png", width = 2000, height = 1800, res = 250)
 Heatmap(
@@ -140,7 +115,6 @@ Heatmap(
 )
 dev.off()
 
-
 # PCs variation percentages :
 png(filename = "results/images/Figure_1/F1_2a_percentVar.png", width = 1600, height = 1200, res = 250)
 ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
@@ -148,6 +122,65 @@ ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), level
     custom_theme(diag_text = TRUE) +
     ylim(0, 100) +
     ggtitle("Variation explained by each PC")
+dev.off()
+
+vsd <- vst(dds, blind = FALSE)
+
+# subset rows for markers
+vsd_symbol <- assay(vsd[markers, ])
+rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMBOL")
+
+#  gene annotations
+marker_ha <- rowAnnotation(
+    markers = c(
+        rep("pluripotency", 2),
+        rep("anterior neuroectoderm", 6),
+        rep("ventral", 10),
+        rep("dorsal", 7),
+        rep("posterior neuroectoderm", 4)
+    ),
+    col = list(
+        markers = c(
+            "pluripotency" = "red",
+            "anterior neuroectoderm" = "blue",
+            "ventral" = "green",
+            "dorsal" = "purple",
+            "posterior neuroectoderm" = "orange"
+        )
+    )
+)
+# heatmap sample annotation
+sample_ha <- columnAnnotation(
+    line = meta[order(meta$type), ]$line,
+    type = meta[order(meta$type), ]$type,
+    col = list(
+        line = c("LON" = "#c1c1c1", "WTC" = "#7d7d7d"),
+        type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
+    )
+)
+png(filename = "results/images/Figure_1/F1_1_marker_HM.png", width = 2000, height = 1800, res = 250)
+Heatmap(
+    vsd_symbol[, meta[order(meta$type), ]$sample],
+    name = "Normalized expression",
+    row_title_gp = gpar(fontsize = 16, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    show_row_names = TRUE,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    bottom_annotation = sample_ha,
+    right_annotation = marker_ha,
+    show_row_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(vsd_symbol) * unit(4, "mm"),
+    height = nrow(vsd_symbol) * unit(4, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
 dev.off()
 
 # Compute ventral vs dorsal DEGs with lineage covariate
@@ -198,7 +231,7 @@ DEGs_vAN_vs_dAN_linecov_f$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_linecov_f) 
 DEGs_vAN_vs_dAN_nocov_f$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_nocov_f) %in% common_genes, "common", "exclusive")
 
 # Heatmap of vAN vs dAN DEGs
-vsd_DEGs <- assay(vsd[common_genes, ])
+vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_linecov_f), ])
 scaled_mat <- t(apply(vsd_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(vsd_DEGs)
 
