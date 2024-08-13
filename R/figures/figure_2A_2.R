@@ -154,11 +154,11 @@ for (days in names(DE_vAN_vs_dAN)) {
     print(days)
     DE <- DE_vAN_vs_dAN[[days]]
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        geom_text(size = 2) +
         custom_theme() +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs vAN vs dAN at ", days))
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs vAN vs dAN at ", days), subtitle = "|log2FC| >= 2 & FDR < 0.01")
     ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_vAN_vs_dAN_", days, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
 
@@ -337,11 +337,11 @@ for (dayrange in names(DE_days_ventral)) {
     print(dayrange)
     DE <- DE_days_ventral[[dayrange]]
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        geom_text(size = 2) +
         custom_theme() +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for ventral samples ", dayrange))
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for ventral samples ", dayrange), subtitle = "|log2FC| >= 2 & FDR < 0.01")
     ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_ventral_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
 
@@ -359,10 +359,10 @@ for (dayrange in names(DE_days_dorsal)) {
     print(dayrange)
     DE <- DE_days_dorsal[[dayrange]]
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        geom_text(size = 2) +
         custom_theme() +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for dorsal samples ", dayrange))
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for dorsal samples ", dayrange), subtitle = "|log2FC| >= 2 & FDR < 0.01")
     ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_dorsal_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }

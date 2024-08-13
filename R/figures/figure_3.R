@@ -24,7 +24,8 @@ meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/manip4/manip4_meta
 
 # L9C1_2 is an outlier and is removed
 meta <- filter(meta, type %in% c("cyclo", "ventral") & samples != "L9C1_2")
-counts <- rawcounts[which(rowSums(rawcounts) >= 50), meta$samples]
+rownames(meta) <- meta$samples
+counts <- rawcounts[which(rowSums(rawcounts) >= 25), meta$samples]
 
 meta$cyclo_dose_qual <- meta$cyclo_dose %>% sapply(function(x) {
     if (x %in% c(0.125, 0.25)) {
@@ -104,28 +105,6 @@ cyclo_genes$genes <- rownames(cyclo_genes) %>% gene_converter("ENSEMBL", "SYMBOL
 cyclo_genes$abscor <- abs(cyclo_genes$cor)
 cyclo_genes_f <- filter(cyclo_genes, abscor > 0.5)
 
-# DEGs high vs no cyclo, high vs low cyclo, low vs no cyclo
-DE_high_vs_no <- dds %>%
-    DESeq() %>%
-    results(alpha = 0.01, contrast = c("cyclo_dose_qual", "high", "no_cyclo")) %>%
-    as.data.frame()
-DE_high_vs_no$gene <- gene_converter(rownames(DE_high_vs_no), "ENSEMBL", "SYMBOL")
-DE_high_vs_no_f <- filter(DE_high_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
-
-DE_high_vs_low <- dds %>%
-    DESeq() %>%
-    results(alpha = 0.01, contrast = c("cyclo_dose_qual", "high", "low")) %>%
-    as.data.frame()
-DE_high_vs_low$gene <- gene_converter(rownames(DE_high_vs_low), "ENSEMBL", "SYMBOL")
-DE_high_vs_low_f <- filter(DE_high_vs_low, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
-
-DE_low_vs_no <- dds %>%
-    DESeq() %>%
-    results(alpha = 0.01, contrast = c("cyclo_dose_qual", "low", "no_cyclo")) %>%
-    as.data.frame()
-DE_low_vs_no$gene <- gene_converter(rownames(DE_low_vs_no), "ENSEMBL", "SYMBOL")
-DE_low_vs_no_f <- filter(DE_low_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
-
 # Preparation for heatmap, clustering and GO enrichment
 sample_order <- meta$samples[order(meta$cyclo_dose)]
 scaled_mat <- t(apply(assay(vsd)[rownames(cyclo_genes_f), sample_order], 1, scale))
@@ -203,6 +182,29 @@ Heatmap(
 )
 dev.off()
 
+# DEGs high vs no cyclo, high vs low cyclo, low vs no cyclo
+DE_high_vs_no <- dds %>%
+    DESeq() %>%
+    results(alpha = 0.01, contrast = c("cyclo_dose_qual", "high", "no_cyclo")) %>%
+    as.data.frame()
+DE_high_vs_no$gene <- gene_converter(rownames(DE_high_vs_no), "ENSEMBL", "SYMBOL")
+DE_high_vs_no_f <- filter(DE_high_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
+
+DE_high_vs_low <- dds %>%
+    DESeq() %>%
+    results(alpha = 0.01, contrast = c("cyclo_dose_qual", "high", "low")) %>%
+    as.data.frame()
+DE_high_vs_low$gene <- gene_converter(rownames(DE_high_vs_low), "ENSEMBL", "SYMBOL")
+DE_high_vs_low_f <- filter(DE_high_vs_low, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
+
+DE_low_vs_no <- dds %>%
+    DESeq() %>%
+    results(alpha = 0.01, contrast = c("cyclo_dose_qual", "low", "no_cyclo")) %>%
+    as.data.frame()
+DE_low_vs_no$gene <- gene_converter(rownames(DE_low_vs_no), "ENSEMBL", "SYMBOL")
+DE_low_vs_no_f <- filter(DE_low_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
+
+
 # Building heatmap genes annotation (DE, correlation with cyclo, cluster, subcluster)
 colnames(DE_high_vs_no) <- paste0("HvsN_", colnames(DE_high_vs_no))
 colnames(DE_high_vs_low) <- paste0("HvsL_", colnames(DE_high_vs_low))
@@ -249,7 +251,7 @@ known_genes <- c("GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2-1", "PAX6", "PT
 
 # getting normalized counts for co-expression
 counts_coex <- rawcounts[, meta$samples]
-counts_coex <- counts_coex[which(rowSums(counts_coex) >= 200), ]
+counts_coex <- counts_coex[which(rowSums(counts_coex) >= 25), ]
 dds_coex <- DESeqDataSetFromMatrix(
     countData = counts_coex,
     colData = meta,
@@ -258,92 +260,86 @@ dds_coex <- DESeqDataSetFromMatrix(
 vsd_coex <- vst(dds_coex, blind = FALSE)
 
 # getting co-expression matrix (Pearson correlation)
-corr <- WGCNA::cor(t(assay(vsd_coex)))
+corr <- WGCNA::cor(t(assay(vsd)))
 
 # getting genes correlation with SHH, NKX2-1 and PAX6
 corr_df <- as.data.frame(corr[, c("ENSG00000164690", "ENSG00000136352", "ENSG00000007372")])
+colnames(corr_df) <- c("SHH", "NKX2.1", "PAX6")
 corr_df$abs_max_cor <- apply(corr_df, 1, function(x) max(abs(x)))
 corr_df$gene <- gene_converter(rownames(corr_df), "ENSEMBL", "SYMBOL")
 corr_df <- filter(corr_df, !is.na(gene))
 
-# Getting genes passing 2 correlation thresholds
-corr_df_f1 <- filter(corr_df, abs_max_cor >= 0.8)
-corr_df_f2 <- filter(corr_df, abs_max_cor >= 0.85)
+corr_df_f <- filter(corr_df, abs_max_cor >= 0.85)
 
-SHH_pos_1 <- data.frame(
-    cor = filter(corr_df_f1, ENSG00000164690 > 0)$abs_max_cor,
-    link = rep(1, nrow(filter(corr_df_f1, ENSG00000164690 > 0))),
-    target = filter(corr_df_f1, ENSG00000164690 > 0)$gene,
-    source = rep("SHH", nrow(filter(corr_df_f1, ENSG00000164690 > 0)))
-)
-SHH_pos_1$target_info <- SHH_pos_1$target %>% sapply(function(x) {
-    if (x %in% known_genes) {
-        return("known")
-    } else if (x %in% union(dorsal, ventral)) {
-        return("selected")
-    } else {
-        return("no")
-    }
+write.csv(corr_df_f, file = "results/tables/Figure_3/Pearson_0_85.csv")
+
+
+scaled_vsd <- assay(vsd) - min(assay(vsd))
+subset_assay_pos <- scaled_vsd[rownames(corr_df_f[order(corr_df_f$SHH, decreasing = TRUE), ][2:11, ]), ]
+rownames(subset_assay_pos) <- rownames(subset_assay_pos) %>% gene_converter("ENSEMBL", "SYMBOL")
+subset_assay_neg <- scaled_vsd[rownames(corr_df_f[order(corr_df_f$SHH, decreasing = FALSE), ][1:10, ]), ]
+rownames(subset_assay_neg) <- rownames(subset_assay_neg) %>% gene_converter("ENSEMBL", "SYMBOL")
+
+df_neg <- t(subset_assay_neg) %>% as.data.frame()
+df_neg$cyclo_dose <- meta[rownames(df_neg), ]$cyclo_dose
+df_neg_mean <- df_neg %>%
+    group_by(cyclo_dose) %>%
+    summarise(across(everything(), mean)) %>%
+    as.data.frame()
+df_neg_sd <- df_neg %>%
+    group_by(cyclo_dose) %>%
+    summarise(across(everything(), sd)) %>%
+    as.data.frame()
+df_neg <- df_neg_mean %>% reshape2::melt(id.vars = "cyclo_dose")
+df_neg$sd <- reshape2::melt(df_neg_sd, id.vars = "cyclo_dose")$value
+df_neg$cyclo_dose <- factor(df_neg$cyclo_dose, levels = c(0, 0.125, 0.25, 0.5, 1))
+colnames(df_neg) <- c("cyclo_dose", "gene", "expression_mean", "expression_sd")
+
+df_pos <- t(subset_assay_pos) %>% as.data.frame()
+df_pos$cyclo_dose <- meta[rownames(df_pos), ]$cyclo_dose
+df_pos_mean <- df_pos %>%
+    group_by(cyclo_dose) %>%
+    summarise(across(everything(), mean)) %>%
+    as.data.frame()
+df_pos_sd <- df_pos %>%
+    group_by(cyclo_dose) %>%
+    summarise(across(everything(), sd)) %>%
+    as.data.frame()
+df_pos <- df_pos_mean %>% reshape2::melt(id.vars = "cyclo_dose")
+df_pos$sd <- reshape2::melt(df_pos_sd, id.vars = "cyclo_dose")$value
+df_pos$cyclo_dose <- factor(df_pos$cyclo_dose, levels = c(0, 0.125, 0.25, 0.5, 1))
+colnames(df_pos) <- c("cyclo_dose", "gene", "expression_mean", "expression_sd")
+
+png(filename = "results/images/Figure_3/F3_lineplot_negative.png", width = 2400, height = 1600, res = 250)
+ggplot(df_neg, aes(x = cyclo_dose, y = expression_mean, group = gene, color = gene, shape = gene)) +
+    geom_line() +
+    geom_point(size = 2) +
+    scale_shape_manual(values = 1:10) +
+    ylim(0, max(cbind(subset_assay_neg, subset_assay_pos))) +
+    geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.2) +
+    custom_theme(diag_text = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_3/F3_lineplot_positive.png", width = 2400, height = 1600, res = 250)
+ggplot(df_pos, aes(x = cyclo_dose, y = expression_mean, group = gene, color = gene, shape = gene)) +
+    geom_line() +
+    geom_point(size = 2) +
+    scale_shape_manual(values = 1:10) +
+    ylim(0, max(cbind(subset_assay_neg, subset_assay_pos))) +
+    geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.2) +
+    custom_theme(diag_text = TRUE)
+dev.off()
+
+# Table obtained through STRING export "as tabular text output"
+STRING_edges <- read.table("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_3/string_interactions.tsv", header = FALSE)
+colnames(STRING_edges) <- c("gene1", "gene2", "score")
+corr_df_f_symbol <- corr_df_f
+rownames(corr_df_f_symbol) <- corr_df_f$gene
+STRING_edges$SHH_cor <- sapply(STRING_edges$gene1, function(x) {
+    return(corr_df_f_symbol[x, "SHH"] > 0)
 })
-SHH_pos_1$ttarget_info <- SHH_pos_1$target_info
+write.csv(STRING_edges, file = "results/tables/Figure_3/STRING_edges_corr.csv", row.names = FALSE)
 
-SHH_neg_1 <- data.frame(
-    cor = filter(corr_df_f1, ENSG00000164690 < 0)$abs_max_cor,
-    link = rep(1, nrow(filter(corr_df_f1, ENSG00000164690 < 0))),
-    target = filter(corr_df_f1, ENSG00000164690 < 0)$gene,
-    source = rep("SHH", nrow(filter(corr_df_f1, ENSG00000164690 < 0)))
-)
-SHH_neg_1$target_info <- SHH_neg_1$target %>% sapply(function(x) {
-    if (x %in% known_genes) {
-        return("known")
-    } else if (x %in% union(dorsal, ventral)) {
-        return("selected")
-    } else {
-        return("no")
-    }
-})
-SHH_neg_1$ttarget_info <- SHH_neg_1$target_info
-
-SHH_pos_2 <- data.frame(
-    cor = filter(corr_df_f2, ENSG00000164690 > 0)$abs_max_cor,
-    link = rep(1, nrow(filter(corr_df_f2, ENSG00000164690 > 0))),
-    target = filter(corr_df_f2, ENSG00000164690 > 0)$gene,
-    source = rep("SHH", nrow(filter(corr_df_f2, ENSG00000164690 > 0)))
-)
-SHH_pos_2$target_info <- SHH_pos_2$target %>% sapply(function(x) {
-    if (x %in% known_genes) {
-        return("known")
-    } else if (x %in% union(dorsal, ventral)) {
-        return("selected")
-    } else {
-        return("no")
-    }
-})
-SHH_pos_2$ttarget_info <- SHH_pos_2$target_info
-
-SHH_neg_2 <- data.frame(
-    cor = filter(corr_df_f2, ENSG00000164690 < 0)$abs_max_cor,
-    link = rep(1, nrow(filter(corr_df_f2, ENSG00000164690 < 0))),
-    target = filter(corr_df_f2, ENSG00000164690 < 0)$gene,
-    source = rep("SHH", nrow(filter(corr_df_f2, ENSG00000164690 < 0)))
-)
-SHH_neg_2$target_info <- SHH_neg_2$target %>% sapply(function(x) {
-    if (x %in% known_genes) {
-        return("known")
-    } else if (x %in% union(dorsal, ventral)) {
-        return("selected")
-    } else {
-        return("no")
-    }
-})
-SHH_neg_2$ttarget_info <- SHH_neg_2$target_info
-
-write.csv(SHH_pos_1, file = "results/tables/Figure_3/cytoscape_SHH_pos_0_80.csv", row.names = FALSE)
-write.csv(SHH_neg_1, file = "results/tables/Figure_3/cytoscape_SHH_neg_0_80.csv", row.names = FALSE)
-write.csv(SHH_pos_2, file = "results/tables/Figure_3/cytoscape_SHH_pos_0_85.csv", row.names = FALSE)
-write.csv(SHH_neg_2, file = "results/tables/Figure_3/cytoscape_SHH_neg_0_85.csv", row.names = FALSE)
-
-# Making volcano plots
 DE_cyclo <- list(
     high_vs_no = DE_high_vs_no_f,
     high_vs_low = DE_high_vs_low_f,
@@ -354,10 +350,15 @@ for (contrast in names(DE_cyclo)) {
     print(contrast)
     DE <- DE_cyclo[[contrast]]
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        geom_text(size = 2) +
         custom_theme() +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DE: ", contrast, " ", nrow(DE), " DE genes total"))
+        labs(
+            x = "log2FoldChange",
+            y = "-log10(padj)",
+            title = paste0("DE: ", contrast, " ", nrow(DE), " DE genes total"),
+            subtitle = "|log2FC| >= 2 & FDR < 0.01"
+        )
     ggsave(filename = paste0("results/images/Figure_3/Volcano_", contrast, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }

@@ -105,7 +105,10 @@ meta_bin <- meta %>%
     apply(2, function(x) {
         return(as.numeric(factor(x)) - 1)
     }) %>%
-    as.matrix()
+    as.data.frame()
+meta_bin$NKX21 <- assay(vsd_vAN_dAN)["ENSG00000136352", ]
+meta_bin <- as.matrix(meta_bin)
+meta_bin
 
 PC_covariate_cor <- cor(pca.data_vAN_dAN[, 1:5], meta_bin) %>% abs()
 rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar_vAN_dAN[1:5], "%)")
@@ -145,7 +148,7 @@ DE_vAN_control_vs_het <- dds_vAN %>%
     na.omit()
 DE_vAN_control_vs_het$gene <- gene_converter(rownames(DE_vAN_control_vs_het), "ENSEMBL", "SYMBOL")
 DE_vAN_control_vs_het_f <- filter(DE_vAN_control_vs_het, !is.na(gene))
-DE_vAN_control_vs_het_f <- filter(DE_vAN_control_vs_het, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_control_vs_het_f <- filter(DE_vAN_control_vs_het_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 DE_dAN_control_vs_het <- dds_vAN %>%
     DESeq() %>%
@@ -154,7 +157,7 @@ DE_dAN_control_vs_het <- dds_vAN %>%
     na.omit()
 DE_dAN_control_vs_het$gene <- gene_converter(rownames(DE_dAN_control_vs_het), "ENSEMBL", "SYMBOL")
 DE_dAN_control_vs_het_f <- filter(DE_dAN_control_vs_het, !is.na(gene))
-DE_dAN_control_vs_het_f <- filter(DE_dAN_control_vs_het, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_dAN_control_vs_het_f <- filter(DE_dAN_control_vs_het_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 DE_vAN_dAN_control_vs_het <- dds_vAN %>%
     DESeq() %>%
@@ -163,7 +166,7 @@ DE_vAN_dAN_control_vs_het <- dds_vAN %>%
     na.omit()
 DE_vAN_dAN_control_vs_het$gene <- gene_converter(rownames(DE_vAN_dAN_control_vs_het), "ENSEMBL", "SYMBOL")
 DE_vAN_dAN_control_vs_het_f <- filter(DE_vAN_dAN_control_vs_het, !is.na(gene))
-DE_vAN_dAN_control_vs_het_f <- filter(DE_vAN_dAN_control_vs_het, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_dAN_control_vs_het_f <- filter(DE_vAN_dAN_control_vs_het_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 # DEGs between control and homozygous for ventral, dorsal, and ventral+dorsal samples
 DE_vAN_control_vs_homo <- dds_dAN %>%
@@ -173,7 +176,7 @@ DE_vAN_control_vs_homo <- dds_dAN %>%
     na.omit()
 DE_vAN_control_vs_homo$gene <- gene_converter(rownames(DE_vAN_control_vs_homo), "ENSEMBL", "SYMBOL")
 DE_vAN_control_vs_homo_f <- filter(DE_vAN_control_vs_homo, !is.na(gene))
-DE_vAN_control_vs_homo_f <- filter(DE_vAN_control_vs_homo, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_control_vs_homo_f <- filter(DE_vAN_control_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 DE_dAN_control_vs_homo <- dds_dAN %>%
     DESeq() %>%
@@ -182,7 +185,7 @@ DE_dAN_control_vs_homo <- dds_dAN %>%
     na.omit()
 DE_dAN_control_vs_homo$gene <- gene_converter(rownames(DE_dAN_control_vs_homo), "ENSEMBL", "SYMBOL")
 DE_dAN_control_vs_homo_f <- filter(DE_dAN_control_vs_homo, !is.na(gene))
-DE_dAN_control_vs_homo_f <- filter(DE_dAN_control_vs_homo, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_dAN_control_vs_homo_f <- filter(DE_dAN_control_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 DE_vAN_dAN_control_vs_homo <- dds_dAN %>%
     DESeq() %>%
@@ -191,7 +194,7 @@ DE_vAN_dAN_control_vs_homo <- dds_dAN %>%
     na.omit()
 DE_vAN_dAN_control_vs_homo$gene <- gene_converter(rownames(DE_vAN_dAN_control_vs_homo), "ENSEMBL", "SYMBOL")
 DE_vAN_dAN_control_vs_homo_f <- filter(DE_vAN_dAN_control_vs_homo, !is.na(gene))
-DE_vAN_dAN_control_vs_homo_f <- filter(DE_vAN_dAN_control_vs_homo, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_dAN_control_vs_homo_f <- filter(DE_vAN_dAN_control_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 # DEGs between heterozygous and homozygous for ventral, dorsal, and ventral+dorsal samples
 DE_vAN_het_vs_homo <- dds_vAN_dAN %>%
@@ -201,7 +204,7 @@ DE_vAN_het_vs_homo <- dds_vAN_dAN %>%
     na.omit()
 DE_vAN_het_vs_homo$gene <- gene_converter(rownames(DE_vAN_het_vs_homo), "ENSEMBL", "SYMBOL")
 DE_vAN_het_vs_homo_f <- filter(DE_vAN_het_vs_homo, !is.na(gene))
-DE_vAN_het_vs_homo_f <- filter(DE_vAN_het_vs_homo, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_het_vs_homo_f <- filter(DE_vAN_het_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 DE_dAN_het_vs_homo <- dds_vAN_dAN %>%
     DESeq() %>%
@@ -210,7 +213,7 @@ DE_dAN_het_vs_homo <- dds_vAN_dAN %>%
     na.omit()
 DE_dAN_het_vs_homo$gene <- gene_converter(rownames(DE_dAN_het_vs_homo), "ENSEMBL", "SYMBOL")
 DE_dAN_het_vs_homo_f <- filter(DE_dAN_het_vs_homo, !is.na(gene))
-DE_dAN_het_vs_homo_f <- filter(DE_dAN_het_vs_homo, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_dAN_het_vs_homo_f <- filter(DE_dAN_het_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 DE_vAN_dAN_het_vs_homo <- dds_vAN_dAN %>%
     DESeq() %>%
@@ -219,7 +222,7 @@ DE_vAN_dAN_het_vs_homo <- dds_vAN_dAN %>%
     na.omit()
 DE_vAN_dAN_het_vs_homo$gene <- gene_converter(rownames(DE_vAN_dAN_het_vs_homo), "ENSEMBL", "SYMBOL")
 DE_vAN_dAN_het_vs_homo_f <- filter(DE_vAN_dAN_het_vs_homo, !is.na(gene))
-DE_vAN_dAN_het_vs_homo_f <- filter(DE_vAN_dAN_het_vs_homo, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_dAN_het_vs_homo_f <- filter(DE_vAN_dAN_het_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 
 write.csv(DE_vAN_control_vs_het, "results/tables/Figure_4/DE_vAN_control_vs_het.csv")
@@ -234,27 +237,26 @@ write.csv(DE_vAN_dAN_het_vs_homo, "results/tables/Figure_4/DE_vAN_dAN_het_vs_hom
 
 # Making volcan plots
 DE_CRISPR <- list(
-    vAN_control_vs_het = DE_vAN_control_vs_het,
-    vAN_control_vs_homo = DE_vAN_control_vs_homo,
-    vAN_het_vs_homo = DE_vAN_het_vs_homo,
-    dAN_control_vs_het = DE_dAN_control_vs_het,
-    dAN_control_vs_homo = DE_dAN_control_vs_homo,
-    dAN_het_vs_homo = DE_dAN_het_vs_homo,
-    vAN_dAN_control_vs_het = DE_vAN_dAN_control_vs_het,
-    vAN_dAN_control_vs_homo = DE_vAN_dAN_control_vs_homo,
-    vAN_dAN_het_vs_homo = DE_vAN_dAN_het_vs_homo
+    vAN_control_vs_het = DE_vAN_control_vs_het_f,
+    vAN_control_vs_homo = DE_vAN_control_vs_homo_f,
+    vAN_het_vs_homo = DE_vAN_het_vs_homo_f,
+    dAN_control_vs_het = DE_dAN_control_vs_het_f,
+    dAN_control_vs_homo = DE_dAN_control_vs_homo_f,
+    dAN_het_vs_homo = DE_dAN_het_vs_homo_f,
+    vAN_dAN_control_vs_het = DE_vAN_dAN_control_vs_het_f,
+    vAN_dAN_control_vs_homo = DE_vAN_dAN_control_vs_homo_f,
+    vAN_dAN_het_vs_homo = DE_vAN_dAN_het_vs_homo_f
 )
-names(DE_CRISPR)
 
 for (contrast in names(DE_CRISPR)) {
     print(contrast)
     DE <- DE_CRISPR[[contrast]]
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        ggrepel::geom_text_repel(box.padding = 0.001, size = 2.5, max.overlaps = 20) +
+        geom_text(size = 2) +
         custom_theme() +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DE: ", contrast))
+        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DE: ", contrast), subtitle = "|log2FC| >= 2 & FDR < 0.01")
     ggsave(filename = paste0("results/images/Figure_4/Volcano_", contrast, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
 

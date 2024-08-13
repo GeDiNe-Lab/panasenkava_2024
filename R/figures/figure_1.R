@@ -34,7 +34,7 @@ markers <- intersect(markers, rownames(rawcounts))
 retained_row <- rawcounts[rownames(rawcounts) %in% markers, ]
 
 # filtering out lowly expressed genes
-counts <- rawcounts[rowSums(rawcounts) >= 50, ]
+counts <- rawcounts[rowSums(rawcounts) >= 25, ]
 
 # putting back potentially filtered out markers (posterior markers for example as they should not be expressed)
 if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
