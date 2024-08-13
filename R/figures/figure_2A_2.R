@@ -17,17 +17,19 @@ rstudioapi::getSourceEditorContext()$path %>%
 # Loading custom functions
 source("R/custom_fct.R")
 # Loading data (path to change later)
-rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_counts.csv", sep = ",", header = TRUE)
-meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_meta.csv", sep = ",", header = TRUE)
+# Loading data (path to change later)
+rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
+rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-meta <- filter(meta, sample != "LON71_D12_2", type %in% c("ventral", "dorsal"), line %in% c("LON71", "WTC"))
-counts <- rawcounts[which(rowSums(rawcounts) >= 50), meta$sample]
+meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"))
+# filtering out lowly expressed genes
+counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
 
 # DEGs ventral VS dorsal with all samples
 DEGs_vAN_vs_dAN <- DESeqDataSetFromMatrix(
-    countData = counts[, meta$sample],
+    countData = counts,
     colData = meta,
     design = ~ line + type
 ) %>%
@@ -141,12 +143,12 @@ write.csv(DEGs_vAN_vs_dAN_day12, "/home/jules/Documents/phd/projects/panasenkava
 
 # Making Volcano plots
 DE_vAN_vs_dAN <- list(
-    day_02 = DEGs_vAN_vs_dAN_day02,
-    day_04 = DEGs_vAN_vs_dAN_day04,
-    day_06 = DEGs_vAN_vs_dAN_day06,
-    day_08 = DEGs_vAN_vs_dAN_day08,
-    day_10 = DEGs_vAN_vs_dAN_day10,
-    day_12 = DEGs_vAN_vs_dAN_day12
+    day_02 = DEGs_vAN_vs_dAN_day02_f,
+    day_04 = DEGs_vAN_vs_dAN_day04_f,
+    day_06 = DEGs_vAN_vs_dAN_day06_f,
+    day_08 = DEGs_vAN_vs_dAN_day08_f,
+    day_10 = DEGs_vAN_vs_dAN_day10_f,
+    day_12 = DEGs_vAN_vs_dAN_day12_f
 )
 names(DE_vAN_vs_dAN)
 
@@ -303,7 +305,7 @@ DEGs_day_12_vs_10_dorsal <- DESeqDataSetFromMatrix(
     na.omit()
 DEGs_day_12_vs_10_dorsal$gene <- gene_converter(rownames(DEGs_day_12_vs_10_dorsal), "ENSEMBL", "SYMBOL")
 DEGs_day_12_vs_10_dorsal_f <- filter(DEGs_day_12_vs_10_dorsal, !is.na(gene))
-DEGs_day_12_vs_10_dorsal_f <- filter(DEGs_day_12_vs_10_dorsal, padj < 0.01, abs(log2FoldChange) >= 2)
+DEGs_day_12_vs_10_dorsal_f <- filter(DEGs_day_12_vs_10_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 write.csv(DEGs_day_12_vs_10_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_10_dorsal.csv", row.names = FALSE)
 
@@ -319,7 +321,7 @@ DEGs_day_12_vs_10_ventral <- DESeqDataSetFromMatrix(
     na.omit()
 DEGs_day_12_vs_10_ventral$gene <- gene_converter(rownames(DEGs_day_12_vs_10_ventral), "ENSEMBL", "SYMBOL")
 DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral, !is.na(gene))
-DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral, padj < 0.01, abs(log2FoldChange) >= 2)
+DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 write.csv(DEGs_day_12_vs_10_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_10_ventral.csv", row.names = FALSE)
 

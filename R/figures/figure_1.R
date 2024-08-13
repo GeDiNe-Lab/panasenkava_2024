@@ -16,12 +16,12 @@ rstudioapi::getSourceEditorContext()$path %>%
 
 # Loading custom functions
 source("R/custom_fct.R")
-# Loading data (path to change later)
-rawcounts <- readcounts("/home/jules/Documents/phd/Data/Article_veranika/bulk/counts.csv", sep = ",", header = TRUE)
-meta <- read.table("/home/jules/Documents/phd/Data/Article_veranika/bulk/metadata.csv", sep = ",", header = TRUE)
+# Loading data
+rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
+rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # Keeping only necessary samples
-meta <- filter(meta, type %in% c("dorsal", "ventral"), CRISPR == "control")
+meta <- filter(rawmeta, type %in% c("dorsal", "ventral"), diff %in% c("diff9", "diff12"), CRISPR %in% c("no", "control"), sample != "L9C1_2")
 rawcounts <- rawcounts[, meta$sample]
 
 # Get defined marker genes
@@ -46,7 +46,7 @@ if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
 
 # making DESeq object with lineage and type as covariates
 dds <- DESeqDataSetFromMatrix(
-    countData = counts[, meta$sample],
+    countData = counts,
     colData = meta,
     design = ~ line + type
 )
@@ -87,7 +87,7 @@ PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
 PC_covariate_ANOVA <- Reduce(cbind, PC_covariate_ANOVA)
 colnames(PC_covariate_ANOVA) <- colnames(PC_covariate)[6:ncol(PC_covariate)]
 PC_covariate_ANOVA
-
+write.csv(PC_covariate_ANOVA, "results/tables/Figure_1/F1_PC_covariate_ANOVA.csv")
 rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
 
 png(filename = "results/images/Figure_1/F1_2B_PC_covariate_correlation.png", width = 2000, height = 1800, res = 250)
@@ -124,6 +124,7 @@ ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), level
     ggtitle("Variation explained by each PC")
 dev.off()
 
+# Normalization by variance stabilizing transformation with covariates
 vsd <- vst(dds, blind = FALSE)
 
 # subset rows for markers
@@ -154,7 +155,7 @@ sample_ha <- columnAnnotation(
     line = meta[order(meta$type), ]$line,
     type = meta[order(meta$type), ]$type,
     col = list(
-        line = c("LON" = "#c1c1c1", "WTC" = "#7d7d7d"),
+        line = c("LON71" = "#c1c1c1", "WTC" = "#7d7d7d"),
         type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
     )
 )
@@ -183,89 +184,66 @@ Heatmap(
 )
 dev.off()
 
-# Compute ventral vs dorsal DEGs with lineage covariate
-DEGs_vAN_vs_dAN_linecov <- dds %>%
+# Compute ventral vs dorsal DEGs
+DEGs_vAN_vs_dAN <- dds %>%
     DESeq() %>%
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
 
-# Compute ventral vs dorsal DEGs without lineage covariate
-DEGs_vAN_vs_dAN_nocov <- DESeqDataSetFromMatrix(
-    countData = counts,
-    colData = meta,
-    design = ~type
-) %>%
-    DESeq() %>%
-    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
-    as.data.frame() %>%
-    na.omit()
+DEGs_vAN_vs_dAN$gene <- rownames(DEGs_vAN_vs_dAN) %>% gene_converter("ENSEMBL", "SYMBOL")
+DEGs_vAN_vs_dAN_f <- DEGs_vAN_vs_dAN %>% filter(!is.na(gene))
+DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN_f, padj < 0.01, abs(log2FoldChange) >= 1)
 
-DEGs_vAN_vs_dAN_nocov$gene <- rownames(DEGs_vAN_vs_dAN_nocov) %>% gene_converter("ENSEMBL", "SYMBOL")
-DEGs_vAN_vs_dAN_nocov_f <- DEGs_vAN_vs_dAN_nocov %>% filter(!is.na(gene))
-DEGs_vAN_vs_dAN_nocov_f <- filter(DEGs_vAN_vs_dAN_nocov_f, padj < 0.01, abs(log2FoldChange) >= 1)
-
-DEGs_vAN_vs_dAN_linecov$gene <- rownames(DEGs_vAN_vs_dAN_linecov) %>% gene_converter("ENSEMBL", "SYMBOL")
-DEGs_vAN_vs_dAN_linecov_f <- DEGs_vAN_vs_dAN_linecov %>% filter(!is.na(gene))
-DEGs_vAN_vs_dAN_linecov_f <- filter(DEGs_vAN_vs_dAN_linecov_f, padj < 0.01, abs(log2FoldChange) >= 1)
-
-# Venn diagram of DEGs with and without lineage covariate
-VennDiagram::venn.diagram(
-    x = list(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene),
-    main = "DEGs ventral VS dorsal with and without lineage covariate",
-    sub = paste0(
-        round((length(intersect(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene)) / length(union(DEGs_vAN_vs_dAN_linecov_f$gene, DEGs_vAN_vs_dAN_nocov_f$gene))) * 100, 2),
-        "% of common DEGs"
-    ),
-    category.names = c("with", "whithout"),
-    filename = "results/images/Figure_1/venn_lineage_covariate.png",
-    output = TRUE,
-    disable.logging = TRUE
-)
-
-# getting DE genes common to both analysis
-common_genes <- intersect(rownames(DEGs_vAN_vs_dAN_linecov_f), rownames(DEGs_vAN_vs_dAN_nocov_f))
-DEGs_vAN_vs_dAN_linecov$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_linecov) %in% common_genes, "common", "exclusive")
-DEGs_vAN_vs_dAN_nocov$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_nocov) %in% common_genes, "common", "exclusive")
-DEGs_vAN_vs_dAN_linecov_f$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_linecov_f) %in% common_genes, "common", "exclusive")
-DEGs_vAN_vs_dAN_nocov_f$lineage <- ifelse(rownames(DEGs_vAN_vs_dAN_nocov_f) %in% common_genes, "common", "exclusive")
 
 # Heatmap of vAN vs dAN DEGs
-vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_linecov_f), ])
+vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_f), ])
 scaled_mat <- t(apply(vsd_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(vsd_DEGs)
+scaled_mat
 
-# two level of clustering
 clustering <- hclust(dist(scaled_mat))
-clusters_1 <- cutree(clustering, k = 2)
-clusters_2 <- cutree(clustering, k = 5)
+clusters <- cutree(clustering, k = 2)
 
-#  gene annotations
+sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
+    sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), ]
+    sub_clustering <- hclust(dist(sub_mat))
+    return(cutree(sub_clustering, k = 4))
+})
+
+names(sub_clusters_list) <- paste0("cluster_", unique(clusters))
+sub_clusters <- sub_clusters_list %>%
+    unname() %>%
+    unlist()
+sub_clusters <- sub_clusters[names(clusters)]
+
+# cluster and subcluster annotation
 clusters_ha <- rowAnnotation(
-    cluster_1 = as.character(clusters_1[clustering$order]),
+    cluster = as.character(clusters[clustering$order]),
+    sub_cluster = as.character(sub_clusters[clustering$order]),
     col = list(
-        cluster_1 = c(
+        cluster = c(
             "1" = "red",
             "2" = "blue"
         ),
-        cluster_2 = c(
-            "1" = "red",
-            "2" = "blue",
-            "3" = "green",
-            "4" = "purple",
-            "5" = "orange"
+        sub_cluster = c(
+            "1" = "black",
+            "2" = "pink",
+            "3" = "yellow",
+            "4" = "brown"
         )
     )
 )
 
 # performing GO enrichment on 1st layer clusters
-for (cluster in unique(clusters_1)) {
+for (cluster in unique(clusters)) {
     print(cluster)
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_1[which(clusters_1 == cluster)]),
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
         OrgDb = "org.Hs.eg.db",
         keyType = "ENSEMBL",
         ont = "BP"
     )
+    print(GO_enrichment)
     write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
     goplot <- clusterProfiler::dotplot(GO_enrichment,
         title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
@@ -279,7 +257,7 @@ sample_ha <- columnAnnotation(
     line = meta$line,
     type = meta$type,
     col = list(
-        line = c("LON" = "#c1c1c1", "WTC" = "#7d7d7d"),
+        line = c("LON71" = "#c1c1c1", "WTC" = "#7d7d7d"),
         type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
     )
 )
@@ -309,15 +287,7 @@ Heatmap(
 )
 dev.off()
 
-write.csv(DEGs_vAN_vs_dAN_linecov, "results/tables/Figure_1/DEGs_vAN_vs_dAN_linecov.csv")
-write.csv(DEGs_vAN_vs_dAN_nocov, "results/tables/Figure_1/DEGs_vAN_vs_dAN_nocov.csv")
-
-colnames(DEGs_vAN_vs_dAN_linecov) <- paste0("linecov_", colnames(DEGs_vAN_vs_dAN_linecov))
-colnames(DEGs_vAN_vs_dAN_nocov) <- paste0("nocov_", colnames(DEGs_vAN_vs_dAN_nocov))
-
-DEGs_vAN_vs_dAN <- cbind(DEGs_vAN_vs_dAN_linecov, DEGs_vAN_vs_dAN_nocov)
-
-DEGs_vAN_vs_dAN$cluster_1 <- clusters_1[rownames(DEGs_vAN_vs_dAN)]
-DEGs_vAN_vs_dAN$cluster_2 <- clusters_2[rownames(DEGs_vAN_vs_dAN)]
+DEGs_vAN_vs_dAN$clusters <- clusters[rownames(DEGs_vAN_vs_dAN)]
+DEGs_vAN_vs_dAN$sub_clusters <- sub_clusters[rownames(DEGs_vAN_vs_dAN)]
 
 write.csv(DEGs_vAN_vs_dAN, "results/tables/Figure_1/DEGs_vAN_vs_dAN.csv")

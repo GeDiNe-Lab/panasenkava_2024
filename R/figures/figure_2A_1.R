@@ -17,28 +17,28 @@ rstudioapi::getSourceEditorContext()$path %>%
 # Loading custom functions
 source("R/custom_fct.R")
 # Loading data (path to change later)
-rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_counts.csv", sep = ",", header = TRUE)
-meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_meta.csv", sep = ",", header = TRUE)
+rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
+rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-meta <- filter(meta, sample != "LON71_D12_2", type %in% c("ventral", "dorsal"), line %in% c("LON71", "WTC"))
-
+meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"))
+View(meta)
 # filtering out lowly expressed genes
-counts <- rawcounts[which(rowSums(rawcounts) >= 50), meta$sample]
+counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
 
 # making DESeq object with lineage,days and type as covariates
 dds <- DESeqDataSetFromMatrix(
-    countData = counts[, meta$sample],
+    countData = counts,
     colData = meta,
     design = ~ line + day + type
 )
 
 # Normalization by variance stabilizing transformation
-vsd <- vst(dds, blind = FALSE)
+vsd_blind <- vst(dds, blind = TRUE)
 
 # PCA with all genes
-pca.data <- plotPCA.DESeqTransform(vsd, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = nrow(assay(vsd)))
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = nrow(assay(vsd_blind)))
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 pca_var <- attr(pca.data, "pca_var")
 
@@ -83,22 +83,36 @@ ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), level
     ggtitle("Variation explained by each PCs with all genes")
 dev.off()
 
-meta_bin_all_genes <- meta %>%
+PC_covariate_all_genes <- cbind(pca.data[, 1:5], meta %>%
     dplyr::select(c("line", "type", "day")) %>%
     apply(2, function(x) {
         return(as.numeric(factor(x)) - 1)
     }) %>%
-    as.matrix()
+    as.matrix())
 
-PC_covariate_cor_all_genes <- cor(pca.data[, 1:5], meta_bin_all_genes) %>% abs()
-rownames(PC_covariate_cor_all_genes) <- paste0(rownames(PC_covariate_cor_all_genes), " (", percentVar[1:5], "%)")
-PC_covariate_cor_all_genes
+PC_covariate_all_genes_cor <- cor(PC_covariate_all_genes[, 1:5], PC_covariate_all_genes[, 6:ncol(PC_covariate_all_genes)]) %>% abs()
+PC_covariate_all_genes_cor
+
+PC_covariate_all_genes_ANOVA <- c(6:ncol(PC_covariate_all_genes)) %>% lapply(function(i) {
+    apply(PC_covariate_all_genes[, 1:5], 2, function(x) {
+        aov(x ~ PC_covariate_all_genes[, i])
+    }) %>% sapply(function(x) {
+        summary(x)[[1]]$`Pr(>F)`[1]
+    })
+})
+PC_covariate_all_genes_ANOVA <- Reduce(cbind, PC_covariate_all_genes_ANOVA)
+colnames(PC_covariate_all_genes_ANOVA) <- colnames(PC_covariate_all_genes)[6:ncol(PC_covariate_all_genes)]
+write.csv(PC_covariate_all_genes_ANOVA, "results/tables/Figure_2A/F2_PC_covariate_ANOVA_all_genes.csv")
+PC_covariate_all_genes_ANOVA
+
+rownames(PC_covariate_all_genes_cor) <- paste0(rownames(PC_covariate_all_genes_cor), " (", percentVar[1:5], "%)")
+PC_covariate_all_genes_cor
 
 png(filename = "results/images/Figure_2A/F2A_PC_covariate_correlation_all_genes.png", width = 2000, height = 1800, res = 250)
 Heatmap(
-    PC_covariate_cor_all_genes,
+    PC_covariate_all_genes_cor,
     cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", PC_covariate_cor_all_genes[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
+        grid.text(sprintf("%.2f", PC_covariate_all_genes_cor[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
     },
     name = "Absolute pearson correlation",
     row_title_gp = gpar(fontsize = 20, fontface = "bold"),
@@ -110,8 +124,8 @@ Heatmap(
     column_names_centered = TRUE,
     show_column_names = TRUE,
     show_heatmap_legend = TRUE,
-    width = ncol(PC_covariate_cor_all_genes) * unit(1.5, "cm"),
-    height = nrow(PC_covariate_cor_all_genes) * unit(1, "cm"),
+    width = ncol(PC_covariate_all_genes_cor) * unit(1.5, "cm"),
+    height = nrow(PC_covariate_all_genes_cor) * unit(1, "cm"),
     col = colorRampPalette(c(
         "lightblue",
         "darkblue"
@@ -119,10 +133,8 @@ Heatmap(
 )
 dev.off()
 
-
-
 # PCA with top 500 variable genes
-pca.data500 <- plotPCA.DESeqTransform(vsd, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = 500)
+pca.data500 <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = 500)
 percentVar500 <- round(100 * attr(pca.data500, "percentVar"))
 
 png(filename = "results/images/Figure_2A/F2A_1_PCA_1_2_days_500genes.png", width = 1600, height = 1200, res = 250)
@@ -166,22 +178,37 @@ ggplot(data.frame(perc = percentVar500, PC = factor(colnames(pca.data500[1:20]),
     ggtitle("Variation explained by each PCs with top 500 variable genes")
 dev.off()
 
-meta_bin_500 <- meta %>%
+PC_covariate_500 <- cbind(pca.data500[, 1:5], meta %>%
     dplyr::select(c("line", "type", "day")) %>%
     apply(2, function(x) {
         return(as.numeric(factor(x)) - 1)
     }) %>%
-    as.matrix()
+    as.matrix())
 
-PC_covariate_cor_500 <- cor(pca.data500[, 1:5], meta_bin_500) %>% abs()
-rownames(PC_covariate_cor_500) <- paste0(rownames(PC_covariate_cor_500), " (", percentVar500[1:5], "%)")
-PC_covariate_cor_500
+PC_covariate_500_cor <- cor(PC_covariate_500[, 1:5], PC_covariate_500[, 6:ncol(PC_covariate_500)]) %>% abs()
+PC_covariate_500_cor
+
+PC_covariate_500_ANOVA <- c(6:ncol(PC_covariate_500)) %>% lapply(function(i) {
+    apply(PC_covariate_500[, 1:5], 2, function(x) {
+        aov(x ~ PC_covariate_500[, i])
+    }) %>% sapply(function(x) {
+        summary(x)[[1]]$`Pr(>F)`[1]
+    })
+})
+PC_covariate_500_ANOVA <- Reduce(cbind, PC_covariate_500_ANOVA)
+colnames(PC_covariate_500_ANOVA) <- colnames(PC_covariate_500)[6:ncol(PC_covariate_500)]
+PC_covariate_500_ANOVA
+write.csv(PC_covariate_500_ANOVA, "results/tables/Figure_2A/F2_PC_covariate_ANOVA_500.csv")
+
+rownames(PC_covariate_500_cor) <- paste0(rownames(PC_covariate_500_cor), " (", percentVar500[1:5], "%)")
+
+PC_covariate_500_cor
 
 png(filename = "results/images/Figure_2A/F2A_PC_covariate_correlation_500.png", width = 2000, height = 1800, res = 250)
 Heatmap(
-    PC_covariate_cor_500,
+    PC_covariate_500_cor,
     cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", PC_covariate_cor_500[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
+        grid.text(sprintf("%.2f", PC_covariate_500_cor[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
     },
     name = "Absolute pearson correlation",
     row_title_gp = gpar(fontsize = 20, fontface = "bold"),
@@ -193,14 +220,17 @@ Heatmap(
     column_names_centered = TRUE,
     show_column_names = TRUE,
     show_heatmap_legend = TRUE,
-    width = ncol(PC_covariate_cor_500) * unit(1.5, "cm"),
-    height = nrow(PC_covariate_cor_500) * unit(1, "cm"),
+    width = ncol(PC_covariate_500_cor) * unit(1.5, "cm"),
+    height = nrow(PC_covariate_500_cor) * unit(1, "cm"),
     col = colorRampPalette(c(
         "lightblue",
         "darkblue"
     ))(1000),
 )
 dev.off()
+
+# Normalize by variance stabilizing transformation with covariates
+vsd <- vst(dds, blind = FALSE)
 
 # PC3 is associated with lineage difference, we want genes higlhy correlated with PC1 and PC2 but not PC3
 top_PC1 <- cor(pca.data$PC1, t(assay(vsd))) %>% as.vector()
@@ -217,12 +247,12 @@ top_PC3 <- sort(abs(top_PC3), decreasing = TRUE)[1:1000] %>% names()
 
 # get Heatmap genes
 hm_genes <- setdiff(union(top_PC1, top_PC2), top_PC3)
-
+hm_genes
 # making matrix for heatmap, clustering and GO enrichment
-vsd_DEGs <- assay(vsd)[hm_genes, ]
+vsd_hm <- assay(vsd)[hm_genes, ]
 
-scaled_mat <- t(apply(vsd_DEGs, 1, scale))
-colnames(scaled_mat) <- colnames(vsd_DEGs)
+scaled_mat <- t(apply(vsd_hm, 1, scale))
+colnames(scaled_mat) <- colnames(vsd_hm)
 
 # get a fix sample order for the kinetic heatmap
 sample_order <- c(
@@ -232,12 +262,13 @@ sample_order <- c(
 
 # making two level of clustering with subclustering (clustering within each cluster)
 clustering <- hclust(dist(scaled_mat[, sample_order]))
-clusters <- cutree(clustering, k = 5)
+clusters <- cutree(clustering, k = 4)
+clusters %>% table()
 
 sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), sample_order]
     sub_clustering <- hclust(dist(sub_mat))
-    return(cutree(sub_clustering, k = 5))
+    return(cutree(sub_clustering, k = 4))
 })
 names(sub_clusters_list) <- paste0("cluster_", unique(clusters))
 sub_clusters <- sub_clusters_list %>%
@@ -254,28 +285,32 @@ clusters_ha <- rowAnnotation(
             "1" = "red",
             "2" = "blue",
             "3" = "green",
-            "4" = "purple",
-            "5" = "orange"
+            "4" = "purple"
         ),
         sub_cluster = c(
             "1" = "black",
             "2" = "pink",
             "3" = "yellow",
-            "4" = "brown",
-            "5" = "grey"
+            "4" = "brown"
         )
     )
 )
 
 # GO enrichment and heatmap
 for (cluster in unique(clusters)) {
-    print(cluster)
+    print(names(clusters[which(clusters == cluster)]))
     GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
         OrgDb = "org.Hs.eg.db",
         keyType = "ENSEMBL",
         ont = "BP"
     )
+    print(GO_enrichment)
+    if (is.null(GO_enrichment) || nrow(GO_enrichment) == 0) {
+        print(paste0("No enriched terms found for cluster ", cluster))
+        next # Skip to the next cluster
+    }
     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, ".csv"))
+    print("ok")
     goplot <- clusterProfiler::dotplot(GO_enrichment,
         title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
         showCategory = 15
@@ -314,12 +349,12 @@ sample_order_LON <- c(
 )
 
 clustering_LON <- hclust(dist(scaled_mat[, sample_order_LON]))
-clusters_LON <- cutree(clustering_LON, k = 5)
+clusters_LON <- cutree(clustering_LON, k = 4)
 
 sub_clusters_LON_list <- unique(clusters_LON) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters_LON[which(clusters_LON == cluster)]), sample_order_LON]
     sub_clustering_LON <- hclust(dist(sub_mat))
-    return(cutree(sub_clustering_LON, k = 5))
+    return(cutree(sub_clustering_LON, k = 4))
 })
 sub_clusters_LON <- sub_clusters_LON_list %>%
     unname() %>%
@@ -334,15 +369,13 @@ clusters_LON_ha <- rowAnnotation(
             "1" = "red",
             "2" = "blue",
             "3" = "green",
-            "4" = "purple",
-            "5" = "orange"
+            "4" = "purple"
         ),
         sub_cluster = c(
             "1" = "black",
             "2" = "pink",
             "3" = "yellow",
-            "4" = "brown",
-            "5" = "grey"
+            "4" = "brown"
         )
     )
 )
@@ -378,12 +411,12 @@ sample_order_WTC <- c(
 )
 
 clustering_WTC <- hclust(dist(scaled_mat[, sample_order_WTC]))
-clusters_WTC <- cutree(clustering_WTC, k = 5)
+clusters_WTC <- cutree(clustering_WTC, k = 4)
 
 sub_clusters_WTC_list <- unique(clusters_WTC) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters_WTC[which(clusters_WTC == cluster)]), sample_order_WTC]
     sub_clustering_WTC <- hclust(dist(sub_mat))
-    return(cutree(sub_clustering_WTC, k = 5))
+    return(cutree(sub_clustering_WTC, k = 4))
 })
 names(sub_clusters_WTC_list) <- paste0("cluster_", unique(clusters_WTC))
 sub_clusters_WTC <- sub_clusters_WTC_list %>%
@@ -399,15 +432,13 @@ clusters_WTC_ha <- rowAnnotation(
             "1" = "red",
             "2" = "blue",
             "3" = "green",
-            "4" = "purple",
-            "5" = "orange"
+            "4" = "purple"
         ),
         sub_cluster = c(
             "1" = "black",
             "2" = "pink",
             "3" = "yellow",
-            "4" = "brown",
-            "5" = "grey"
+            "4" = "brown"
         )
     )
 )

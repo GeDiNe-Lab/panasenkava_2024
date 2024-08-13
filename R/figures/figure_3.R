@@ -19,38 +19,28 @@ rstudioapi::getSourceEditorContext()$path %>%
 
 # Loading custom functions
 source("R/custom_fct.R")
-rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/manip4/manip4_counts.csv")
-meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/manip4/manip4_metadata.csv", sep = ",", header = T)
+rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
+rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # L9C1_2 is an outlier and is removed
-meta <- filter(meta, type %in% c("cyclo", "ventral") & samples != "L9C1_2")
-rownames(meta) <- meta$samples
-counts <- rawcounts[which(rowSums(rawcounts) >= 25), meta$samples]
-
-meta$cyclo_dose_qual <- meta$cyclo_dose %>% sapply(function(x) {
-    if (x %in% c(0.125, 0.25)) {
-        return("low")
-    } else if (x %in% c(0.5, 1)) {
-        return("high")
-    } else {
-        return("no_cyclo")
-    }
-})
-
+meta <- filter(rawmeta, type %in% c("cyclo", "ventral") & sample != "L9C1_2" & sequencing == "batch1")
+rownames(meta) <- meta$sample
+counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
+View(meta)
 # making DESeq object
 dds <- DESeqDataSetFromMatrix(
-    countData = counts[, meta$samples],
+    countData = counts,
     colData = meta,
     design = ~cyclo_dose_qual
 )
 
-# Variance stabilizing transformation
-vsd <- vst(dds, blind = FALSE)
+# Normalization without covariates
+vsd_blind <- vst(dds, blind = TRUE)
 
-pca.data <- plotPCA.DESeqTransform(vsd, intgroup = c("type", "cyclo_dose_qual"), returnData = TRUE)
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "cyclo_dose_qual"), returnData = TRUE, ntop = nrow(assay(vsd_blind)))
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
-png(filename = "results/images/Figure_2A/F3_PCA_1_2.png", width = 1600, height = 1200, res = 250)
+png(filename = "results/images/Figure_3/F3_PCA_1_2.png", width = 1600, height = 1200, res = 250)
 ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_qual)) +
     geom_point(size = 2, stroke = 1) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
@@ -61,18 +51,30 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_qual)) +
     ggtitle("First and second PCs of dorsal and ventral kinetics all genes")
 dev.off()
 
-meta_bin <- meta %>%
-    dplyr::select(c("type", "cyclo_dose")) %>%
+PC_covariate <- cbind(pca.data[, 1:5], meta %>%
+    dplyr::select(c("cyclo_dose_qual", "type")) %>%
     apply(2, function(x) {
         return(as.numeric(factor(x)) - 1)
     }) %>%
-    as.matrix()
+    as.matrix())
 
-PC_covariate_cor <- cor(pca.data[, 1:5], meta_bin) %>% abs()
-rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
+PC_covariate_cor <- cor(PC_covariate[, 1:5], PC_covariate[, 6:ncol(PC_covariate)]) %>% abs()
 PC_covariate_cor
 
-png(filename = "results/images/Figure_2A/F3_PC_covariate_correlation.png", width = 2000, height = 1800, res = 250)
+PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
+    apply(PC_covariate[, 1:5], 2, function(x) {
+        aov(x ~ PC_covariate[, i])
+    }) %>% sapply(function(x) {
+        summary(x)[[1]]$`Pr(>F)`[1]
+    })
+})
+PC_covariate_ANOVA <- Reduce(cbind, PC_covariate_ANOVA)
+colnames(PC_covariate_ANOVA) <- colnames(PC_covariate)[6:ncol(PC_covariate)]
+PC_covariate_ANOVA
+write.csv(PC_covariate_ANOVA, "results/tables/Figure_3/F3_PC_covariate_ANOVA.csv")
+rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
+
+png(filename = "results/images/Figure_3/F3_PC_covariate_correlation.png", width = 2000, height = 1800, res = 250)
 Heatmap(
     PC_covariate_cor,
     cell_fun = function(j, i, x, y, width, height, fill) {
@@ -97,16 +99,26 @@ Heatmap(
 )
 dev.off()
 
+png(filename = "results/images/Figure_3/F3_PCA_percentVar.png", width = 1600, height = 1200, res = 250)
+ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
+    geom_bar(stat = "identity") +
+    custom_theme(diag_text = TRUE) +
+    ylim(0, 100) +
+    ggtitle("Variation explained by each PC")
+dev.off()
+
+# Normalization with covariates
+vsd <- vst(dds, blind = FALSE)
 
 # getting genes correlated to cyclopamine dose
-cyclo_genes <- cor(t(assay(vsd)[, meta$samples[order(meta$cyclo_dose)]]), sort(meta$cyclo_dose)) %>% as.data.frame()
+cyclo_genes <- cor(t(assay(vsd)[, meta$sample[order(meta$cyclo_dose_quant)]]), sort(meta$cyclo_dose_quant)) %>% as.data.frame()
 colnames(cyclo_genes) <- c("cor")
 cyclo_genes$genes <- rownames(cyclo_genes) %>% gene_converter("ENSEMBL", "SYMBOL")
 cyclo_genes$abscor <- abs(cyclo_genes$cor)
 cyclo_genes_f <- filter(cyclo_genes, abscor > 0.5)
 
 # Preparation for heatmap, clustering and GO enrichment
-sample_order <- meta$samples[order(meta$cyclo_dose)]
+sample_order <- meta$sample[order(meta$cyclo_dose_quant)]
 scaled_mat <- t(apply(assay(vsd)[rownames(cyclo_genes_f), sample_order], 1, scale))
 colnames(scaled_mat) <- colnames(assay(vsd)[, sample_order])
 
@@ -250,7 +262,7 @@ known_genes <- c("GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2-1", "PAX6", "PT
 # co-expression
 
 # getting normalized counts for co-expression
-counts_coex <- rawcounts[, meta$samples]
+counts_coex <- rawcounts[, meta$sample]
 counts_coex <- counts_coex[which(rowSums(counts_coex) >= 25), ]
 dds_coex <- DESeqDataSetFromMatrix(
     countData = counts_coex,
@@ -281,37 +293,37 @@ subset_assay_neg <- scaled_vsd[rownames(corr_df_f[order(corr_df_f$SHH, decreasin
 rownames(subset_assay_neg) <- rownames(subset_assay_neg) %>% gene_converter("ENSEMBL", "SYMBOL")
 
 df_neg <- t(subset_assay_neg) %>% as.data.frame()
-df_neg$cyclo_dose <- meta[rownames(df_neg), ]$cyclo_dose
+df_neg$cyclo_dose_quant <- meta[rownames(df_neg), ]$cyclo_dose_quant
 df_neg_mean <- df_neg %>%
-    group_by(cyclo_dose) %>%
+    group_by(cyclo_dose_quant) %>%
     summarise(across(everything(), mean)) %>%
     as.data.frame()
 df_neg_sd <- df_neg %>%
-    group_by(cyclo_dose) %>%
+    group_by(cyclo_dose_quant) %>%
     summarise(across(everything(), sd)) %>%
     as.data.frame()
-df_neg <- df_neg_mean %>% reshape2::melt(id.vars = "cyclo_dose")
-df_neg$sd <- reshape2::melt(df_neg_sd, id.vars = "cyclo_dose")$value
-df_neg$cyclo_dose <- factor(df_neg$cyclo_dose, levels = c(0, 0.125, 0.25, 0.5, 1))
-colnames(df_neg) <- c("cyclo_dose", "gene", "expression_mean", "expression_sd")
+df_neg <- df_neg_mean %>% reshape2::melt(id.vars = "cyclo_dose_quant")
+df_neg$sd <- reshape2::melt(df_neg_sd, id.vars = "cyclo_dose_quant")$value
+df_neg$cyclo_dose_quant <- factor(df_neg$cyclo_dose_quant, levels = c(0, 0.125, 0.25, 0.5, 1))
+colnames(df_neg) <- c("cyclo_dose_quant", "gene", "expression_mean", "expression_sd")
 
 df_pos <- t(subset_assay_pos) %>% as.data.frame()
-df_pos$cyclo_dose <- meta[rownames(df_pos), ]$cyclo_dose
+df_pos$cyclo_dose_quant <- meta[rownames(df_pos), ]$cyclo_dose_quant
 df_pos_mean <- df_pos %>%
-    group_by(cyclo_dose) %>%
+    group_by(cyclo_dose_quant) %>%
     summarise(across(everything(), mean)) %>%
     as.data.frame()
 df_pos_sd <- df_pos %>%
-    group_by(cyclo_dose) %>%
+    group_by(cyclo_dose_quant) %>%
     summarise(across(everything(), sd)) %>%
     as.data.frame()
-df_pos <- df_pos_mean %>% reshape2::melt(id.vars = "cyclo_dose")
-df_pos$sd <- reshape2::melt(df_pos_sd, id.vars = "cyclo_dose")$value
-df_pos$cyclo_dose <- factor(df_pos$cyclo_dose, levels = c(0, 0.125, 0.25, 0.5, 1))
-colnames(df_pos) <- c("cyclo_dose", "gene", "expression_mean", "expression_sd")
+df_pos <- df_pos_mean %>% reshape2::melt(id.vars = "cyclo_dose_quant")
+df_pos$sd <- reshape2::melt(df_pos_sd, id.vars = "cyclo_dose_quant")$value
+df_pos$cyclo_dose_quant <- factor(df_pos$cyclo_dose_quant, levels = c(0, 0.125, 0.25, 0.5, 1))
+colnames(df_pos) <- c("cyclo_dose_quant", "gene", "expression_mean", "expression_sd")
 
 png(filename = "results/images/Figure_3/F3_lineplot_negative.png", width = 2400, height = 1600, res = 250)
-ggplot(df_neg, aes(x = cyclo_dose, y = expression_mean, group = gene, color = gene, shape = gene)) +
+ggplot(df_neg, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, color = gene, shape = gene)) +
     geom_line() +
     geom_point(size = 2) +
     scale_shape_manual(values = 1:10) +
@@ -321,7 +333,7 @@ ggplot(df_neg, aes(x = cyclo_dose, y = expression_mean, group = gene, color = ge
 dev.off()
 
 png(filename = "results/images/Figure_3/F3_lineplot_positive.png", width = 2400, height = 1600, res = 250)
-ggplot(df_pos, aes(x = cyclo_dose, y = expression_mean, group = gene, color = gene, shape = gene)) +
+ggplot(df_pos, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, color = gene, shape = gene)) +
     geom_line() +
     geom_point(size = 2) +
     scale_shape_manual(values = 1:10) +

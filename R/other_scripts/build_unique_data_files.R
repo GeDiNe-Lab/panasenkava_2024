@@ -23,13 +23,43 @@ F1_meta <- read.table("/home/jules/Documents/phd/Data/Article_veranika/bulk/meta
 F2_rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_counts.csv", sep = ",", header = TRUE)
 F2_meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/diff13/diff13_meta.csv", sep = ",", header = TRUE)
 
-F3_rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/manip4/manip4_counts.csv")
-F3_meta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/manip4/manip4_metadata.csv", sep = ",", header = T)
-
-F4_rawcounts <- readcounts("/home/jules/Documents/phd/Data/lab_RNAseq/IPSdiff12/IPSdiff12_counts.csv")
-F4_rawmeta <- read.table("/home/jules/Documents/phd/Data/lab_RNAseq/IPSdiff12/IPSdiff12_metadata.csv", sep = ",", header = T)
-
 View(F1_meta)
 View(F2_meta)
-View(F3_meta)
-View(F4_rawmeta)
+
+
+F1_meta$CRISPR[which(F1_meta$line == "LON")] <- "no"
+F1_meta$sexe <- rep("H", nrow(F1_meta))
+F1_meta$day <- rep("day12", nrow(F1_meta))
+F1_meta$manip <- rep("veranika", nrow(F1_meta))
+F1_meta$line[which(F1_meta$line == "LON")] <- "LON71"
+F1_meta$sequencing <- ifelse(F1_meta$line == "LON71", "batch1", "batch2")
+F1_meta <- F1_meta[2:ncol(F1_meta)]
+
+
+F2_meta$sequencing <- rep("batch3", nrow(F2_meta))
+F2_meta$state <- rep("neuroectoderm", nrow(F2_meta))
+F2_meta$cyclo_dose_quant <- rep(0, nrow(F2_meta))
+F2_meta$cyclo_dose_qual <- rep("none", nrow(F2_meta))
+F2_meta$CRISPR <- rep("no", nrow(F2_meta))
+
+meta <- rbind(F1_meta, F2_meta)
+meta$diff <- rep("diff", nrow(meta))
+meta[which(meta$sequencing == "batch1"), "diff"] <- "diff9"
+meta[which(meta$sequencing == "batch2"), "diff"] <- "diff12"
+meta[which(meta$sequencing == "batch3"), "diff"] <- "diff13"
+View(meta)
+F1_rawcounts %>% colnames()
+F2_rawcounts <- F2_rawcounts[, F2_meta$sample]
+F2_rawcounts %>% colnames()
+F1_rawcounts[setdiff(rownames(F1_rawcounts), rownames(F2_rawcounts)), ]
+adding_row <- matrix(0, nrow = length(setdiff(rownames(F1_rawcounts), rownames(F2_rawcounts))), ncol = ncol(F2_rawcounts))
+colnames(adding_row) <- colnames(F2_rawcounts)
+rownames(adding_row) <- setdiff(rownames(F1_rawcounts), rownames(F2_rawcounts))
+F2_rawcounts <- rbind(F2_rawcounts, adding_row)
+
+rawcounts <- cbind(F1_rawcounts, F2_rawcounts)
+
+rawcounts <- rawcounts[, meta$sample]
+
+write.csv(rawcounts, "/home/jules/Documents/phd/projects/panasenkava_2024/data/rawcounts.csv")
+write.csv(meta, "/home/jules/Documents/phd/projects/panasenkava_2024/data/meta.csv", row.names = FALSE)
