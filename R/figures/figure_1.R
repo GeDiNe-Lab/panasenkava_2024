@@ -25,7 +25,7 @@ meta <- filter(rawmeta, type %in% c("dorsal", "ventral"), diff %in% c("diff9", "
 rawcounts <- rawcounts[, meta$sample]
 
 # Get defined marker genes
-markers_symbol <- read.table("/home/jules/Documents/phd/Data/Article_veranika/GeneListFig1_18_07_24.csv", sep = ",", header = TRUE)
+markers_symbol <- read.table("data/GeneListFig1_18_07_24.csv", sep = ",", header = TRUE)
 markers_symbol <- markers_symbol$gene
 markers <- markers_symbol %>% gene_converter("SYMBOL", "ENSEMBL")
 markers <- intersect(markers, rownames(rawcounts))
