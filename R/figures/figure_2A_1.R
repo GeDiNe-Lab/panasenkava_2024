@@ -229,25 +229,26 @@ Heatmap(
 )
 dev.off()
 
-# Normalize by variance stabilizing transformation with covariates
-vsd <- vst(dds, blind = FALSE)
-
 # PC3 is associated with lineage difference, we want genes higlhy correlated with PC1 and PC2 but not PC3
-top_PC1 <- cor(pca.data$PC1, t(assay(vsd))) %>% as.vector()
-names(top_PC1) <- rownames(vsd)
+top_PC1 <- cor(pca.data$PC1, t(assay(vsd_blind))) %>% as.vector()
+names(top_PC1) <- rownames(vsd_blind)
 top_PC1 <- sort(abs(top_PC1), decreasing = TRUE)[1:1000] %>% names()
 
-top_PC2 <- cor(pca.data$PC2, t(assay(vsd))) %>% as.vector()
-names(top_PC2) <- rownames(vsd)
+top_PC2 <- cor(pca.data$PC2, t(assay(vsd_blind))) %>% as.vector()
+names(top_PC2) <- rownames(vsd_blind)
 top_PC2 <- sort(abs(top_PC2), decreasing = TRUE)[1:1000] %>% names()
 
-top_PC3 <- cor(pca.data$PC3, t(assay(vsd))) %>% as.vector()
-names(top_PC3) <- rownames(vsd)
+top_PC3 <- cor(pca.data$PC3, t(assay(vsd_blind))) %>% as.vector()
+names(top_PC3) <- rownames(vsd_blind)
 top_PC3 <- sort(abs(top_PC3), decreasing = TRUE)[1:1000] %>% names()
 
 # get Heatmap genes
 hm_genes <- setdiff(union(top_PC1, top_PC2), top_PC3)
 hm_genes
+
+# Normalize by variance stabilizing transformation with covariates
+vsd <- vst(dds, blind = FALSE)
+
 # making matrix for heatmap, clustering and GO enrichment
 vsd_hm <- assay(vsd)[hm_genes, ]
 
@@ -296,27 +297,25 @@ clusters_ha <- rowAnnotation(
     )
 )
 
-# GO enrichment and heatmap
-for (cluster in unique(clusters)) {
-    print(names(clusters[which(clusters == cluster)]))
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
-        OrgDb = "org.Hs.eg.db",
-        keyType = "ENSEMBL",
-        ont = "BP"
-    )
-    print(GO_enrichment)
-    if (is.null(GO_enrichment) || nrow(GO_enrichment) == 0) {
-        print(paste0("No enriched terms found for cluster ", cluster))
-        next # Skip to the next cluster
-    }
-    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, ".csv"))
-    print("ok")
-    goplot <- clusterProfiler::dotplot(GO_enrichment,
-        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
-        showCategory = 15
-    )
-    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
-}
+# # GO enrichment and heatmap
+# for (cluster in unique(clusters)) {
+#     GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
+#         OrgDb = "org.Hs.eg.db",
+#         keyType = "ENSEMBL",
+#         ont = "BP"
+#     )
+#     print(GO_enrichment)
+#     if (is.null(GO_enrichment) || nrow(GO_enrichment) == 0) {
+#         print(paste0("No enriched terms found for cluster ", cluster))
+#         next # Skip to the next cluster
+#     }
+#     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, ".csv"))
+#     goplot <- clusterProfiler::dotplot(GO_enrichment,
+#         title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
+#         showCategory = 15
+#     )
+#     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
+# }
 
 png(filename = "results/images/Figure_2A/F2A_DE_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
