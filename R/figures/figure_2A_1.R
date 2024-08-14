@@ -75,6 +75,7 @@ ggplot(pca.data, aes(PC2, PC3, color = type, shape = line)) +
     ggtitle("Second and third PCs of dorsal and ventral kinetics all genes")
 dev.off()
 
+# Variance explained by each PCs
 png(filename = "results/images/Figure_2A/F2A_1_percentvar_allgenes.png", width = 1600, height = 1200, res = 250)
 ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
     geom_bar(stat = "identity") +
@@ -83,6 +84,7 @@ ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), level
     ggtitle("Variation explained by each PCs with all genes")
 dev.off()
 
+# Building matrix with first 5 PC and covariates
 PC_covariate_all_genes <- cbind(pca.data[, 1:5], meta %>%
     dplyr::select(c("line", "type", "day")) %>%
     apply(2, function(x) {
@@ -90,9 +92,8 @@ PC_covariate_all_genes <- cbind(pca.data[, 1:5], meta %>%
     }) %>%
     as.matrix())
 
+# Computing PC-covariate correlation and ANOVA
 PC_covariate_all_genes_cor <- cor(PC_covariate_all_genes[, 1:5], PC_covariate_all_genes[, 6:ncol(PC_covariate_all_genes)]) %>% abs()
-PC_covariate_all_genes_cor
-
 PC_covariate_all_genes_ANOVA <- c(6:ncol(PC_covariate_all_genes)) %>% lapply(function(i) {
     apply(PC_covariate_all_genes[, 1:5], 2, function(x) {
         aov(x ~ PC_covariate_all_genes[, i])
@@ -102,11 +103,11 @@ PC_covariate_all_genes_ANOVA <- c(6:ncol(PC_covariate_all_genes)) %>% lapply(fun
 })
 PC_covariate_all_genes_ANOVA <- Reduce(cbind, PC_covariate_all_genes_ANOVA)
 colnames(PC_covariate_all_genes_ANOVA) <- colnames(PC_covariate_all_genes)[6:ncol(PC_covariate_all_genes)]
+
+# Saving ANOVA results
 write.csv(PC_covariate_all_genes_ANOVA, "results/tables/Figure_2A/F2_PC_covariate_ANOVA_all_genes.csv")
-PC_covariate_all_genes_ANOVA
 
 rownames(PC_covariate_all_genes_cor) <- paste0(rownames(PC_covariate_all_genes_cor), " (", percentVar[1:5], "%)")
-PC_covariate_all_genes_cor
 
 png(filename = "results/images/Figure_2A/F2A_PC_covariate_correlation_all_genes.png", width = 2000, height = 1800, res = 250)
 Heatmap(
@@ -170,6 +171,7 @@ ggplot(pca.data500, aes(PC2, PC3, color = type, shape = line)) +
     ggtitle("Second and third PCs of dorsal and ventral kinetics top 500 variable genes")
 dev.off()
 
+# Variance explained by each PCs
 png(filename = "results/images/Figure_2A/F2A_1_percentvar_500genes.png", width = 1600, height = 1200, res = 250)
 ggplot(data.frame(perc = percentVar500, PC = factor(colnames(pca.data500[1:20]), levels = colnames(pca.data500[1:20]))), aes(x = PC, y = perc)) +
     geom_bar(stat = "identity") +
@@ -178,6 +180,7 @@ ggplot(data.frame(perc = percentVar500, PC = factor(colnames(pca.data500[1:20]),
     ggtitle("Variation explained by each PCs with top 500 variable genes")
 dev.off()
 
+# Building dataframe with first 5 PC and covariates
 PC_covariate_500 <- cbind(pca.data500[, 1:5], meta %>%
     dplyr::select(c("line", "type", "day")) %>%
     apply(2, function(x) {
@@ -185,9 +188,8 @@ PC_covariate_500 <- cbind(pca.data500[, 1:5], meta %>%
     }) %>%
     as.matrix())
 
+# Computing PC-covariate correlation and ANOVA
 PC_covariate_500_cor <- cor(PC_covariate_500[, 1:5], PC_covariate_500[, 6:ncol(PC_covariate_500)]) %>% abs()
-PC_covariate_500_cor
-
 PC_covariate_500_ANOVA <- c(6:ncol(PC_covariate_500)) %>% lapply(function(i) {
     apply(PC_covariate_500[, 1:5], 2, function(x) {
         aov(x ~ PC_covariate_500[, i])
@@ -197,12 +199,11 @@ PC_covariate_500_ANOVA <- c(6:ncol(PC_covariate_500)) %>% lapply(function(i) {
 })
 PC_covariate_500_ANOVA <- Reduce(cbind, PC_covariate_500_ANOVA)
 colnames(PC_covariate_500_ANOVA) <- colnames(PC_covariate_500)[6:ncol(PC_covariate_500)]
-PC_covariate_500_ANOVA
+
+# Saving ANOVA results
 write.csv(PC_covariate_500_ANOVA, "results/tables/Figure_2A/F2_PC_covariate_ANOVA_500.csv")
 
 rownames(PC_covariate_500_cor) <- paste0(rownames(PC_covariate_500_cor), " (", percentVar500[1:5], "%)")
-
-PC_covariate_500_cor
 
 png(filename = "results/images/Figure_2A/F2A_PC_covariate_correlation_500.png", width = 2000, height = 1800, res = 250)
 Heatmap(
@@ -244,7 +245,6 @@ top_PC3 <- sort(abs(top_PC3), decreasing = TRUE)[1:1000] %>% names()
 
 # get Heatmap genes
 hm_genes <- setdiff(union(top_PC1, top_PC2), top_PC3)
-hm_genes
 
 # Normalize by variance stabilizing transformation with covariates
 vsd <- vst(dds, blind = FALSE)
@@ -261,11 +261,11 @@ sample_order <- c(
     filter(meta, type == "dorsal")$sample[order(filter(meta, type == "dorsal")$day)]
 )
 
-# making two level of clustering with subclustering (clustering within each cluster)
+# hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat[, sample_order]))
 clusters <- cutree(clustering, k = 4)
-clusters %>% table()
 
+# Subclustering within each cluster
 sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), sample_order]
     sub_clustering <- hclust(dist(sub_mat))
@@ -297,6 +297,11 @@ clusters_ha <- rowAnnotation(
     )
 )
 
+#
+#
+# # Looks like there is no enriched GO terms for the clusters
+#
+#
 # # GO enrichment and heatmap
 # for (cluster in unique(clusters)) {
 #     GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
@@ -477,5 +482,5 @@ genes_cluster <- data.frame(
     subcluster_WTC = sub_clusters_WTC[hm_genes]
 )
 rownames(genes_cluster) <- hm_genes
-print("end")
+
 write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")

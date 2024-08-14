@@ -37,6 +37,7 @@ dds <- DESeqDataSetFromMatrix(
 # Normalization without covariates
 vsd_blind <- vst(dds, blind = TRUE)
 
+#  PCA
 pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "cyclo_dose_qual"), returnData = TRUE, ntop = nrow(assay(vsd_blind)))
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
@@ -51,6 +52,7 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_qual)) +
     ggtitle("First and second PCs of dorsal and ventral kinetics all genes")
 dev.off()
 
+# Building matrix with first 5 PC and covariates
 PC_covariate <- cbind(pca.data[, 1:5], meta %>%
     dplyr::select(c("cyclo_dose_qual", "type")) %>%
     apply(2, function(x) {
@@ -58,9 +60,8 @@ PC_covariate <- cbind(pca.data[, 1:5], meta %>%
     }) %>%
     as.matrix())
 
+# Correlation between PC and covariates and ANOVA
 PC_covariate_cor <- cor(PC_covariate[, 1:5], PC_covariate[, 6:ncol(PC_covariate)]) %>% abs()
-PC_covariate_cor
-
 PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
     apply(PC_covariate[, 1:5], 2, function(x) {
         aov(x ~ PC_covariate[, i])
@@ -70,8 +71,10 @@ PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
 })
 PC_covariate_ANOVA <- Reduce(cbind, PC_covariate_ANOVA)
 colnames(PC_covariate_ANOVA) <- colnames(PC_covariate)[6:ncol(PC_covariate)]
-PC_covariate_ANOVA
+
+# Saving ANOVA results
 write.csv(PC_covariate_ANOVA, "results/tables/Figure_3/F3_PC_covariate_ANOVA.csv")
+
 rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
 
 png(filename = "results/images/Figure_3/F3_PC_covariate_correlation.png", width = 2000, height = 1800, res = 250)
@@ -99,6 +102,7 @@ Heatmap(
 )
 dev.off()
 
+#  Variance explained by each PC
 png(filename = "results/images/Figure_3/F3_PCA_percentVar.png", width = 1600, height = 1200, res = 250)
 ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
     geom_bar(stat = "identity") +
@@ -122,9 +126,11 @@ sample_order <- meta$sample[order(meta$cyclo_dose_quant)]
 scaled_mat <- t(apply(assay(vsd)[rownames(cyclo_genes_f), sample_order], 1, scale))
 colnames(scaled_mat) <- colnames(assay(vsd)[, sample_order])
 
+# hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
 
+# Subclustering of each cluster
 sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), sample_order]
     sub_clustering <- hclust(dist(sub_mat))
@@ -136,6 +142,7 @@ sub_clusters <- sub_clusters_list %>%
     unlist()
 sub_clusters <- sub_clusters[names(clusters)]
 
+# Heatmap gene annotation
 clusters_ha <- rowAnnotation(
     cluster = as.character(clusters[clustering$order]),
     sub_cluster = as.character(sub_clusters[clustering$order]),
@@ -154,6 +161,7 @@ clusters_ha <- rowAnnotation(
     )
 )
 
+# GO enrichment for each cluster
 for (cluster in unique(clusters)) {
     print(cluster)
     GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
@@ -168,7 +176,6 @@ for (cluster in unique(clusters)) {
     )
     ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_", cluster, ".png"), goplot, width = 8, height = 10)
 }
-
 
 png(filename = "results/images/Figure_3/F3_cyclo_genes_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
@@ -216,7 +223,6 @@ DE_low_vs_no <- dds %>%
 DE_low_vs_no$gene <- gene_converter(rownames(DE_low_vs_no), "ENSEMBL", "SYMBOL")
 DE_low_vs_no_f <- filter(DE_low_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
-
 # Building heatmap genes annotation (DE, correlation with cyclo, cluster, subcluster)
 colnames(DE_high_vs_no) <- paste0("HvsN_", colnames(DE_high_vs_no))
 colnames(DE_high_vs_low) <- paste0("HvsL_", colnames(DE_high_vs_low))
@@ -246,8 +252,8 @@ cyclo_genes_df$sub_cluster <- rownames(cyclo_genes_df) %>% sapply(function(gene)
     }
 })
 cyclo_genes_df$genes <- gene_converter(rownames(cyclo_genes_df), "ENSEMBL", "SYMBOL")
-View(cyclo_genes_df)
 
+# Saving heatmap genes annotation table
 write.csv(cyclo_genes_df, "results/tables/Figure_3/cyclo_genes_df.csv")
 
 # Genes tested in mices
@@ -260,18 +266,8 @@ dorsal <- c("PAX6", "ADD3", "ATP2B1", "CNN3", "COLGALT2", "EPHA4", "FZD3", "GLI2
 known_genes <- c("GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2-1", "PAX6", "PTCH1")
 
 # co-expression
-
-# getting normalized counts for co-expression
-counts_coex <- rawcounts[, meta$sample]
-counts_coex <- counts_coex[which(rowSums(counts_coex) >= 25), ]
-dds_coex <- DESeqDataSetFromMatrix(
-    countData = counts_coex,
-    colData = meta,
-    design = ~cyclo_dose_qual
-)
-vsd_coex <- vst(dds_coex, blind = FALSE)
-
 # getting co-expression matrix (Pearson correlation)
+# using WGCNA::cor for faster computation
 corr <- WGCNA::cor(t(assay(vsd)))
 
 # getting genes correlation with SHH, NKX2-1 and PAX6
@@ -281,17 +277,20 @@ corr_df$abs_max_cor <- apply(corr_df, 1, function(x) max(abs(x)))
 corr_df$gene <- gene_converter(rownames(corr_df), "ENSEMBL", "SYMBOL")
 corr_df <- filter(corr_df, !is.na(gene))
 
+# filtering genes with |cor| >= 0.85
 corr_df_f <- filter(corr_df, abs_max_cor >= 0.85)
 
+# Saving correlation table
 write.csv(corr_df_f, file = "results/tables/Figure_3/Pearson_0_85.csv")
 
-
+# Getting top 10 genes positively and negatively correlated with SHH
 scaled_vsd <- assay(vsd) - min(assay(vsd))
 subset_assay_pos <- scaled_vsd[rownames(corr_df_f[order(corr_df_f$SHH, decreasing = TRUE), ][2:11, ]), ]
 rownames(subset_assay_pos) <- rownames(subset_assay_pos) %>% gene_converter("ENSEMBL", "SYMBOL")
 subset_assay_neg <- scaled_vsd[rownames(corr_df_f[order(corr_df_f$SHH, decreasing = FALSE), ][1:10, ]), ]
 rownames(subset_assay_neg) <- rownames(subset_assay_neg) %>% gene_converter("ENSEMBL", "SYMBOL")
 
+# Building dataframe for lineplots
 df_neg <- t(subset_assay_neg) %>% as.data.frame()
 df_neg$cyclo_dose_quant <- meta[rownames(df_neg), ]$cyclo_dose_quant
 df_neg_mean <- df_neg %>%
@@ -342,16 +341,34 @@ ggplot(df_pos, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, colo
     custom_theme(diag_text = TRUE)
 dev.off()
 
-# Table obtained through STRING export "as tabular text output"
+# Loading the table obtained through STRING export "as tabular text output"
 STRING_edges <- read.table("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_3/string_interactions.tsv", header = FALSE)
 colnames(STRING_edges) <- c("gene1", "gene2", "score")
 corr_df_f_symbol <- corr_df_f
 rownames(corr_df_f_symbol) <- corr_df_f$gene
+
+# Adding genes showing high correlation but which are not in STRING since they are non-coding transcripts
+# Confidence score for these relationships is set to 0.4 which is the minimum here
+SHH_high_cor <- data.frame(
+    gene1 = setdiff(filter(corr_df_f, abs(SHH) >= 0.95)$gene, union(unique(STRING_edges$gene1), unique(STRING_edges$gene2))),
+    gene2 = "SHH",
+    score = 0.4
+)
+NKX2.1_high_cor <- data.frame(
+    gene1 = setdiff(filter(corr_df_f, abs(NKX2.1) >= 0.95)$gene, union(unique(STRING_edges$gene1), unique(STRING_edges$gene2))),
+    gene2 = "NKX2-1",
+    score = 0.4
+)
+
+STRING_edges <- Reduce(rbind, list(STRING_edges, SHH_high_cor, NKX2.1_high_cor))
+
+# Adding SHH relationship sign info
 STRING_edges$SHH_cor <- sapply(STRING_edges$gene1, function(x) {
     return(corr_df_f_symbol[x, "SHH"] > 0)
 })
 write.csv(STRING_edges, file = "results/tables/Figure_3/STRING_edges_corr.csv", row.names = FALSE)
 
+#  Plotting higly DE genes volcano plots
 DE_cyclo <- list(
     high_vs_no = DE_high_vs_no_f,
     high_vs_low = DE_high_vs_low_f,

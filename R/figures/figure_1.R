@@ -22,19 +22,20 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # Keeping only necessary samples
 meta <- filter(rawmeta, type %in% c("dorsal", "ventral"), diff %in% c("diff9", "diff12"), CRISPR %in% c("no", "control"), sample != "L9C1_2")
-rawcounts <- rawcounts[, meta$sample]
 
 # Get defined marker genes
 markers_symbol <- read.table("data/GeneListFig1_18_07_24.csv", sep = ",", header = TRUE)
 markers_symbol <- markers_symbol$gene
+# Getting marker's ENSEMBL ID
 markers <- markers_symbol %>% gene_converter("SYMBOL", "ENSEMBL")
+# Make sure to keep only markers in the matrix
 markers <- intersect(markers, rownames(rawcounts))
 
 # Get rows corresponding to markers
 retained_row <- rawcounts[rownames(rawcounts) %in% markers, ]
 
-# filtering out lowly expressed genes
-counts <- rawcounts[rowSums(rawcounts) >= 25, ]
+# filtering out lowly expressed genes and keeping only seleted samples
+counts <- rawcounts[, meta$sample][rowSums(rawcounts[, meta$sample]) >= 25, ]
 
 # putting back potentially filtered out markers (posterior markers for example as they should not be expressed)
 if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
@@ -44,7 +45,7 @@ if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
     counts <- rbind(counts, retained_row[which(!rownames(retained_row) %in% rownames(counts)), ])
 }
 
-# making DESeq object with lineage and type as covariates
+# making DESeq object with lineage and type as covariates for design
 dds <- DESeqDataSetFromMatrix(
     countData = counts,
     colData = meta,
@@ -67,6 +68,7 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     ggtitle("PCA of dorsal and ventral samples at day12")
 dev.off()
 
+# Building dataframe with first 5 PC and covariates
 PC_covariate <- cbind(pca.data[, 1:5], meta %>%
     dplyr::select(c("line", "type")) %>%
     apply(2, function(x) {
@@ -74,9 +76,8 @@ PC_covariate <- cbind(pca.data[, 1:5], meta %>%
     }) %>%
     as.matrix())
 
+# Computing PC-covariate correlation and ANOVA
 PC_covariate_cor <- cor(PC_covariate[, 1:5], PC_covariate[, 6:ncol(PC_covariate)]) %>% abs()
-PC_covariate_cor
-
 PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
     apply(PC_covariate[, 1:5], 2, function(x) {
         aov(x ~ PC_covariate[, i])
@@ -86,8 +87,11 @@ PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
 })
 PC_covariate_ANOVA <- Reduce(cbind, PC_covariate_ANOVA)
 colnames(PC_covariate_ANOVA) <- colnames(PC_covariate)[6:ncol(PC_covariate)]
-PC_covariate_ANOVA
+
+#  Saving ANOVA results
 write.csv(PC_covariate_ANOVA, "results/tables/Figure_1/F1_PC_covariate_ANOVA.csv")
+
+# Adding variance explained by each PC
 rownames(PC_covariate_cor) <- paste0(rownames(PC_covariate_cor), " (", percentVar[1:5], "%)")
 
 png(filename = "results/images/Figure_1/F1_2B_PC_covariate_correlation.png", width = 2000, height = 1800, res = 250)
@@ -124,14 +128,15 @@ ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), level
     ggtitle("Variation explained by each PC")
 dev.off()
 
-# Normalization by variance stabilizing transformation with covariates
+# Normalization by variance stabilizing transformation taking covariates in account
 vsd <- vst(dds, blind = FALSE)
 
 # subset rows for markers
 vsd_symbol <- assay(vsd[markers, ])
+# convert rownames to gene symbols
 rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMBOL")
 
-#  gene annotations
+# heatmap gene annotations
 marker_ha <- rowAnnotation(
     markers = c(
         rep("pluripotency", 2),
@@ -200,17 +205,17 @@ DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN_f, padj < 0.01, abs(log2FoldChange) 
 vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_f), ])
 scaled_mat <- t(apply(vsd_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(vsd_DEGs)
-scaled_mat
 
+# hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
 
+# sub-clustering of each cluster
 sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), ]
     sub_clustering <- hclust(dist(sub_mat))
     return(cutree(sub_clustering, k = 4))
 })
-
 names(sub_clusters_list) <- paste0("cluster_", unique(clusters))
 sub_clusters <- sub_clusters_list %>%
     unname() %>%
@@ -235,7 +240,7 @@ clusters_ha <- rowAnnotation(
     )
 )
 
-# performing GO enrichment on 1st layer clusters
+# performing GO enrichment on clusters
 for (cluster in unique(clusters)) {
     print(cluster)
     GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
@@ -287,6 +292,7 @@ Heatmap(
 )
 dev.off()
 
+# adding cluster and subcluster to DEGs table
 DEGs_vAN_vs_dAN$clusters <- clusters[rownames(DEGs_vAN_vs_dAN)]
 DEGs_vAN_vs_dAN$sub_clusters <- sub_clusters[rownames(DEGs_vAN_vs_dAN)]
 
