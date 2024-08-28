@@ -254,7 +254,7 @@ cyclo_genes_df$sub_cluster <- rownames(cyclo_genes_df) %>% sapply(function(gene)
 cyclo_genes_df$genes <- gene_converter(rownames(cyclo_genes_df), "ENSEMBL", "SYMBOL")
 
 # Saving heatmap genes annotation table
-write.csv(cyclo_genes_df, "results/tables/Figure_3/cyclo_genes_df.csv")
+write.csv(cyclo_genes_df, "results/")
 
 # Genes tested in mices
 ventral <- c(

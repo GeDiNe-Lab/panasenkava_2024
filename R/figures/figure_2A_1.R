@@ -302,26 +302,27 @@ clusters_ha <- rowAnnotation(
 # # Looks like there is no enriched GO terms for the clusters
 #
 #
-# # GO enrichment and heatmap
-# for (cluster in unique(clusters)) {
-#     GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
-#         OrgDb = "org.Hs.eg.db",
-#         keyType = "ENSEMBL",
-#         ont = "BP"
-#     )
-#     print(GO_enrichment)
-#     if (is.null(GO_enrichment) || nrow(GO_enrichment) == 0) {
-#         print(paste0("No enriched terms found for cluster ", cluster))
-#         next # Skip to the next cluster
-#     }
-#     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, ".csv"))
-#     goplot <- clusterProfiler::dotplot(GO_enrichment,
-#         title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
-#         showCategory = 15
-#     )
-#     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
-# }
+# GO enrichment
+for (cluster in unique(clusters)) {
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
+        OrgDb = "org.Hs.eg.db",
+        keyType = "ENSEMBL",
+        ont = "BP"
+    )
+    print(GO_enrichment)
+    if (is.null(GO_enrichment) || nrow(GO_enrichment) == 0) {
+        print(paste0("No enriched terms found for cluster ", cluster))
+        next # Skip to the next cluster
+    }
+    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, ".csv"))
+    goplot <- clusterProfiler::dotplot(GO_enrichment,
+        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
+        showCategory = 15
+    )
+    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
+}
 
+# heatmap
 png(filename = "results/images/Figure_2A/F2A_DE_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering$order, sample_order],
@@ -383,6 +384,26 @@ clusters_LON_ha <- rowAnnotation(
         )
     )
 )
+
+# GO enrichment for LON71 lineage only
+for (cluster in unique(clusters_LON)) {
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_LON[which(clusters_LON == cluster)]),
+        OrgDb = "org.Hs.eg.db",
+        keyType = "ENSEMBL",
+        ont = "BP"
+    )
+    print(GO_enrichment)
+    if (is.null(GO_enrichment) || nrow(GO_enrichment) == 0) {
+        print(paste0("No enriched terms found for cluster ", cluster))
+        next # Skip to the next cluster
+    }
+    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, "_LON.csv"))
+    goplot <- clusterProfiler::dotplot(GO_enrichment,
+        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
+        showCategory = 15
+    )
+    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_LON.png"), goplot, width = 8, height = 10)
+}
 
 png(filename = "results/images/Figure_2A/F2A_DE_HM_LON.png", width = 2400, height = 1600, res = 250)
 Heatmap(
@@ -446,6 +467,26 @@ clusters_WTC_ha <- rowAnnotation(
         )
     )
 )
+
+# GO enrichment for WTC lineage only
+for (cluster in unique(clusters_WTC)) {
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_WTC[which(clusters_WTC == cluster)]),
+        OrgDb = "org.Hs.eg.db",
+        keyType = "ENSEMBL",
+        ont = "BP"
+    )
+    print(GO_enrichment)
+    if (is.null(GO_enrichment) || nrow(GO_enrichment) == 0) {
+        print(paste0("No enriched terms found for cluster ", cluster))
+        next # Skip to the next cluster
+    }
+    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, "_WTC.csv"))
+    goplot <- clusterProfiler::dotplot(GO_enrichment,
+        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
+        showCategory = 15
+    )
+    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_WTC.png"), goplot, width = 8, height = 10)
+}
 
 png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 250)
 Heatmap(
