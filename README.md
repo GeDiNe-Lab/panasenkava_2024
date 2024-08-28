@@ -46,7 +46,11 @@ There is 2 level of clustering subclustering has been made using gene from each 
 Associated tables : genes_cluster.csv
 
 ### F2A heatmap functional enrichment
-No Go terms were found to be enriched in any cluster here
+(First level of clustering : clusters 1,2,3, and 4) top 15 GO biological process term for each DE genes clusters
+
+Associated tables : GO_enrichment_cluster_n.csv
+
+Also did the same for LON only and WTC only clustering, images adn tables have _LON or _WTC at the end accordingly
 
 ## Other Differential expression tables
 Highly differentilly expressed genes : absolute log2FC >= 2 and pvalue < 0.01
