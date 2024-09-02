@@ -49,7 +49,7 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_qual)) +
     scale_color_manual(values = c("#ecb039", "#80AD3C")) +
     scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
     custom_theme() +
-    ggtitle("First and second PCs of dorsal and ventral kinetics all genes")
+    ggtitle("First and second PCs of ventral and cyclopamine treated cells")
 dev.off()
 
 # Building matrix with first 5 PC and covariates
