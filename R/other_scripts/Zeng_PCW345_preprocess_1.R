@@ -3,17 +3,37 @@ library(tidyverse)
 library(Seurat)
 source("/home/jules/Documents/phd/custom_fct.R")
 
+authors_meta <- read.csv("/home/jules/Documents/phd/Data/literature/Zeng_et_al/week3_metadata.csv")
+
 meta <- read.table("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/indices.csv", header = TRUE, sep = ",")
 genes <- read.table("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/genes.tsv", header = FALSE)$V1
+
 meta$week_stage %>% unique()
+formated_indices <- c(1:nrow(meta)) %>% sapply(function(i) {
+    c(str_split(meta[i, ]$index, "-")[[1]][1:2], meta[i, ]$week_stage) %>%
+        paste(collapse = "-") %>%
+        return()
+})
+formated_indices
+meta$formated_index
+authors_meta_f$barcode[1:5]
+
+paste(c(str_split(meta$index[1], "-")[[1]][1:2], meta$week_stage[1]), collapse = "-")
+
+authors_meta_f <- filter(authors_meta, celltype_region_num %in% c(1:8))
+authors_meta_f$week_stage %>% table()
+
 # preprocess week3
 week3 <- readMM("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/week3.mtx") %>% t()
+
+
+
 
 meta_week3 <- filter(meta, week_stage == "W3-1")
 rownames(week3) <- genes
 colnames(week3) <- meta_week3$index
 
-
+nrow(meta_week3)
 seurat_week3 <- CreateSeuratObject(counts = week3[which(rowSums(week3) > 0), ], min.cells = 3, min.features = 200)
 # seurat_week3[["percent.mt"]] <- PercentageFeatureSet(seurat_week3, pattern = "^MT-")
 # VlnPlot(seurat_week3, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
@@ -30,7 +50,7 @@ rm(week3)
 rm(meta_week3)
 gc()
 
-# preprocess week3
+# preprocess week4
 week4 <- readMM("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/week4.mtx") %>% t()
 
 meta_week4 <- filter(meta, week_stage %in% c("W4-2", "W4-3"))
@@ -53,7 +73,7 @@ rm(week4)
 rm(meta_week4)
 gc()
 
-# preprocess week3
+# preprocess week5
 week5 <- readMM("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zeng_et_al/week5.mtx") %>% t()
 
 meta_week5 <- filter(meta, week_stage %in% c("W5-2", "W5-3"))

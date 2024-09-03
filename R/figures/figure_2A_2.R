@@ -325,13 +325,47 @@ DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral_f, padj < 0.01, 
 
 write.csv(DEGs_day_12_vs_10_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_10_ventral.csv", row.names = FALSE)
 
+# DEGs day12 vs day10 for ventral samples
+DEGs_day_12_vs_06_ventral <- DESeqDataSetFromMatrix(
+    countData = counts[, filter(meta, type == "ventral")$sample],
+    colData = filter(meta, type == "ventral"),
+    design = ~ line + day
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("day", "day12", "day06")) %>%
+    as.data.frame() %>%
+    na.omit()
+DEGs_day_12_vs_06_ventral$gene <- gene_converter(rownames(DEGs_day_12_vs_06_ventral), "ENSEMBL", "SYMBOL")
+DEGs_day_12_vs_06_ventral_f <- filter(DEGs_day_12_vs_06_ventral, !is.na(gene))
+DEGs_day_12_vs_06_ventral_f <- filter(DEGs_day_12_vs_06_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
+
+write.csv(DEGs_day_12_vs_06_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_06_ventral.csv", row.names = FALSE)
+
+# DEGs day12 vs day6 for dorsal samples
+DEGs_day_12_vs_06_dorsal <- DESeqDataSetFromMatrix(
+    countData = counts[, filter(meta, type == "dorsal")$sample],
+    colData = filter(meta, type == "dorsal"),
+    design = ~ line + day
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("day", "day12", "day06")) %>%
+    as.data.frame() %>%
+    na.omit()
+DEGs_day_12_vs_06_dorsal$gene <- gene_converter(rownames(DEGs_day_12_vs_06_dorsal), "ENSEMBL", "SYMBOL")
+DEGs_day_12_vs_06_dorsal_f <- filter(DEGs_day_12_vs_06_dorsal, !is.na(gene))
+DEGs_day_12_vs_06_dorsal_f <- filter(DEGs_day_12_vs_06_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
+
+write.csv(DEGs_day_12_vs_06_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_06_dorsal.csv", row.names = FALSE)
+
+
 # Making Volcano plots for ventral samples
 DE_days_ventral <- list(
     day_04_vs_02 = DEGs_day_04_vs_02_ventral_f,
     day_06_vs_04 = DEGs_day_06_vs_04_ventral_f,
     day_08_vs_06 = DEGs_day_08_vs_06_ventral_f,
     day_10_vs_08 = DEGs_day_10_vs_08_ventral_f,
-    day_12_vs_10 = DEGs_day_12_vs_10_ventral_f
+    day_12_vs_10 = DEGs_day_12_vs_10_ventral_f,
+    day_12_vs_06 = DEGs_day_12_vs_06_ventral_f
 )
 names(DE_days_ventral)
 
@@ -353,7 +387,8 @@ DE_days_dorsal <- list(
     day_06_vs_04 = DEGs_day_06_vs_04_dorsal_f,
     day_08_vs_06 = DEGs_day_08_vs_06_dorsal_f,
     day_10_vs_08 = DEGs_day_10_vs_08_dorsal_f,
-    day_12_vs_10 = DEGs_day_12_vs_10_dorsal_f
+    day_12_vs_10 = DEGs_day_12_vs_10_dorsal_f,
+    day_12_vs_06 = DEGs_day_12_vs_06_dorsal_f
 )
 names(DE_days_dorsal)
 

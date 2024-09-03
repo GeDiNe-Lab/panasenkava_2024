@@ -32,7 +32,7 @@ markers <- markers_symbol %>% gene_converter("SYMBOL", "ENSEMBL")
 markers <- intersect(markers, rownames(rawcounts))
 
 # Get rows corresponding to markers
-retained_row <- rawcounts[rownames(rawcounts) %in% markers, ]
+retained_row <- rawcounts[rownames(rawcounts) %in% markers, meta$sample]
 
 # filtering out lowly expressed genes and keeping only seleted samples
 counts <- rawcounts[, meta$sample][rowSums(rawcounts[, meta$sample]) >= 25, ]
@@ -54,9 +54,11 @@ dds <- DESeqDataSetFromMatrix(
 # Normalization by variance stabilizing transformation without covariates
 vsd_blind <- vst(dds, blind = TRUE)
 
-# PCA plot of the top 500 most variable genes
+# PCA plot of all  genes
 pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("line", "type"), returnData = TRUE, ntop = nrow(assay(vsd_blind)))
 percentVar <- round(100 * attr(pca.data, "percentVar"))
+fe_info <- attr(pca.data, "factoextra")
+
 
 png(filename = "results/images/Figure_1/F1_2_PCA.png", width = 1600, height = 1200, res = 250)
 ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
@@ -67,6 +69,9 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     custom_theme() +
     ggtitle("PCA of dorsal and ventral samples at day12")
 dev.off()
+
+
+write.csv(, "results/tables/Figure_1/F1_top_PC_genes.csv")
 
 # Building dataframe with first 5 PC and covariates
 PC_covariate <- cbind(pca.data[, 1:5], meta %>%
@@ -153,7 +158,8 @@ marker_ha <- rowAnnotation(
             "dorsal" = "purple",
             "posterior neuroectoderm" = "orange"
         )
-    )
+    ),
+    show_annotation_name = FALSE
 )
 # heatmap sample annotation
 sample_ha <- columnAnnotation(

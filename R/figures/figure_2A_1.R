@@ -38,7 +38,9 @@ dds <- DESeqDataSetFromMatrix(
 vsd_blind <- vst(dds, blind = TRUE)
 
 # PCA with all genes
-pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = nrow(assay(vsd_blind)))
+  
+genes <- nrow(assay(vsd_blind))
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = genes)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 pca_var <- attr(pca.data, "pca_var")
 

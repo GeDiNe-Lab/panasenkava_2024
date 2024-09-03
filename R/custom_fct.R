@@ -64,6 +64,8 @@ plotPCA.DESeqTransform <- function(object, intgroup = "condition",
   # perform a PCA on the data in assay(x) for the selected genes
   pca <- prcomp(t(assay(object)[select, ]))
 
+  pca_data_fe <- factoextra::get_pca_var(pca)
+
   # the contribution to the total variance for each component
   percentVar <- pca$sdev^2 / sum(pca$sdev^2)
 
@@ -90,6 +92,7 @@ plotPCA.DESeqTransform <- function(object, intgroup = "condition",
   colnames(d)[pcsToUse] <- pcs
 
   attr(d, "percentVar") <- percentVar[pcsToUse]
+  attr(d, "factoextra") <- pca_data_fe
   attr(d, "pca_var") <- prcomp(assay(object)[select, ])
   return(d)
 }
