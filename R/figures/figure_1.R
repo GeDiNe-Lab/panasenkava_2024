@@ -24,7 +24,7 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 meta <- filter(rawmeta, type %in% c("dorsal", "ventral"), diff %in% c("diff9", "diff12"), CRISPR %in% c("no", "control"), sample != "L9C1_2")
 
 # Get defined marker genes
-markers_symbol <- read.table("data/GeneListFig1_18_07_24.csv", sep = ",", header = TRUE)
+markers_symbol <- read.table("data/GeneListFig1_04_09_24.csv", sep = ",", header = TRUE)
 markers_symbol <- markers_symbol$gene
 # Getting marker's ENSEMBL ID
 markers <- markers_symbol %>% gene_converter("SYMBOL", "ENSEMBL")
@@ -149,9 +149,10 @@ rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMB
 marker_ha <- rowAnnotation(
     markers = c(
         rep("pluripotency", 2),
-        rep("anterior neuroectoderm", 6),
-        rep("ventral", 10),
-        rep("dorsal", 7),
+        rep("neuroectoderm", 5),
+        rep("anterior neuroectoderm", 2),
+        rep("dorsal", 8),
+        rep("ventral", 9),
         rep("posterior neuroectoderm", 4)
     ),
     col = list(
