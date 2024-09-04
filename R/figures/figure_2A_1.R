@@ -38,11 +38,23 @@ dds <- DESeqDataSetFromMatrix(
 vsd_blind <- vst(dds, blind = TRUE)
 
 # PCA with all genes
-  
+
 genes <- nrow(assay(vsd_blind))
 pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = genes)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 pca_var <- attr(pca.data, "pca_var")
+
+png(filename = "results/images/Figure_2A/F2A_1_PCA_1_2_days_allgenes_22635.png", width = 1600, height = 1200, res = 250)
+ggplot(pca.data, aes(PC1, PC2, color = line, shape = day)) +
+    geom_point(size = 2, stroke = 1) +
+    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    scale_color_manual(values = c("#565656", "#000000")) +
+    scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
+    custom_theme() +
+    ggtitle("First and second PCs of dorsal and ventral kinetics all genes")
+dev.off()
+
 
 png(filename = "results/images/Figure_2A/F2A_1_PCA_1_2_days_allgenes.png", width = 1600, height = 1200, res = 250)
 ggplot(pca.data, aes(PC1, PC2, color = type, shape = day)) +

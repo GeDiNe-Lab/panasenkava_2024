@@ -59,9 +59,16 @@ pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("line", "type"), retu
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 fe_info <- attr(pca.data, "factoextra")
 
+fe_info$cor %>% summary()
+contribPC1 <- sort(fe_info$contrib[, 1]) %>%
+    tail(2000) %>%
+    names()
+contribPC1 <- contribPC1[which(!is.na(gene_converter(contribPC1, "ENSEMBL", "SYMBOL")))]
+contribPC1
+
 
 png(filename = "results/images/Figure_1/F1_2_PCA.png", width = 1600, height = 1200, res = 250)
-ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
+ggplot(pca.data, aes(PC1, PC3, color = type, shape = line)) +
     geom_point(size = 2, stroke = 1) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
@@ -69,9 +76,6 @@ ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     custom_theme() +
     ggtitle("PCA of dorsal and ventral samples at day12")
 dev.off()
-
-
-write.csv(, "results/tables/Figure_1/F1_top_PC_genes.csv")
 
 # Building dataframe with first 5 PC and covariates
 PC_covariate <- cbind(pca.data[, 1:5], meta %>%
@@ -205,7 +209,7 @@ DEGs_vAN_vs_dAN <- dds %>%
 DEGs_vAN_vs_dAN$gene <- rownames(DEGs_vAN_vs_dAN) %>% gene_converter("ENSEMBL", "SYMBOL")
 DEGs_vAN_vs_dAN_f <- DEGs_vAN_vs_dAN %>% filter(!is.na(gene))
 DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN_f, padj < 0.01, abs(log2FoldChange) >= 1)
-
+View(DEGs_vAN_vs_dAN_f)
 
 # Heatmap of vAN vs dAN DEGs
 vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_f), ])
@@ -273,7 +277,7 @@ sample_ha <- columnAnnotation(
     )
 )
 
-png(filename = "results/images/Figure_1/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
+png(filename = "results/images/Figure_1/F1_3_DE_HM_testcontribPC1.png", width = 1600, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering$order, ],
     name = "Normalized expression",
