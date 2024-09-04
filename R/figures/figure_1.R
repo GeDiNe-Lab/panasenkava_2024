@@ -157,11 +157,12 @@ marker_ha <- rowAnnotation(
     ),
     col = list(
         markers = c(
-            "pluripotency" = "red",
-            "anterior neuroectoderm" = "blue",
-            "ventral" = "green",
-            "dorsal" = "purple",
-            "posterior neuroectoderm" = "orange"
+            "pluripotency" = "#b16060",
+            "neuroectoderm" = "#cdd48d",
+            "anterior neuroectoderm" = "#4d6da5",
+            "ventral" = "#5e9a5e",
+            "dorsal" = "#78588c",
+            "posterior neuroectoderm" = "#d09322"
         )
     ),
     show_annotation_name = FALSE
