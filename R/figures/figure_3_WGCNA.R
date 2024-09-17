@@ -256,6 +256,7 @@ for (cluster in unique(clusters)) {
         eval(parse(text = x))
     }) %>% unname()
     GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
+    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
     goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = Description, fill = p.adjust)) +
         geom_bar(stat = "identity") +
@@ -263,7 +264,7 @@ for (cluster in unique(clusters)) {
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
         ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)"))
     write.csv(GO_enrichment, paste0("results/tables/Figure_3/GO_enrichment_cluster_", cluster, ".csv"))
-    ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_", cluster, ".png"), goplot, width = 20, height = 10)
+    ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_", cluster, ".png"), goplot, width = 15, height = 10)
 }
 
 png(filename = "results/images/Figure_3/F3_cyclo_genes_HM.png", width = 2400, height = 1600, res = 250)

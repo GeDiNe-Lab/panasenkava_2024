@@ -165,14 +165,19 @@ sub_clusters <- sub_clusters[names(clusters)]
 # cluster and subcluster annotation
 clusters_ha <- rowAnnotation(
     cluster = as.character(clusters[clustering$order]),
-    sub_cluster = as.character(sub_clusters[clustering$order]),
     col = list(
         cluster = c(
             "1" = "#b16060",
             "2" = "#4d6da5",
             "3" = "#78588c",
             "4" = "#5e9a5e"
-        ),
+        )
+    )
+)
+
+sub_clusters_ha <- rowAnnotation(
+    sub_cluster = as.character(sub_clusters[clustering$order]),
+    col = list(
         sub_cluster = c(
             "1" = "black",
             "2" = "pink",
@@ -181,7 +186,6 @@ clusters_ha <- rowAnnotation(
         )
     )
 )
-
 
 # GO enrichment
 for (cluster in unique(clusters)) {
@@ -196,6 +200,7 @@ for (cluster in unique(clusters)) {
         eval(parse(text = x))
     }) %>% unname()
     GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
+    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
     goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = Description, fill = p.adjust)) +
         geom_bar(stat = "identity") +
@@ -203,7 +208,7 @@ for (cluster in unique(clusters)) {
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
         ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)"))
     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, ".csv"))
-    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 20, height = 10)
+    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, ".png"), goplot, width = 15, height = 10)
 }
 
 # heatmap
@@ -213,7 +218,8 @@ Heatmap(
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
     cluster_rows = FALSE,
-    left_annotation = clusters_ha,
+    left_annotation = sub_clusters_ha,
+    right_annotation = clusters_ha,
     cluster_columns = FALSE,
     show_row_names = FALSE,
     row_names_side = "left",
@@ -253,14 +259,19 @@ sub_clusters_LON <- sub_clusters_LON[names(clusters_LON)]
 
 clusters_LON_ha <- rowAnnotation(
     cluster = as.character(clusters_LON[clustering_LON$order]),
-    sub_cluster = as.character(sub_clusters_LON[clustering_LON$order]),
     col = list(
         cluster = c(
             "1" = "#b16060",
             "2" = "#4d6da5",
             "3" = "#78588c",
             "4" = "#5e9a5e"
-        ),
+        )
+    )
+)
+
+sub_clusters_LON_ha <- rowAnnotation(
+    sub_cluster = as.character(sub_clusters_LON[clustering_LON$order]),
+    col = list(
         sub_cluster = c(
             "1" = "black",
             "2" = "pink",
@@ -269,7 +280,6 @@ clusters_LON_ha <- rowAnnotation(
         )
     )
 )
-
 # GO enrichment for LON71 lineage only
 for (cluster in unique(clusters_LON)) {
     print(cluster)
@@ -299,7 +309,8 @@ Heatmap(
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
     cluster_rows = FALSE,
-    left_annotation = clusters_LON_ha,
+    left_annotation = sub_clusters_LON_ha,
+    right_annotation = clusters_LON_ha,
     cluster_columns = FALSE,
     show_row_names = FALSE,
     row_names_side = "left",
@@ -339,14 +350,19 @@ sub_clusters_WTC <- sub_clusters_WTC[names(clusters_WTC)]
 
 clusters_WTC_ha <- rowAnnotation(
     cluster = as.character(clusters_WTC[clustering_WTC$order]),
-    sub_cluster = as.character(sub_clusters_WTC[clustering_WTC$order]),
     col = list(
         cluster = c(
             "1" = "#b16060",
             "2" = "#4d6da5",
             "3" = "#78588c",
             "4" = "#5e9a5e"
-        ),
+        )
+    )
+)
+
+sub_clusters_WTC_ha <- rowAnnotation(
+    sub_cluster = as.character(sub_clusters_WTC[clustering_WTC$order]),
+    col = list(
         sub_cluster = c(
             "1" = "black",
             "2" = "pink",
@@ -385,7 +401,8 @@ Heatmap(
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
     cluster_rows = FALSE,
-    left_annotation = clusters_WTC_ha,
+    left_annotation = sub_clusters_WTC_ha,
+    right_annotation = clusters_WTC_ha,
     cluster_columns = FALSE,
     show_row_names = FALSE,
     row_names_side = "left",
