@@ -279,6 +279,7 @@ corr_df <- filter(corr_df, !is.na(gene))
 
 # filtering genes with |cor| >= 0.85
 corr_df_f <- filter(corr_df, abs_max_cor >= 0.85)
+setdiff(rownames(corr_df_f), rownames(cyclo_genes_f)) %>% gene_converter("ENSEMBL", "SYMBOL")
 
 # Saving correlation table
 write.csv(corr_df_f, file = "results/tables/Figure_3/Pearson_0_85.csv")
@@ -342,7 +343,7 @@ ggplot(df_pos, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, colo
 dev.off()
 
 # Loading the table obtained through STRING export "as tabular text output"
-STRING_edges <- read.table("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_3/string_interactions.tsv", header = FALSE)
+STRING_edges <- read.table("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_3/string_interactions.tsv", header = TRUE)
 colnames(STRING_edges) <- c("gene1", "gene2", "score")
 corr_df_f_symbol <- corr_df_f
 rownames(corr_df_f_symbol) <- corr_df_f$gene

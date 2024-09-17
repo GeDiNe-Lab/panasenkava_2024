@@ -89,13 +89,30 @@ seurat_week5 <- RunUMAP(seurat_week5, dims = 1:10)
 umap_week5 <- seurat_week5[["umap"]]@cell.embeddings %>% as.data.frame()
 sc_meta_week5 <- cbind(umap_week5[sc_meta_week5$barcode, ], sc_meta_week5)
 
+# UMAP colored by cellular types :
+umap_plot <- ggplot(data = sc_meta_week3, aes(x = umap_1, y = umap_2, color = celltype_region)) +
+    geom_point(size = 1.5) +
+    custom_theme()
+ggsave(paste0("results/images/Figure_5/Zeng_week3_celltypes", ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = celltype_region)) +
+    geom_point(size = 1.5) +
+    custom_theme()
+ggsave(paste0("results/images/Figure_5/Zeng_week4_celltypes", ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+umap_plot <- ggplot(data = sc_meta_week5, aes(x = umap_1, y = umap_2, color = celltype_region)) +
+    geom_point(size = 1.5) +
+    custom_theme()
+ggsave(paste0("results/images/Figure_5/Zeng_week5_celltypes", ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
 View(as.data.frame(rownames(seurat_week3)))
 View(as.data.frame(rownames(seurat_week4)))
 View(as.data.frame(rownames(seurat_week5)))
 
-
-marker_genes <- c("SHH", "NKX2-1", "CAPN6", "PAX6", "LINC00261", "CNTNAP2")
-
+blue_clust_df_f <- read.csv("results/tables/Figure_3/SHH_cluster.csv")
+blue_clust_df_f %>% View()
+marker_genes <- blue_clust_df_f$gene
+marker_genes
 gc()
 for (gene in marker_genes) {
     if (gene %in% rownames(seurat_week3)) {
@@ -105,7 +122,7 @@ for (gene in marker_genes) {
             ggtitle(gene) +
             scale_color_gradient(low = "lightblue", high = "darkred") +
             custom_theme()
-        ggsave(paste0("results/images/Figure_5/genes_umap_Zeng_week3_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        ggsave(paste0("results/images/Figure_5/week3/Zeng_week3_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
         gc()
     } else {
         print(paste0(gene, " not in week3"))
@@ -121,7 +138,7 @@ for (gene in marker_genes) {
             ggtitle(gene) +
             scale_color_gradient(low = "lightblue", high = "darkred") +
             custom_theme()
-        ggsave(paste0("results/images/Figure_5/genes_umap_Zeng_week4_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        ggsave(paste0("results/images/Figure_5/week4/Zeng_week4_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
         gc()
     } else {
         print(paste0(gene, " not in week4"))
@@ -137,7 +154,229 @@ for (gene in marker_genes) {
             ggtitle(gene) +
             scale_color_gradient(low = "lightblue", high = "darkred") +
             custom_theme()
-        ggsave(paste0("results/images/Figure_5/genes_umap_Zeng_week5_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        ggsave(paste0("results/images/Figure_5/week5/Zeng_week5_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        gc()
+    } else {
+        print(paste0(gene, " not in week5"))
+    }
+}
+
+sc_meta_week3$GLI1 <- seurat_week3@assays$RNA$scale.data["GLI1", sc_meta_week3$barcode]
+sc_meta_week3$GLI1 <- ifelse(sc_meta_week3$GLI1 > median(sc_meta_week3$GLI1), "GLI1", " ")
+sc_meta_week3$GLI2 <- seurat_week3@assays$RNA$scale.data["GLI2", sc_meta_week3$barcode]
+sc_meta_week3$GLI2 <- ifelse(sc_meta_week3$GLI2 > median(sc_meta_week3$GLI2), "GLI2", " ")
+sc_meta_week3$GLI3 <- seurat_week3@assays$RNA$scale.data["GLI3", sc_meta_week3$barcode]
+sc_meta_week3$GLI3 <- ifelse(sc_meta_week3$GLI3 > median(sc_meta_week3$GLI3), "GLI3", " ")
+
+sc_meta_week4$GLI1 <- seurat_week4@assays$RNA$scale.data["GLI1", sc_meta_week4$barcode]
+sc_meta_week4$GLI1 <- ifelse(sc_meta_week4$GLI1 > median(sc_meta_week4$GLI1), "GLI1", " ")
+sc_meta_week4$GLI2 <- seurat_week4@assays$RNA$scale.data["GLI2", sc_meta_week4$barcode]
+sc_meta_week4$GLI2 <- ifelse(sc_meta_week4$GLI2 > median(sc_meta_week4$GLI2), "GLI2", " ")
+sc_meta_week4$GLI3 <- seurat_week4@assays$RNA$scale.data["GLI3", sc_meta_week4$barcode]
+sc_meta_week4$GLI3 <- ifelse(sc_meta_week4$GLI3 > median(sc_meta_week4$GLI3), "GLI3", " ")
+
+sc_meta_week5$GLI1 <- seurat_week5@assays$RNA$scale.data["GLI1", sc_meta_week5$barcode]
+sc_meta_week5$GLI1 <- ifelse(sc_meta_week5$GLI1 > median(sc_meta_week5$GLI1), "GLI1", " ")
+sc_meta_week5$GLI2 <- seurat_week5@assays$RNA$scale.data["GLI2", sc_meta_week5$barcode]
+sc_meta_week5$GLI2 <- ifelse(sc_meta_week5$GLI2 > median(sc_meta_week5$GLI2), "GLI2", " ")
+sc_meta_week5$GLI3 <- seurat_week5@assays$RNA$scale.data["GLI3", sc_meta_week5$barcode]
+sc_meta_week5$GLI3 <- ifelse(sc_meta_week5$GLI3 > median(sc_meta_week5$GLI3), "GLI3", " ")
+
+for (gene in marker_genes) {
+    if (gene %in% rownames(seurat_week3)) {
+        sc_meta_week3$expression <- seurat_week3@assays$RNA$scale.data[gene, sc_meta_week3$barcode]
+        sc_meta_week3$expression <- ifelse(sc_meta_week3$expression > median(sc_meta_week3$expression), gene, " ")
+        sc_meta_week3$GLI1_expression <- sapply(c(1:nrow(sc_meta_week3)), function(i) {
+            if (sc_meta_week3$GLI1[i] == "GLI1" & sc_meta_week3$expression[i] == gene) {
+                return(paste0("GLI1_", gene))
+            } else if (sc_meta_week3$GLI1[i] == "GLI1") {
+                return("GLI1")
+            } else if (sc_meta_week3$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+        sc_meta_week3$GLI2_expression <- sapply(c(1:nrow(sc_meta_week3)), function(i) {
+            if (sc_meta_week3$GLI2[i] == "GLI2" & sc_meta_week3$expression[i] == gene) {
+                return(paste0("GLI2_", gene))
+            } else if (sc_meta_week3$GLI2[i] == "GLI2") {
+                return("GLI2")
+            } else if (sc_meta_week3$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+        sc_meta_week3$GLI3_expression <- sapply(c(1:nrow(sc_meta_week3)), function(i) {
+            if (sc_meta_week3$GLI3[i] == "GLI3" & sc_meta_week3$expression[i] == gene) {
+                return(paste0("GLI3_", gene))
+            } else if (sc_meta_week3$GLI3[i] == "GLI3") {
+                return("GLI3")
+            } else if (sc_meta_week3$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI1", gene, paste0("GLI1_", gene))
+        umap_plot <- ggplot(data = sc_meta_week3, aes(x = umap_1, y = umap_2, color = GLI1_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week3_GLI1/Zeng_week3_GLI1_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI2", gene, paste0("GLI2_", gene))
+        umap_plot <- ggplot(data = sc_meta_week3, aes(x = umap_1, y = umap_2, color = GLI2_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week3_GLI2/Zeng_week3_GLI2", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI3", gene, paste0("GLI3_", gene))
+        umap_plot <- ggplot(data = sc_meta_week3, aes(x = umap_1, y = umap_2, color = GLI3_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week3_GLI3/Zeng_week3_GLI3", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        gc()
+    } else {
+        print(paste0(gene, " not in week3"))
+    }
+}
+
+for (gene in marker_genes) {
+    if (gene %in% rownames(seurat_week4)) {
+        sc_meta_week4$expression <- seurat_week4@assays$RNA$scale.data[gene, sc_meta_week4$barcode]
+        sc_meta_week4$expression <- ifelse(sc_meta_week4$expression > median(sc_meta_week4$expression), gene, " ")
+        sc_meta_week4$GLI1_expression <- sapply(c(1:nrow(sc_meta_week4)), function(i) {
+            if (sc_meta_week4$GLI1[i] == "GLI1" & sc_meta_week4$expression[i] == gene) {
+                return(paste0("GLI1_", gene))
+            } else if (sc_meta_week4$GLI1[i] == "GLI1") {
+                return("GLI1")
+            } else if (sc_meta_week4$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+        sc_meta_week4$GLI2_expression <- sapply(c(1:nrow(sc_meta_week4)), function(i) {
+            if (sc_meta_week4$GLI2[i] == "GLI2" & sc_meta_week4$expression[i] == gene) {
+                return(paste0("GLI2_", gene))
+            } else if (sc_meta_week4$GLI2[i] == "GLI2") {
+                return("GLI2")
+            } else if (sc_meta_week4$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+        sc_meta_week4$GLI3_expression <- sapply(c(1:nrow(sc_meta_week4)), function(i) {
+            if (sc_meta_week4$GLI3[i] == "GLI3" & sc_meta_week4$expression[i] == gene) {
+                return(paste0("GLI3_", gene))
+            } else if (sc_meta_week4$GLI3[i] == "GLI3") {
+                return("GLI3")
+            } else if (sc_meta_week4$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI1", gene, paste0("GLI1_", gene))
+        umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = GLI1_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week4_GLI1/Zeng_week4_GLI1_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI2", gene, paste0("GLI2_", gene))
+        umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = GLI2_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week4_GLI2/Zeng_week4_GLI2", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI3", gene, paste0("GLI3_", gene))
+        umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = GLI3_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week4_GLI3/Zeng_week4_GLI3", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        gc()
+    } else {
+        print(paste0(gene, " not in week4"))
+    }
+}
+
+for (gene in marker_genes) {
+    if (gene %in% rownames(seurat_week5)) {
+        sc_meta_week5$expression <- seurat_week5@assays$RNA$scale.data[gene, sc_meta_week5$barcode]
+        sc_meta_week5$expression <- ifelse(sc_meta_week5$expression > median(sc_meta_week5$expression), gene, " ")
+        sc_meta_week5$GLI1_expression <- sapply(c(1:nrow(sc_meta_week5)), function(i) {
+            if (sc_meta_week5$GLI1[i] == "GLI1" & sc_meta_week5$expression[i] == gene) {
+                return(paste0("GLI1_", gene))
+            } else if (sc_meta_week5$GLI1[i] == "GLI1") {
+                return("GLI1")
+            } else if (sc_meta_week5$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+        sc_meta_week5$GLI2_expression <- sapply(c(1:nrow(sc_meta_week5)), function(i) {
+            if (sc_meta_week5$GLI2[i] == "GLI2" & sc_meta_week5$expression[i] == gene) {
+                return(paste0("GLI2_", gene))
+            } else if (sc_meta_week5$GLI2[i] == "GLI2") {
+                return("GLI2")
+            } else if (sc_meta_week5$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+        sc_meta_week5$GLI3_expression <- sapply(c(1:nrow(sc_meta_week5)), function(i) {
+            if (sc_meta_week5$GLI3[i] == "GLI3" & sc_meta_week5$expression[i] == gene) {
+                return(paste0("GLI3_", gene))
+            } else if (sc_meta_week5$GLI3[i] == "GLI3") {
+                return("GLI3")
+            } else if (sc_meta_week5$expression[i] == gene) {
+                return(gene)
+            } else {
+                return(" ")
+            }
+        })
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI1", gene, paste0("GLI1_", gene))
+        umap_plot <- ggplot(data = sc_meta_week5, aes(x = umap_1, y = umap_2, color = GLI1_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week5_GLI1/Zeng_week5_GLI1_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI2", gene, paste0("GLI2_", gene))
+        umap_plot <- ggplot(data = sc_meta_week5, aes(x = umap_1, y = umap_2, color = GLI2_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week5_GLI2/Zeng_week5_GLI2", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+
+        custom_colors <- c("#e9e9e9", "lightgreen", "#ffae51", "red")
+        names(custom_colors) <- c(" ", "GLI3", gene, paste0("GLI3_", gene))
+        umap_plot <- ggplot(data = sc_meta_week5, aes(x = umap_1, y = umap_2, color = GLI3_expression)) +
+            geom_point(size = 1.5) +
+            scale_color_manual(values = custom_colors) +
+            custom_theme()
+        ggsave(paste0("results/images/Figure_5/week5_GLI3/Zeng_week5_GLI3", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
         gc()
     } else {
         print(paste0(gene, " not in week5"))

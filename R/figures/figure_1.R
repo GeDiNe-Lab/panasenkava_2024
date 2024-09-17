@@ -54,21 +54,13 @@ dds <- DESeqDataSetFromMatrix(
 # Normalization by variance stabilizing transformation without covariates
 vsd_blind <- vst(dds, blind = TRUE)
 
-# PCA plot of all  genes
-pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("line", "type"), returnData = TRUE, ntop = nrow(assay(vsd_blind)))
+# PCA plot of top 3000 most variable genes
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("line", "type"), returnData = TRUE, ntop = 3000)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 fe_info <- attr(pca.data, "factoextra")
 
-fe_info$cor %>% summary()
-contribPC1 <- sort(fe_info$contrib[, 1]) %>%
-    tail(2000) %>%
-    names()
-contribPC1 <- contribPC1[which(!is.na(gene_converter(contribPC1, "ENSEMBL", "SYMBOL")))]
-contribPC1
-
-
 png(filename = "results/images/Figure_1/F1_2_PCA.png", width = 1600, height = 1200, res = 250)
-ggplot(pca.data, aes(PC1, PC3, color = type, shape = line)) +
+ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
     geom_point(size = 2, stroke = 1) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
@@ -209,10 +201,10 @@ DEGs_vAN_vs_dAN <- dds %>%
     na.omit()
 
 DEGs_vAN_vs_dAN$gene <- rownames(DEGs_vAN_vs_dAN) %>% gene_converter("ENSEMBL", "SYMBOL")
-DEGs_vAN_vs_dAN_f <- DEGs_vAN_vs_dAN %>% filter(!is.na(gene))
-DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN_f, padj < 0.01, abs(log2FoldChange) >= 1)
+# DEGs_vAN_vs_dAN_f <- DEGs_vAN_vs_dAN %>% filter(!is.na(gene))
+DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN, padj < 0.01, abs(log2FoldChange) >= 1)
 View(DEGs_vAN_vs_dAN_f)
-
+DEGs_vAN_vs_dAN_f %>% nrow()
 # Heatmap of vAN vs dAN DEGs
 vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_f), ])
 scaled_mat <- t(apply(vsd_DEGs, 1, scale))
@@ -234,14 +226,15 @@ sub_clusters <- sub_clusters_list %>%
     unlist()
 sub_clusters <- sub_clusters[names(clusters)]
 
+
 # cluster and subcluster annotation
 clusters_ha <- rowAnnotation(
     cluster = as.character(clusters[clustering$order]),
     sub_cluster = as.character(sub_clusters[clustering$order]),
     col = list(
         cluster = c(
-            "1" = "red",
-            "2" = "blue"
+            "1" = "#b16060",
+            "2" = "#4d6da5"
         ),
         sub_cluster = c(
             "1" = "black",
@@ -251,23 +244,7 @@ clusters_ha <- rowAnnotation(
         )
     )
 )
-
-# performing GO enrichment on clusters
-for (cluster in unique(clusters)) {
-    print(cluster)
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
-        OrgDb = "org.Hs.eg.db",
-        keyType = "ENSEMBL",
-        ont = "BP"
-    )
-    print(GO_enrichment)
-    write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
-    goplot <- clusterProfiler::dotplot(GO_enrichment,
-        title = paste0("GO enrichment on cluster", cluster, " (biological processes only)"),
-        showCategory = 15
-    )
-    ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 8, height = 10)
-}
+clusters %>% table()
 
 # sample annotation
 sample_ha <- columnAnnotation(
@@ -279,7 +256,40 @@ sample_ha <- columnAnnotation(
     )
 )
 
-png(filename = "results/images/Figure_1/F1_3_DE_HM_testcontribPC1.png", width = 1600, height = 1600, res = 250)
+# performing GO enrichment on clusters
+for (cluster in unique(clusters)) {
+    cluster <- 1
+    print(cluster)
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
+        OrgDb = "org.Hs.eg.db",
+        keyType = "ENSEMBL",
+        ont = "BP"
+    )
+    GO_results <- GO_enrichment@result
+    GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
+        eval(parse(text = x))
+    }) %>% unname()
+    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
+    GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
+    if (cluster == 1) {
+        GO_results_f_f <- filter(GO_results_f, !Description %in% c(
+            "renal system development",
+            # finish with further info
+        ))
+    }
+    enrichplot::dotplot(GO_enrichment, showCategory = 15)
+    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = Description, fill = p.adjust)) +
+        geom_bar(stat = "identity") +
+        custom_theme() +
+        scale_fill_gradient(low = "#e06663", high = "#327eba") +
+        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)"))
+    write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
+    ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 20, height = 10)
+}
+
+
+
+png(filename = "results/images/Figure_1/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering$order, ],
     name = "Normalized expression",
