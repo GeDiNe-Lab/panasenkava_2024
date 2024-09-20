@@ -119,4 +119,3 @@ Barplots of the scaled normalized expression for 4 marker genes for vAN samples
 
 ## Coexpressed genes barplots
 Barplots of the scaled normalized expression for genes within the SHH WGCNA cluster for the vAN samples
-
