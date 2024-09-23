@@ -174,7 +174,7 @@ for (contrast in names(DE_CRISPR)) {
     ggsave(filename = paste0("results/images/Figure_4/Volcano_", contrast, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
 
-# Making marker genes barplots
+# Making marker genes barplots (and also barplots of gene tested in mices not in the WGCNA cluster)
 norm <- assay(vsd_vAN)
 rownames(norm) <- gene_converter(rownames(norm), "ENSEMBL", "SYMBOL")
 
@@ -183,6 +183,13 @@ meta$SHH <- norm["SHH", ] - min(norm)
 meta$NKX21 <- norm["NKX2-1", ] - min(norm)
 meta$PAX6 <- norm["PAX6", ] - min(norm)
 meta$TBR1 <- norm["TBR1", ] - min(norm)
+
+# meta$SFTA3 <- norm["SFTA3", ] - min(norm)
+meta$EPHB1 <- norm["EPHB1", ] - min(norm)
+meta$TRIM9 <- norm["TRIM9", ] - min(norm)
+meta$EPHA4 <- norm["EPHA4", ] - min(norm)
+meta$ZFHX4 <- norm["ZFHX4", ] - min(norm)
+
 meta$CRISPR_type <- paste(meta$CRISPR, meta$type, sep = "_")
 grouped_df <- meta %>%
     group_by(CRISPR_type, type) %>%
@@ -194,7 +201,15 @@ grouped_df <- meta %>%
         PAX6_mean = mean(PAX6),
         PAX6_sd = sd(PAX6),
         TBR1_mean = mean(TBR1),
-        TBR1_sd = sd(TBR1)
+        TBR1_sd = sd(TBR1),
+        EPHB1_mean = mean(EPHB1),
+        EPHB1_sd = sd(EPHB1),
+        TRIM9_mean = mean(TRIM9),
+        TRIM9_sd = sd(TRIM9),
+        EPHA4_mean = mean(EPHA4),
+        EPHA4_sd = sd(EPHA4),
+        ZFHX4_mean = mean(ZFHX4),
+        ZFHX4_sd = sd(ZFHX4)
     )
 grouped_df <- grouped_df[order(grouped_df$type, decreasing = TRUE), ]
 grouped_df$CRISPR_type <- factor(c("vAN +/+", "vAN +/-", "vAN -/-"), levels = c("vAN +/+", "vAN +/-", "vAN -/-"))
@@ -230,6 +245,42 @@ png(filename = "results/images/Figure_4/F4_TBR1_barplot.png", width = 1600, heig
 ggplot(grouped_df, aes(x = CRISPR_type, y = TBR1_mean, fill = type)) +
     geom_bar(stat = "identity") +
     geom_errorbar(aes(ymin = TBR1_mean - TBR1_sd, ymax = TBR1_mean + TBR1_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#80AD3C")) +
+    custom_theme(diag_text = TRUE, hide_legend = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_4/F4_EPHB1_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = EPHB1_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = EPHB1_mean - EPHB1_sd, ymax = EPHB1_mean + EPHB1_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#80AD3C")) +
+    custom_theme(diag_text = TRUE, hide_legend = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_4/F4_TRIM9_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = TRIM9_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = TRIM9_mean - TRIM9_sd, ymax = TRIM9_mean + TRIM9_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#80AD3C")) +
+    custom_theme(diag_text = TRUE, hide_legend = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_4/F4_EPHA4_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = EPHA4_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = EPHA4_mean - EPHA4_sd, ymax = EPHA4_mean + EPHA4_sd), width = 0.2) +
+    ylim(-1, 7) +
+    scale_fill_manual(values = c("#80AD3C")) +
+    custom_theme(diag_text = TRUE, hide_legend = TRUE)
+dev.off()
+
+png(filename = "results/images/Figure_4/F4_ZFHX4_barplot.png", width = 1600, height = 1400, res = 250)
+ggplot(grouped_df, aes(x = CRISPR_type, y = ZFHX4_mean, fill = type)) +
+    geom_bar(stat = "identity") +
+    geom_errorbar(aes(ymin = ZFHX4_mean - ZFHX4_sd, ymax = ZFHX4_mean + ZFHX4_sd), width = 0.2) +
     ylim(-1, 7) +
     scale_fill_manual(values = c("#80AD3C")) +
     custom_theme(diag_text = TRUE, hide_legend = TRUE)
