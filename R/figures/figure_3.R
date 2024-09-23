@@ -232,9 +232,9 @@ cyclo_genes_df <- Reduce(cbind, list(
     dplyr::select(DE_high_vs_low, c("HvsL_padj", "HvsL_log2FoldChange")),
     dplyr::select(DE_low_vs_no, c("LvsN_padj", "LvsN_log2FoldChange"))
 ))
-cyclo_genes_df$HvsN_thr <- ifelse(abs(cyclo_genes_df$HvsN_log2FoldChange) >= 2 & cyclo_genes_df$HvsN_padj < 0.01, "DE", "no")
-cyclo_genes_df$HvsL_thr <- ifelse(abs(cyclo_genes_df$HvsL_log2FoldChange) >= 2 & cyclo_genes_df$HvsL_padj < 0.01, "DE", "no")
-cyclo_genes_df$LvsN_thr <- ifelse(abs(cyclo_genes_df$LvsN_log2FoldChange) >= 2 & cyclo_genes_df$LvsN_padj < 0.01, "DE", "no")
+cyclo_genes_df$HvsN_thr <- ifelse(abs(cyclo_genes_df$HvsN_log2FoldChange) >= 1 & cyclo_genes_df$HvsN_padj < 0.01, TRUE, FALSE)
+cyclo_genes_df$HvsL_thr <- ifelse(abs(cyclo_genes_df$HvsL_log2FoldChange) >= 1 & cyclo_genes_df$HvsL_padj < 0.01, TRUE, FALSE)
+cyclo_genes_df$LvsN_thr <- ifelse(abs(cyclo_genes_df$LvsN_log2FoldChange) >= 1 & cyclo_genes_df$LvsN_padj < 0.01, TRUE, FALSE)
 
 cyclo_genes_df$cyclo_cor <- ifelse(rownames(cyclo_genes_df) %in% rownames(cyclo_genes_f), "yes", "no")
 cyclo_genes_df$cluster <- rownames(cyclo_genes_df) %>% sapply(function(gene) {

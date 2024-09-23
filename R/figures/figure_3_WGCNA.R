@@ -27,7 +27,7 @@ meta <- filter(rawmeta, type %in% c("cyclo", "ventral") & sample != "L9C1_2" & s
 rownames(meta) <- meta$sample
 counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
 
-meta$cyclo_dose_quant <- as.factor(meta$cyclo_dose_quant)
+meta$cyclo_dose_quant_factor <- as.factor(meta$cyclo_dose_quant)
 # making DESeq object
 dds <- DESeqDataSetFromMatrix(
     countData = counts,
@@ -39,18 +39,17 @@ dds <- DESeqDataSetFromMatrix(
 vsd_blind <- vst(dds, blind = TRUE)
 
 #  PCA
-pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "cyclo_dose_qual", "cyclo_dose_quant"), returnData = TRUE, ntop = 3000)
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "cyclo_dose_qual", "cyclo_dose_quant_factor"), returnData = TRUE, ntop = 3000)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
 png(filename = "results/images/Figure_3/F3_PCA_1_2.png", width = 1600, height = 1200, res = 250)
-ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_quant)) +
+ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_quant_factor)) +
     geom_point(size = 2, stroke = 1) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#ecb039", "#80AD3C")) +
     scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
-    custom_theme() +
-    ggtitle("First and second PCs of ventral and cyclopamine treated cells")
+    custom_theme()
 dev.off()
 
 # Building matrix with first 5 PC and covariates
@@ -184,9 +183,10 @@ mergedColors <- merge$colors
 merged_clusters <- rownames(vsd_var)
 merged_clusters_sym <- gene_converter(merged_clusters, "ENSEMBL", "SYMBOL")
 cluster_df <- data.frame(ENSEMBLE = merged_clusters, gene = merged_clusters_sym, module = dynamic.colors, merged_module = mergedColors)
-
+View(cluster_df)
 # get blue module (shh modules) dataframe with weighted correlation values
 blue_clust_df_f <- filter(cluster_df, merged_module == "blue", !is.na(gene))
+table(cluster_df$merged_module)
 blue_clust_df_f$cor_abs <- adj["ENSG00000164690", blue_clust_df_f$ENSEMBLE]
 # get back the sign of the correlation
 blue_clust_df_f$cor <- sapply(c(1:nrow(blue_clust_df_f)), function(x) {
@@ -291,6 +291,23 @@ Heatmap(
 )
 dev.off()
 View(meta)
+
+dds_quant <- DESeqDataSetFromMatrix(
+    countData = counts,
+    colData = meta,
+    design = ~cyclo_dose_quant
+)
+DE_cyclo <- dds_quant %>%
+    DESeq() %>%
+    results(alpha = 0.01, name = "cyclo_dose_quant") %>%
+    as.data.frame()
+DE_cyclo %>% View()
+DE_cyclo$gene <- gene_converter(rownames(DE_cyclo), "ENSEMBL", "SYMBOL")
+DE_cyclo_f <- filter(DE_cyclo, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
+
+DE_high_vs_no %>% View()
+DE_high_vs_low %>% View()
+DE_low_vs_no %>% View()
 # DEGs high vs no cyclo, high vs low cyclo, low vs no cyclo
 DE_high_vs_no <- dds %>%
     DESeq() %>%
@@ -317,14 +334,18 @@ DE_low_vs_no_f <- filter(DE_low_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & 
 colnames(DE_high_vs_no) <- paste0("HvsN_", colnames(DE_high_vs_no))
 colnames(DE_high_vs_low) <- paste0("HvsL_", colnames(DE_high_vs_low))
 colnames(DE_low_vs_no) <- paste0("LvsN_", colnames(DE_low_vs_no))
+colnames(DE_cyclo) <- paste0("cyclo_", colnames(DE_cyclo))
+
 cyclo_genes_df <- Reduce(cbind, list(
     dplyr::select(DE_high_vs_no, c("HvsN_padj", "HvsN_log2FoldChange")),
     dplyr::select(DE_high_vs_low, c("HvsL_padj", "HvsL_log2FoldChange")),
-    dplyr::select(DE_low_vs_no, c("LvsN_padj", "LvsN_log2FoldChange"))
+    dplyr::select(DE_low_vs_no, c("LvsN_padj", "LvsN_log2FoldChange")),
+    dplyr::select(DE_cyclo, c("cyclo_padj", "cyclo_log2FoldChange"))
 ))
-cyclo_genes_df$HvsN_thr <- ifelse(abs(cyclo_genes_df$HvsN_log2FoldChange) >= 2 & cyclo_genes_df$HvsN_padj < 0.01, "DE", "no")
-cyclo_genes_df$HvsL_thr <- ifelse(abs(cyclo_genes_df$HvsL_log2FoldChange) >= 2 & cyclo_genes_df$HvsL_padj < 0.01, "DE", "no")
-cyclo_genes_df$LvsN_thr <- ifelse(abs(cyclo_genes_df$LvsN_log2FoldChange) >= 2 & cyclo_genes_df$LvsN_padj < 0.01, "DE", "no")
+cyclo_genes_df$HvsN_thr <- ifelse(abs(cyclo_genes_df$HvsN_log2FoldChange) >= 1 & cyclo_genes_df$HvsN_padj < 0.01, TRUE, FALSE)
+cyclo_genes_df$HvsL_thr <- ifelse(abs(cyclo_genes_df$HvsL_log2FoldChange) >= 1 & cyclo_genes_df$HvsL_padj < 0.01, TRUE, FALSE)
+cyclo_genes_df$LvsN_thr <- ifelse(abs(cyclo_genes_df$LvsN_log2FoldChange) >= 1 & cyclo_genes_df$LvsN_padj < 0.01, TRUE, FALSE)
+cyclo_genes_df$cyclo_thr <- ifelse(abs(cyclo_genes_df$cyclo_log2FoldChange) >= 1 & cyclo_genes_df$cyclo_padj < 0.01, TRUE, FALSE)
 
 cyclo_genes_df$WGCNA <- ifelse(rownames(cyclo_genes_df) %in% blue_clust_df_f$ENSEMBLE, "yes", "no")
 cyclo_genes_df$cluster <- rownames(cyclo_genes_df) %>% sapply(function(gene) {
@@ -346,8 +367,9 @@ cyclo_genes_df$genes <- gene_converter(rownames(cyclo_genes_df), "ENSEMBL", "SYM
 
 # Saving heatmap genes annotation table
 write.csv(cyclo_genes_df, "results/tables/Figure_3/cyclo_genes_df.csv")
+save(cyclo_genes_df, file = "results/tables/Figure_3/cyclo_genes_df.RData")
 
-
+filter(cyclo_genes_df, HvsN_thr == "TRUE", !is.na(genes))$genes
 STRING_edges <- read.table("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_3/string_interactions_WGCNA.tsv", header = FALSE)
 View(STRING_edges)
 STRING_edges <- STRING_edges[, c(1, 2, 13)]
