@@ -127,6 +127,7 @@ DE_vAN_control_vs_het <- dds_vAN %>%
     as.data.frame() %>%
     na.omit()
 DE_vAN_control_vs_het$gene <- gene_converter(rownames(DE_vAN_control_vs_het), "ENSEMBL", "SYMBOL")
+DE_vAN_control_vs_het$Thr1_5 <- DE_vAN_control_vs_het$padj < 0.05 & abs(DE_vAN_control_vs_het$log2FoldChange) >= 1.5
 DE_vAN_control_vs_het_f <- filter(DE_vAN_control_vs_het, !is.na(gene))
 DE_vAN_control_vs_het_f <- filter(DE_vAN_control_vs_het_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
@@ -137,6 +138,7 @@ DE_vAN_control_vs_homo <- dds_vAN %>%
     as.data.frame() %>%
     na.omit()
 DE_vAN_control_vs_homo$gene <- gene_converter(rownames(DE_vAN_control_vs_homo), "ENSEMBL", "SYMBOL") %>% as.vector()
+DE_vAN_control_vs_homo$Thr1_5 <- DE_vAN_control_vs_homo$padj < 0.05 & abs(DE_vAN_control_vs_homo$log2FoldChange) >= 1.5
 DE_vAN_control_vs_homo_f <- filter(DE_vAN_control_vs_homo, !is.na(gene))
 DE_vAN_control_vs_homo_f <- filter(DE_vAN_control_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
@@ -147,6 +149,7 @@ DE_vAN_het_vs_homo <- dds_vAN %>%
     as.data.frame() %>%
     na.omit()
 DE_vAN_het_vs_homo$gene <- gene_converter(rownames(DE_vAN_het_vs_homo), "ENSEMBL", "SYMBOL")
+DE_vAN_het_vs_homo$Thr1_5 <- DE_vAN_het_vs_homo$padj < 0.05 & abs(DE_vAN_het_vs_homo$log2FoldChange) >= 1.5
 DE_vAN_het_vs_homo_f <- filter(DE_vAN_het_vs_homo, !is.na(gene))
 DE_vAN_het_vs_homo_f <- filter(DE_vAN_het_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
 

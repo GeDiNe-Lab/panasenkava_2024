@@ -305,9 +305,7 @@ DE_cyclo %>% View()
 DE_cyclo$gene <- gene_converter(rownames(DE_cyclo), "ENSEMBL", "SYMBOL")
 DE_cyclo_f <- filter(DE_cyclo, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
-DE_high_vs_no %>% View()
-DE_high_vs_low %>% View()
-DE_low_vs_no %>% View()
+
 # DEGs high vs no cyclo, high vs low cyclo, low vs no cyclo
 DE_high_vs_no <- dds %>%
     DESeq() %>%
