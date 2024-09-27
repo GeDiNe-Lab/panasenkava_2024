@@ -6,6 +6,7 @@ library(ggplot2)
 library(org.Hs.eg.db)
 library(ComplexHeatmap)
 library(VennDiagram)
+library(gridExtra)
 library(tibble)
 
 # Setting working directory
@@ -121,53 +122,57 @@ dev.off()
 vsd_vAN <- vst(dds_vAN, blind = FALSE)
 
 # DEGs between control and heterozygous for ventral, dorsal, and ventral+dorsal samples
-DE_vAN_control_vs_het <- dds_vAN %>%
+DE_vAN_het_vs_control <- dds_vAN %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("CRISPR", "control", "hetero")) %>%
+    results(alpha = 0.05, contrast = c("CRISPR", "hetero", "control")) %>%
     as.data.frame() %>%
     na.omit()
-DE_vAN_control_vs_het$gene <- gene_converter(rownames(DE_vAN_control_vs_het), "ENSEMBL", "SYMBOL")
-DE_vAN_control_vs_het$Thr1_5 <- DE_vAN_control_vs_het$padj < 0.05 & abs(DE_vAN_control_vs_het$log2FoldChange) >= 1.5
-DE_vAN_control_vs_het_f <- filter(DE_vAN_control_vs_het, !is.na(gene))
-DE_vAN_control_vs_het_f <- filter(DE_vAN_control_vs_het_f, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_het_vs_control$gene <- gene_converter(rownames(DE_vAN_het_vs_control), "ENSEMBL", "SYMBOL")
+DE_vAN_het_vs_control$Thr1_5 <- DE_vAN_het_vs_control$padj < 0.05 & abs(DE_vAN_het_vs_control$log2FoldChange) >= 1.5
+DE_vAN_het_vs_control$FCsign <- ifelse(DE_vAN_het_vs_control$log2FoldChange < 0, "neg", "pos")
+DE_vAN_het_vs_control_f <- filter(DE_vAN_het_vs_control, !is.na(gene))
+DE_vAN_het_vs_control_f <- filter(DE_vAN_het_vs_control_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 # DEGs between control and homozygous for ventral, dorsal, and ventral+dorsal samples
-DE_vAN_control_vs_homo <- dds_vAN %>%
+DE_vAN_homo_vs_control <- dds_vAN %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("CRISPR", "control", "homo")) %>%
+    results(alpha = 0.05, contrast = c("CRISPR", "homo", "control")) %>%
     as.data.frame() %>%
     na.omit()
-DE_vAN_control_vs_homo$gene <- gene_converter(rownames(DE_vAN_control_vs_homo), "ENSEMBL", "SYMBOL") %>% as.vector()
-DE_vAN_control_vs_homo$Thr1_5 <- DE_vAN_control_vs_homo$padj < 0.05 & abs(DE_vAN_control_vs_homo$log2FoldChange) >= 1.5
-DE_vAN_control_vs_homo_f <- filter(DE_vAN_control_vs_homo, !is.na(gene))
-DE_vAN_control_vs_homo_f <- filter(DE_vAN_control_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_homo_vs_control$gene <- gene_converter(rownames(DE_vAN_homo_vs_control), "ENSEMBL", "SYMBOL") %>% as.vector()
+DE_vAN_homo_vs_control$Thr1_5 <- DE_vAN_homo_vs_control$padj < 0.05 & abs(DE_vAN_homo_vs_control$log2FoldChange) >= 1.5
+DE_vAN_homo_vs_control$FCsign <- ifelse(DE_vAN_homo_vs_control$log2FoldChange < 0, "neg", "pos")
+DE_vAN_homo_vs_control_f <- filter(DE_vAN_homo_vs_control, !is.na(gene))
+DE_vAN_homo_vs_control_f <- filter(DE_vAN_homo_vs_control_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 # DEGs between heterozygous and homozygous for ventral, dorsal, and ventral+dorsal samples
-DE_vAN_het_vs_homo <- dds_vAN %>%
+DE_vAN_homo_vs_het <- dds_vAN %>%
     DESeq() %>%
-    results(alpha = 0.05, contrast = c("CRISPR", "hetero", "homo")) %>%
+    results(alpha = 0.05, contrast = c("CRISPR", "homo", "hetero")) %>%
     as.data.frame() %>%
     na.omit()
-DE_vAN_het_vs_homo$gene <- gene_converter(rownames(DE_vAN_het_vs_homo), "ENSEMBL", "SYMBOL")
-DE_vAN_het_vs_homo$Thr1_5 <- DE_vAN_het_vs_homo$padj < 0.05 & abs(DE_vAN_het_vs_homo$log2FoldChange) >= 1.5
-DE_vAN_het_vs_homo_f <- filter(DE_vAN_het_vs_homo, !is.na(gene))
-DE_vAN_het_vs_homo_f <- filter(DE_vAN_het_vs_homo_f, padj < 0.01, abs(log2FoldChange) >= 2)
+DE_vAN_homo_vs_het$gene <- gene_converter(rownames(DE_vAN_homo_vs_het), "ENSEMBL", "SYMBOL")
+DE_vAN_homo_vs_het$Thr1_5 <- DE_vAN_homo_vs_het$padj < 0.05 & abs(DE_vAN_homo_vs_het$log2FoldChange) >= 1.5
+DE_vAN_homo_vs_het$FCsign <- ifelse(DE_vAN_homo_vs_het$log2FoldChange < 0, "neg", "pos")
+DE_vAN_homo_vs_het_f <- filter(DE_vAN_homo_vs_het, !is.na(gene))
+DE_vAN_homo_vs_het_f <- filter(DE_vAN_homo_vs_het_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
 #  Saving DE tables
-write.csv(DE_vAN_control_vs_het, "results/tables/Figure_4/DE_vAN_control_vs_het.csv")
-write.csv(DE_vAN_control_vs_homo, "results/tables/Figure_4/DE_vAN_control_vs_homo.csv")
-write.csv(DE_vAN_het_vs_homo, "results/tables/Figure_4/DE_vAN_het_vs_homo.csv")
+write.csv(DE_vAN_het_vs_control, "results/tables/Figure_4/DE_vAN_het_vs_control.csv")
+write.csv(DE_vAN_homo_vs_control, "results/tables/Figure_4/DE_vAN_homo_vs_control.csv")
+write.csv(DE_vAN_homo_vs_het, "results/tables/Figure_4/DE_vAN_homo_vs_het.csv")
 
 # Making volcanp plots
 DE_CRISPR <- list(
-    vAN_control_vs_het = DE_vAN_control_vs_het_f,
-    vAN_control_vs_homo = DE_vAN_control_vs_homo_f,
-    vAN_het_vs_homo = DE_vAN_het_vs_homo_f
+    vAN_het_vs_control = DE_vAN_het_vs_control_f,
+    vAN_homo_vs_control = DE_vAN_homo_vs_control_f,
+    vAN_homo_vs_het = DE_vAN_homo_vs_het_f
 )
 
 for (contrast in names(DE_CRISPR)) {
     print(contrast)
     DE <- DE_CRISPR[[contrast]]
+    print(max(-log10(DE$padj) + (max(-log10(DE$padj)) * 0.1)))
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
         geom_text(size = 2) +
         custom_theme() +
@@ -176,6 +181,13 @@ for (contrast in names(DE_CRISPR)) {
         labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DE: ", contrast), subtitle = "|log2FC| >= 2 & FDR < 0.01")
     ggsave(filename = paste0("results/images/Figure_4/Volcano_", contrast, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
+View(DE_vAN_homo_vs_het_f)
+filter(DE_vAN_het_vs_control_f, padj < 1.6857e-149)$gene
+filter(DE_vAN_homo_vs_control_f, padj < 1.6703e-274)$gene
+filter(DE_vAN_homo_vs_het_f, padj < 1.1168e-304)$gene
+
+
+
 
 # Making marker genes barplots (and also barplots of gene tested in mices not in the WGCNA cluster)
 norm <- assay(vsd_vAN)
@@ -289,57 +301,177 @@ ggplot(grouped_df, aes(x = CRISPR_type, y = ZFHX4_mean, fill = type)) +
     custom_theme(diag_text = TRUE, hide_legend = TRUE)
 dev.off()
 
-# Getting genes within SHH WGCNA module
+
+
 SHH_cluster_genes_df <- read.csv("results/tables/Figure_3/SHH_cluster.csv")
 View(SHH_cluster_genes_df)
 
-corr_pos <- SHH_cluster_genes_df[which(SHH_cluster_genes_df$cor > 0), ]$gene
-corr_neg <- SHH_cluster_genes_df[which(SHH_cluster_genes_df$cor < 0), ]$gene
+meta_CRISPR <- filter(rawmeta, diff == "diff12", type == "ventral")
+meta_cyclo <- filter(rawmeta, diff == "diff9", type != "dorsal", sample != "L9C1_2")
 
-# Looking at SHH co-expressed genes expression in ventral CRISPR samples
-norm_scale <- norm - min(norm)
+c("EPHB1", "TRIM9", "EPHA4", "ZFHX4") %>% gene_converter("SYMBOL", "ENSEMBL")
 
-# Positively correlated genes
-meta_pos <- meta
-maximum_exp <- max(norm_scale[rownames(norm_scale) %in% union(corr_pos, corr_neg), ])
-meta_pos$CRISPR_type <- paste(meta_pos$CRISPR, meta_pos$type, sep = "_")
-for (gene in rownames(norm_scale)[rownames(norm_scale) %in% corr_pos]) {
-    meta_pos$gene <- norm_scale[gene, ]
-    grp_df_pos <- meta_pos %>%
-        group_by(CRISPR) %>%
-        summarize(
-            gene_mean = mean(gene),
-            gene_sd = sd(gene)
-        )
-    grp_df_pos$CRISPR_type <- factor(c("vAN +/+", "vAN +/-", "vAN -/-"), levels = c("vAN +/+", "vAN +/-", "vAN -/-"))
-    ggplot(grp_df_pos, aes(x = CRISPR_type, y = gene_mean, fill = CRISPR)) +
-        geom_bar(stat = "identity") +
-        geom_errorbar(aes(ymin = gene_mean - gene_sd, ymax = gene_mean + gene_sd), width = 0.2) +
-        ylim(-1, maximum_exp) +
-        scale_fill_manual(values = c("#80AD3C", "#b9e27b", "#dfe981")) +
-        custom_theme(diag_text = TRUE, hide_legend = TRUE) +
-        ggtitle(paste0("Scaled normalized expression of ", gene))
-    ggsave(filename = paste0("results/images/Figure_4/vAN_coex_genes_barplot/positive_correlation/barplot_", gene, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+markers <- c(SHH_cluster_genes_df$ENSEMBLE, c("EPHB1", "TRIM9", "EPHA4", "ZFHX4") %>% gene_converter("SYMBOL", "ENSEMBL"))
+# Make sure to keep only markers in the matrix
+markers <- intersect(markers, rownames(rawcounts))
+
+# filtering out lowly expressed genes and keeping only seleted samples
+retained_row_CRISPR <- rawcounts[rownames(rawcounts) %in% markers, meta_CRISPR$sample]
+counts_CRISPR <- rawcounts[, meta_CRISPR$sample][rowSums(rawcounts[, meta_CRISPR$sample]) >= 25, ]
+
+retained_row_cyclo <- rawcounts[rownames(rawcounts) %in% markers, meta_cyclo$sample]
+counts_cyclo <- rawcounts[, meta_cyclo$sample][rowSums(rawcounts[, meta_cyclo$sample]) >= 25, ]
+
+# putting back potentially filtered out markers (posterior markers for example as they should not be expressed)
+if (length(which(!rownames(retained_row_CRISPR) %in% rownames(counts_CRISPR))) == 1) {
+    counts_CRISPR <- rbind(counts_CRISPR, retained_row_CRISPR[which(!rownames(retained_row_CRISPR) %in% rownames(counts_CRISPR)), ])
+    rownames(counts_CRISPR)[nrow(counts_CRISPR)] <- rownames(retained_row_CRISPR)[which(!rownames(retained_row_CRISPR) %in% rownames(counts_CRISPR))]
+} else if (length(which(!rownames(retained_row_CRISPR) %in% rownames(counts_CRISPR))) > 1) {
+    counts_CRISPR <- rbind(counts_CRISPR, retained_row_CRISPR[which(!rownames(retained_row_CRISPR) %in% rownames(counts_CRISPR)), ])
 }
 
-# Negatively correlated genes
-meta_neg <- meta
-meta_neg$CRISPR_type <- paste(meta_neg$CRISPR, meta_neg$type, sep = "_")
-for (gene in rownames(norm_scale)[rownames(norm_scale) %in% corr_neg]) {
-    meta_neg$gene <- norm_scale[gene, ]
-    grp_df_neg <- meta_neg %>%
+if (length(which(!rownames(retained_row_cyclo) %in% rownames(counts_cyclo))) == 1) {
+    counts_cyclo <- rbind(counts_cyclo, retained_row_cyclo[which(!rownames(retained_row_cyclo) %in% rownames(counts_cyclo)), ])
+    rownames(counts_cyclo)[nrow(counts_cyclo)] <- rownames(retained_row_cyclo)[which(!rownames(retained_row_cyclo) %in% rownames(counts_cyclo))]
+} else if (length(which(!rownames(retained_row_cyclo) %in% rownames(counts_cyclo))) > 1) {
+    counts_cyclo <- rbind(counts_cyclo, retained_row_cyclo[which(!rownames(retained_row_cyclo) %in% rownames(counts_cyclo)), ])
+}
+
+
+dds_cyclo <- DESeqDataSetFromMatrix(
+    countData = counts_cyclo,
+    colData = meta_cyclo,
+    design = ~cyclo_dose_qual
+)
+vsd_cyclo <- vst(dds_cyclo, blind = FALSE)
+dds_CRISPR <- DESeqDataSetFromMatrix(
+    countData = counts_CRISPR,
+    colData = meta_CRISPR,
+    design = ~CRISPR
+)
+vsd_CRISPR <- vst(dds_CRISPR, blind = FALSE)
+
+# Looking at SHH co-expressed genes expression in ventral CRISPR samples
+scale_cyclo <- assay(vsd_cyclo) - min(assay(vsd_cyclo))
+rownames(scale_cyclo) <- gene_converter(rownames(scale_cyclo), "ENSEMBL", "SYMBOL")
+scale_CRISPR <- assay(vsd_CRISPR) - min(assay(vsd_CRISPR))
+rownames(scale_CRISPR) <- gene_converter(rownames(scale_CRISPR), "ENSEMBL", "SYMBOL")
+
+meta_bp_CRISPR <- meta_CRISPR
+meta_bp_CRISPR$CRISPR_type <- paste(meta_bp_CRISPR$CRISPR, meta_bp_CRISPR$type, sep = "_")
+
+meta_bp_cyclo <- meta_cyclo
+
+for (gene in SHH_cluster_genes_df$gene) {
+    meta_bp_CRISPR$gene <- scale_CRISPR[gene, ]
+    red_df_CRISPR <- dplyr::select(meta_bp_CRISPR, c("CRISPR", "gene"))
+    stat_df_CRISPR <- data.frame(control = filter(red_df_CRISPR, CRISPR == "control")$gene, hetero = filter(red_df_CRISPR, CRISPR == "hetero")$gene, homo = filter(red_df_CRISPR, CRISPR == "homo")$gene)
+
+    grp_df_CRISPR <- meta_bp_CRISPR %>%
         group_by(CRISPR) %>%
         summarize(
             gene_mean = mean(gene),
             gene_sd = sd(gene)
         )
-    grp_df_neg$CRISPR_type <- factor(c("vAN +/+", "vAN +/-", "vAN -/-"), levels = c("vAN +/+", "vAN +/-", "vAN -/-"))
-    ggplot(grp_df_neg, aes(x = CRISPR_type, y = gene_mean, fill = CRISPR)) +
-        geom_bar(stat = "identity") +
-        geom_errorbar(aes(ymin = gene_mean - gene_sd, ymax = gene_mean + gene_sd), width = 0.2) +
-        ylim(-1, maximum_exp) +
-        scale_fill_manual(values = c("#80AD3C", "#b9e27b", "#dfe981")) +
-        custom_theme(diag_text = TRUE, hide_legend = TRUE) +
-        ggtitle(paste0("Scaled normalized expression of ", gene))
-    ggsave(filename = paste0("results/images/Figure_4/vAN_coex_genes_barplot/negative_correlation/barplot_", gene, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+
+    grp_df_CRISPR$CRISPR <- factor(c("+/+", "+/-", "-/-"), levels = c("+/+", "+/-", "-/-"))
+    c_het_p <- wilcox.test(stat_df_CRISPR$control, stat_df_CRISPR$hetero)$p.value %>% round(4)
+    c_hom_p <- wilcox.test(stat_df_CRISPR$control, stat_df_CRISPR$homo)$p.value %>% round(4)
+    het_hom_p <- wilcox.test(stat_df_CRISPR$hetero, stat_df_CRISPR$homo)$p.value %>% round(4)
+    signif <- c(c_het_p, c_hom_p, het_hom_p) %>% sapply(function(pval) {
+        if (is.nan(pval)) {
+            return("***")
+        } else if (pval < 0.001) {
+            return("***")
+        } else if (pval < 0.01) {
+            return("**")
+        } else if (pval < 0.05) {
+            return("*")
+        } else {
+            return(" ")
+        }
+    })
+    pval_data <- data.frame(
+        group1 = c("+/+", "+/+", "+/-"),
+        group2 = c("+/-", "-/-", "-/-"),
+        p_value = paste(c(c_het_p, c_hom_p, het_hom_p), signif, sep = " "),
+        y_position = c(max(scale_CRISPR) + max(scale_CRISPR) * 0.1, max(scale_CRISPR) + max(scale_CRISPR) * 0.2, max(scale_CRISPR) + max(scale_CRISPR) * 0.3) # Adjust these based on your plot's scale
+    )
+    bp_CRISPR <- ggbarplot(grp_df_CRISPR,
+        x = "CRISPR", y = "gene_mean",
+        fill = "CRISPR", palette = c("#80AD3C", "#b9e27b", "#dfe981"),
+        add = "gene_sd",
+        width = 0.9,
+        ggtheme = custom_theme(diag_text = TRUE, hide_legend = TRUE)
+    ) +
+        ylim(-0.2, max(scale_CRISPR) + max(scale_CRISPR) * 0.3) +
+        geom_errorbar(data = grp_df_CRISPR, aes(ymin = gene_mean - gene_sd, ymax = gene_mean + gene_sd), width = 0.2) +
+        stat_pvalue_manual(
+            pval_data,
+            y.position = "y_position",
+            label = "p_value"
+        )
+
+
+    meta_bp_cyclo$gene <- scale_cyclo[gene, ]
+    red_df_cyclo <- dplyr::select(meta_bp_cyclo, c("cyclo_dose_qual", "gene"))
+
+    grp_df_cyclo <- meta_bp_cyclo %>%
+        group_by(cyclo_dose_qual) %>%
+        summarize(
+            gene_mean = mean(gene),
+            gene_sd = sd(gene)
+        )
+    grp_df_cyclo <- grp_df_cyclo[c(3, 2, 1), ] # making sure everything is in the right order
+    grp_df_cyclo$cyclo_dose_qual <- factor(c("none", "low", "high"), levels = c("none", "low", "high"))
+    no_low_p <- wilcox.test(filter(red_df_cyclo, cyclo_dose_qual == "none")$gene, filter(red_df_cyclo, cyclo_dose_qual == "low")$gene)$p.value %>% round(4)
+    no_high_p <- wilcox.test(filter(red_df_cyclo, cyclo_dose_qual == "none")$gene, filter(red_df_cyclo, cyclo_dose_qual == "high")$gene)$p.value %>% round(4)
+    low_high_p <- wilcox.test(filter(red_df_cyclo, cyclo_dose_qual == "low")$gene, filter(red_df_cyclo, cyclo_dose_qual == "high")$gene)$p.value %>% round(4)
+    signif <- c(no_low_p, no_high_p, low_high_p) %>% sapply(function(pval) {
+        if (is.nan(pval)) {
+            return("")
+        } else if (pval < 0.001) {
+            return("***")
+        } else if (pval < 0.01) {
+            return("**")
+        } else if (pval < 0.05) {
+            return("*")
+        } else {
+            return("")
+        }
+    })
+    pval_data <- data.frame(
+        group1 = c("none", "none", "low"),
+        group2 = c("low", "high", "high"),
+        p_value = paste(c(no_low_p, no_high_p, low_high_p), signif, sep = " "),
+        y_position = c(max(scale_cyclo) + max(scale_cyclo) * 0.1, max(scale_cyclo) + max(scale_cyclo) * 0.2, max(scale_cyclo) + max(scale_cyclo) * 0.3) # Adjust these based on your plot's scale
+    )
+    bp_cyclo <- ggbarplot(grp_df_cyclo,
+        x = "cyclo_dose_qual", y = "gene_mean",
+        fill = "cyclo_dose_qual", palette = c("#80AD3C", "#f6a563", "#f86110"),
+        add = "gene_sd",
+        width = 0.9,
+        ggtheme = custom_theme(diag_text = TRUE, hide_legend = TRUE)
+    ) +
+        ylim(-0.2, max(scale_cyclo) + max(scale_cyclo) * 0.3) +
+        geom_errorbar(data = grp_df_cyclo, aes(ymin = gene_mean - gene_sd, ymax = gene_mean + gene_sd), width = 0.2) +
+        stat_pvalue_manual(
+            pval_data,
+            y.position = "y_position",
+            label = "p_value"
+        )
+    title <- textGrob(paste0("Scaled normalized expression of ", gene), gp = gpar(fontsize = 16, fontface = "bold"))
+
+    # Arrange the two plots and add the title
+    finalplot <- grid.arrange(
+        title, # Add the title
+        arrangeGrob(bp_CRISPR, bp_cyclo, ncol = 2), # Add the plots side by side
+        nrow = 2, # The layout will have two rows, one for title and one for the plots
+        heights = c(0.1, 1) # Relative heights (title takes 10% of the height)
+    )
+    if (SHH_cluster_genes_df[which(SHH_cluster_genes_df$gene == gene), ]$cor > 0) {
+        ggsave(filename = paste0("results/images/Figure_4/vAN_coex_genes_barplot/positive_correlation/barplot_", gene, ".png"), plot = finalplot, units = "px", width = 1800, height = 1400, dpi = 250)
+    } else {
+        ggsave(filename = paste0("results/images/Figure_4/vAN_coex_genes_barplot/negative_correlation/barplot_", gene, ".png"), plot = finalplot, units = "px", width = 1800, height = 1400, dpi = 250)
+    }
 }
