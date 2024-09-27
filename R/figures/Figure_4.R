@@ -475,3 +475,30 @@ for (gene in SHH_cluster_genes_df$gene) {
         ggsave(filename = paste0("results/images/Figure_4/vAN_coex_genes_barplot/negative_correlation/barplot_", gene, ".png"), plot = finalplot, units = "px", width = 1800, height = 1400, dpi = 250)
     }
 }
+
+
+meta_CRISPRcyclo <- filter(rawmeta, diff == "diff12" & ((type != "dorsal" & CRISPR == "control") | (type == "ventral" & CRISPR != "control")))
+
+dds_CRISPRcyclo <- DESeqDataSetFromMatrix(
+    rawcounts[, meta_CRISPRcyclo$sample][rowSums(rawcounts[, meta_CRISPRcyclo$sample]) >= 25, ],
+    colData = meta_CRISPRcyclo,
+    design = ~CRISPR
+)
+vsd_CRISPRcyclo <- vst(dds_CRISPRcyclo, blind = FALSE)
+
+max(assay(vsd_cyclo))
+distance <- dist(t(assay(vsd_CRISPRcyclo)))
+distance
+
+# Step 2: Convert the distance matrix to a square matrix
+dist_matrix <- as.matrix(distance)
+
+# Step 3: Create a heatmap
+png(filename = "results/images/Figure_4/CRISPR_cyclo_distances.png", width = 2000, height = 2000, res = 250)
+heatmap(dist_matrix,
+    main = "Distance Matrix Heatmap",
+    xlab = "Samples",
+    ylab = "Samples",
+    col = heat.colors(256)
+)
+dev.off()
