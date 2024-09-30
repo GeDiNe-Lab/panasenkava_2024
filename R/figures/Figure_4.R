@@ -594,28 +594,41 @@ dev.off()
 cyclo_genes_df <- read.csv("results/tables/Figure_3/cyclo_genes_df.csv")
 cyclo_genes_df %>% View()
 
-cyclo_genes_df$CRISPR_cluster <- cyclo_genes_df$X %>% sapply(function(gene) {
-    if (gene %in% names(clusters)) {
-        return(clusters[gene])
+cyclo_genes_df$CRISPR_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
+    if (cyclo_genes_df$WGCNA[i] == "no") {
+        return("NA")
+    } else if (cyclo_genes_df$X[i] %in% names(clusters)) {
+        return(clusters[cyclo_genes_df$X[i]])
     } else {
         return("NA")
     }
 })
 
-cyclo_genes_df$CRISPR_sub_cluster <- cyclo_genes_df$X %>% sapply(function(gene) {
-    if (gene %in% names(sub_clusters)) {
-        return(sub_clusters[gene])
+cyclo_genes_df$CRISPR_sub_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
+    if (cyclo_genes_df$WGCNA[i] == "no") {
+        return("NA")
+    } else if (cyclo_genes_df$X[i] %in% names(sub_clusters)) {
+        return(sub_clusters[cyclo_genes_df$X[i]])
     } else {
         return("NA")
     }
 })
 
-cyclo_genes_df$CRISPR_sub_sub_cluster <- cyclo_genes_df$X %>% sapply(function(gene) {
-    if (gene %in% names(sub_sub_clusters)) {
-        return(sub_sub_clusters[gene])
+cyclo_genes_df$CRISPR_sub_sub_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
+    if (cyclo_genes_df$WGCNA[i] == "no") {
+        return("NA")
+    } else if (cyclo_genes_df$X[i] %in% names(sub_sub_clusters)) {
+        return(sub_sub_clusters[cyclo_genes_df$X[i]])
     } else {
         return("NA")
     }
 })
+
 View(cyclo_genes_df)
 write.csv(cyclo_genes_df, "results/tables/Figure_4/cyclo_genes_df_CRISPR_cluster.csv")
+
+
+filter(cyclo_genes_df, (CRISPR_cluster == 1 | CRISPR_cluster == 2) & cluster == 1) %>% nrow() / filter(cyclo_genes_df, (CRISPR_cluster == 1 | CRISPR_cluster == 2)) %>% nrow() * 100
+
+filter(cyclo_genes_df, CRISPR_cluster == "NA" & cluster == 1) %>% nrow() / filter(cyclo_genes_df, CRISPR_cluster == "NA" & WGCNA == "yes") %>% nrow() * 100
+filter(cyclo_genes_df, CRISPR_cluster == "NA" & cluster == 2) %>% nrow() / filter(cyclo_genes_df, CRISPR_cluster == "NA" & WGCNA == "yes") %>% nrow() * 100
