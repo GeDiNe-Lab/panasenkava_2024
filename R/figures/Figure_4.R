@@ -502,3 +502,120 @@ heatmap(dist_matrix,
     col = heat.colors(256)
 )
 dev.off()
+
+
+
+
+scaled_mat <- t(apply(assay(vsd_vAN)[SHH_cluster_genes_df$ENSEMBLE %in% rownames(assay(vsd_vAN)), ], 1, scale))
+colnames(scaled_mat) <- colnames(assay(vsd_vAN))
+
+# hierarchical clustering using euclidian distance and "complete" method
+clustering <- hclust(dist(scaled_mat))
+clusters <- cutree(clustering, k = 4)
+
+# Subclustering of each cluster
+sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
+    sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), ]
+    sub_clustering <- hclust(dist(sub_mat))
+    return(cutree(sub_clustering, k = 5))
+})
+names(sub_clusters_list) <- paste0("cluster_", unique(clusters))
+sub_clusters <- sub_clusters_list %>%
+    unname() %>%
+    unlist()
+sub_clusters <- sub_clusters[names(clusters)]
+
+sub_sub_clusters_list <- unique(sub_clusters) %>% lapply(function(sub_cluster) {
+    sub_mat <- scaled_mat[names(sub_clusters[which(sub_clusters == sub_cluster)]), ]
+    sub_sub_clustering <- hclust(dist(sub_mat))
+    return(cutree(sub_sub_clustering, k = 5))
+})
+names(sub_sub_clusters_list) <- paste0("sub_cluster_", unique(sub_clusters))
+sub_sub_clusters <- sub_sub_clusters_list %>%
+    unname() %>%
+    unlist()
+sub_sub_clusters <- sub_sub_clusters[names(sub_clusters)]
+
+# Heatmap gene annotation
+clusters_ha <- rowAnnotation(
+    cluster = as.character(clusters[clustering$order]),
+    sub_cluster = as.character(sub_clusters[clustering$order]),
+    sub_sub_cluster = as.character(sub_sub_clusters[clustering$order]),
+    col = list(
+        cluster = c(
+            "1" = "#b16060",
+            "2" = "#4d6da5",
+            "3" = "#2f7439",
+            "4" = "#613999"
+        ),
+        sub_cluster = c(
+            "1" = "black",
+            "2" = "pink",
+            "3" = "yellow",
+            "4" = "brown",
+            "5" = "grey"
+        ),
+        sub_sub_cluster = c(
+            "1" = "black",
+            "2" = "pink",
+            "3" = "yellow",
+            "4" = "brown",
+            "5" = "grey"
+        )
+    )
+)
+
+
+
+png(filename = "results/images/Figure_4/CRISPR_cycloWGCNA_genes_HM.png", width = 2400, height = 1600, res = 250)
+Heatmap(
+    scaled_mat[clustering$order, ],
+    name = "Normalized expression",
+    column_names_gp = gpar(fontsize = 6),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    left_annotation = clusters_ha,
+    show_row_names = FALSE,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    show_row_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(scaled_mat) * unit(4, "mm"),
+    # height = nrow(mat) * unit(5, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+dev.off()
+
+cyclo_genes_df <- read.csv("results/tables/Figure_3/cyclo_genes_df.csv")
+cyclo_genes_df %>% View()
+
+cyclo_genes_df$CRISPR_cluster <- cyclo_genes_df$X %>% sapply(function(gene) {
+    if (gene %in% names(clusters)) {
+        return(clusters[gene])
+    } else {
+        return("NA")
+    }
+})
+
+cyclo_genes_df$CRISPR_sub_cluster <- cyclo_genes_df$X %>% sapply(function(gene) {
+    if (gene %in% names(sub_clusters)) {
+        return(sub_clusters[gene])
+    } else {
+        return("NA")
+    }
+})
+
+cyclo_genes_df$CRISPR_sub_sub_cluster <- cyclo_genes_df$X %>% sapply(function(gene) {
+    if (gene %in% names(sub_sub_clusters)) {
+        return(sub_sub_clusters[gene])
+    } else {
+        return("NA")
+    }
+})
+View(cyclo_genes_df)
+write.csv(cyclo_genes_df, "results/tables/Figure_4/cyclo_genes_df_CRISPR_cluster.csv")
