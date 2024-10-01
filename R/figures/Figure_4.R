@@ -486,9 +486,9 @@ dds_CRISPRcyclo <- DESeqDataSetFromMatrix(
 )
 vsd_CRISPRcyclo <- vst(dds_CRISPRcyclo, blind = FALSE)
 
-max(assay(vsd_cyclo))
-distance <- dist(t(assay(vsd_CRISPRcyclo)))
-distance
+png(filename = "results/images/Figure_4/corrplot.png", width = 2000, height = 2000, res = 250)
+corrplot::corrplot(cor(scale(assay(vsd_CRISPRcyclo)))**10, order = "AOE", method = "color", col.lim = c(0, 1), is.corr = FALSE, col = corrplot::COL2("RdBu", 200)) # colorful number
+dev.off()
 
 # Step 2: Convert the distance matrix to a square matrix
 dist_matrix <- as.matrix(distance)
