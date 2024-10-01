@@ -478,9 +478,9 @@ for (gene in SHH_cluster_genes_df$gene) {
 
 
 meta_CRISPRcyclo <- filter(rawmeta, diff == "diff12" & ((type != "dorsal" & CRISPR == "control") | (type == "ventral" & CRISPR != "control")))
-
+counts_CRISPRcyclo <- rawcounts[, meta_CRISPRcyclo$sample][rowSums(rawcounts[, meta_CRISPRcyclo$sample]) >= 25, ]
 dds_CRISPRcyclo <- DESeqDataSetFromMatrix(
-    rawcounts[, meta_CRISPRcyclo$sample][rowSums(rawcounts[, meta_CRISPRcyclo$sample]) >= 25, ],
+    counts_CRISPRcyclo[rownames(counts_CRISPRcyclo) %in% SHH_cluster_genes_df$ENSEMBLE, ],
     colData = meta_CRISPRcyclo,
     design = ~CRISPR
 )
@@ -503,11 +503,25 @@ heatmap(dist_matrix,
 )
 dev.off()
 
+rawmeta$type %>% unique()
+meta_HM <- filter(rawmeta, (CRISPR == "control" & diff == "diff12" & type != "dorsal"))
+View(meta_HM)
 
+filtercounts_HM <- rawcounts[, filter(meta_HM)$sample][rowSums(rawcounts[, filter(meta_HM)$sample]) >= 25, ]
+# putting back TBR1 since we want to look at it expression and it is filtered out by the counts filter
 
+# Making DESeq objects for ventral samples
+vsd_HM <- DESeqDataSetFromMatrix(
+    countData = filtercounts_HM,
+    colData = meta_HM,
+    design = ~cyclo_dose_qual
+) %>% vst(blind = TRUE)
 
-scaled_mat <- t(apply(assay(vsd_vAN)[SHH_cluster_genes_df$ENSEMBLE %in% rownames(assay(vsd_vAN)), ], 1, scale))
-colnames(scaled_mat) <- colnames(assay(vsd_vAN))
+cyclo_sample_oder <- filter(meta_HM, type == "cyclo")$sample[order(filter(meta_HM, type == "cyclo")$cyclo_dose_quant)]
+sample_order <- c(cyclo_sample_oder, filter(meta_HM, type == "ventral")$sample)
+sample_order
+scaled_mat <- t(apply(assay(vsd_HM)[rownames(assay(vsd_HM)) %in% SHH_cluster_genes_df$ENSEMBLE, sample_order], 1, scale))
+colnames(scaled_mat) <- sample_order
 
 # hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat))
@@ -564,12 +578,12 @@ clusters_ha <- rowAnnotation(
         )
     )
 )
+nrow(scaled_mat)
 
 
-
-png(filename = "results/images/Figure_4/CRISPR_cycloWGCNA_genes_HM.png", width = 2400, height = 1600, res = 250)
+png(filename = "results/images/Figure_4/CRISPR_cyclo_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
-    scaled_mat[clustering$order, ],
+    scaled_mat[clustering$order, sample_order],
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
     cluster_rows = FALSE,
@@ -594,7 +608,7 @@ dev.off()
 cyclo_genes_df <- read.csv("results/tables/Figure_3/cyclo_genes_df.csv")
 cyclo_genes_df %>% View()
 
-cyclo_genes_df$CRISPR_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
+cyclo_genes_df$WTC_cyclo_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
     if (cyclo_genes_df$WGCNA[i] == "no") {
         return("NA")
     } else if (cyclo_genes_df$X[i] %in% names(clusters)) {
@@ -604,7 +618,7 @@ cyclo_genes_df$CRISPR_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i
     }
 })
 
-cyclo_genes_df$CRISPR_sub_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
+cyclo_genes_df$WTC_cyclo_sub_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
     if (cyclo_genes_df$WGCNA[i] == "no") {
         return("NA")
     } else if (cyclo_genes_df$X[i] %in% names(sub_clusters)) {
@@ -614,7 +628,7 @@ cyclo_genes_df$CRISPR_sub_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(functi
     }
 })
 
-cyclo_genes_df$CRISPR_sub_sub_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
+cyclo_genes_df$WTC_cyclo_sub_sub_cluster <- c(1:nrow(cyclo_genes_df)) %>% sapply(function(i) {
     if (cyclo_genes_df$WGCNA[i] == "no") {
         return("NA")
     } else if (cyclo_genes_df$X[i] %in% names(sub_sub_clusters)) {
