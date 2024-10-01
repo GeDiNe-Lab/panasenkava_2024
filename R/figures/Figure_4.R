@@ -517,13 +517,20 @@ vsd_HM <- DESeqDataSetFromMatrix(
     design = ~cyclo_dose_qual
 ) %>% vst(blind = TRUE)
 
-cyclo_sample_oder <- filter(meta_HM, type == "cyclo")$sample[order(filter(meta_HM, type == "cyclo")$cyclo_dose_quant)]
-sample_order <- c(cyclo_sample_oder, filter(meta_HM, type == "ventral")$sample)
+cyclo_order <- filter(meta_HM, type == "cyclo")$sample[order(filter(meta_HM, type == "cyclo")$cyclo_dose_quant)]
+sample_order <- c(cyclo_order, filter(meta_HM, type == "ventral")$sample)
 sample_order
-scaled_mat <- t(apply(assay(vsd_HM)[rownames(assay(vsd_HM)) %in% SHH_cluster_genes_df$ENSEMBLE, sample_order], 1, scale))
+assay(vsd_HM)[1:2, 1:2]
+scaled_mat[1:2, 1:2]
+assay(vsd_HM)
+
+ordered_mat <- assay(vsd_HM)[rownames(assay(vsd_HM)) %in% SHH_cluster_genes_df$ENSEMBLE, sample_order]
+
+scaled_mat <- t(apply(ordered_mat, 1, scale))
 colnames(scaled_mat) <- sample_order
 
 # hierarchical clustering using euclidian distance and "complete" method
+test <- dist(scaled_mat)
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 4)
 
@@ -580,8 +587,19 @@ clusters_ha <- rowAnnotation(
 )
 nrow(scaled_mat)
 
+# clustering_df <- data.frame(
+#     gene = rownames(scaled_mat),
+#     cluster = clusters,
+#     sub_cluster = sub_clusters,
+#     sub_sub_cluster = sub_sub_clusters
+# )
+# genes <- filter(clustering_df, cluster == 4, sub_cluster == 1, sub_sub_cluster == 4)$gene
+# scaled_mat[genes, filter(meta_HM, cyclo_dose_qual == "low")$sample] %>% mean()
+# scaled_mat[genes, filter(meta_HM, cyclo_dose_qual == "high")$sample] %>% mean()
+# scaled_mat[genes, filter(meta_HM, CRISPR == "hetero")$sample] %>% mean()
+# scaled_mat[genes, filter(meta_HM, CRISPR == "homo")$sample] %>% mean()
 
-png(filename = "results/images/Figure_4/CRISPR_cyclo_HM.png", width = 2400, height = 1600, res = 250)
+png(filename = "results/images/Figure_4/WTC_cyclo_ventral_HM.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering$order, sample_order],
     name = "Normalized expression",
