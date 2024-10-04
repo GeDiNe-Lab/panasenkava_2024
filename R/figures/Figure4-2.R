@@ -6,7 +6,8 @@ library(org.Hs.eg.db)
 library(ggpubr)
 library(DESeq2)
 library(gridExtra)
-
+library(UpSetR)
+UpSetR::elements()
 # Setting working directory
 rstudioapi::getSourceEditorContext()$path %>%
     str_split("/") %>%
@@ -43,6 +44,9 @@ High_No <- filter(cyclopamin, HvsN_thr == TRUE, !is.na(genes))$genes
 High_Low <- filter(cyclopamin, HvsL_thr == TRUE, !is.na(genes))$genes
 Low_No <- filter(cyclopamin, LvsN_thr == TRUE, !is.na(genes))$genes
 
+png(filename = "results/images/Figure_4/CRISPR_cyclo_DEG_upset_plot.png", width = 1600, height = 1200, res = 250)
+upset(fromList(list(Hom_Con = Hom_Con, Het_Con = Het_Con, High_No = High_No, Low_No = Low_No)))
+dev.off()
 # 4way venn diag
 # Het_Con vs Hom_Con vs High_No
 venn.diagram(

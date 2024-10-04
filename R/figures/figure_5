@@ -161,6 +161,100 @@ for (gene in marker_genes) {
     }
 }
 
+
+focusgenes <- c("FOXG1", "CNTN6", "ZIC2", "PAX6", "FOXA2", "LINC00261", "JAG1", "QKI", "NUAK2", "TRM9", "EPHB1", "ZIC5", "NKX2-1", "SHH", "CNTNAP2", "CAPN6", "ZFHX4")
+focusduo <- combn(focusgenes, 2, simplify = FALSE)
+
+for (duo in focusduo) {
+    if ((!duo[1] %in% rownames(seurat_week4)) | (!duo[2] %in% rownames(seurat_week4))) {
+        print("These genes are not in week4:")
+        if (!duo[1] %in% rownames(seurat_week4)) {
+            print(paste0("    ", duo[1]))
+        }
+        if (!duo[2] %in% rownames(seurat_week4)) {
+            print(paste0("    ", duo[2]))
+        }
+        next
+    }
+    rawplots <- FeaturePlot(object = seurat_week4, pt.size = 2, order = TRUE, features = duo, blend = TRUE)
+    ftplot <- rawplots[[3]] + rawplots[[4]] + plot_layout(widths = c(6, 1))
+    ggsave(paste0("Figure_5/duo_week4/Zeng_week4", paste(duo, collapse = "_"), ".png"), plot = ftplot, width = 14, height = 10, dpi = 300)
+}
+
+for (duo in focusduo) {
+    duo <- focusduo[[1]]
+    if ((!duo[1] %in% rownames(seurat_week3)) | (!duo[2] %in% rownames(seurat_week3))) {
+        print("These genes are not in week3:")
+        if (!duo[1] %in% rownames(seurat_week3)) {
+            print(paste0("    ", duo[1]))
+        }
+        if (!duo[2] %in% rownames(seurat_week3)) {
+            print(paste0("    ", duo[2]))
+        }
+        next
+    }
+    rawplots <- FeaturePlot(object = seurat_week4, pt.size = 2, blend.threshold = 0.99, order = TRUE, features = c("FOXA2", "LINC00261"), blend = TRUE)
+    ftplot <- rawplots[[3]] + rawplots[[4]] + plot_layout(widths = c(6, 1))
+    ftplot
+    ggsave(paste0("Figure_5/duo_week3/Zeng_week3", paste(duo, collapse = "_"), ".png"), plot = ftplot, width = 14, height = 10, dpi = 300)
+}
+
+for (duo in focusduo) {
+    if ((!duo[1] %in% rownames(seurat_week5)) | (!duo[2] %in% rownames(seurat_week5))) {
+        print("These genes are not in week5:")
+        if (!duo[1] %in% rownames(seurat_week5)) {
+            print(paste0("    ", duo[1]))
+        }
+        if (!duo[2] %in% rownames(seurat_week5)) {
+            print(paste0("    ", duo[2]))
+        }
+        next
+    }
+    rawplots <- FeaturePlot(object = seurat_week5, pt.size = 2, order = TRUE, features = duo, blend = TRUE)
+    ftplot <- rawplots[[3]] + rawplots[[4]] + plot_layout(widths = c(6, 1))
+    ggsave(paste0("Figure_5/duo_week5/Zeng_week5", paste(duo, collapse = "_"), ".png"), plot = ftplot, width = 14, height = 10, dpi = 300)
+}
+seurat_week4@assays$RNA
+w4_cellmatch <- sc_meta_week4
+
+w4df <- focusgenes %>%
+    lapply(function(gene) {
+        if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
+            return(seurat_week4@assays$RNA$counts[gene, ] > 0)
+        } else {
+            print(paste0(gene, " not in week4"))
+            return(rep(FALSE, ncol(seurat_week4@assays$RNA$data)))
+        }
+    }) %>%
+    do.call(cbind, .)
+colnames(w4df) <- focusgenes
+
+w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
+
+
+w4_cellmatch$duo <- sapply(c(1:nrow(w4_cellmatch)), function(i) {
+    if (w4_cellmatch$FOXA2[i] == TRUE & w4_cellmatch$LINC00261[i] == TRUE) {
+        return("both")
+    } else if (w4_cellmatch$FOXA2[i] == TRUE) {
+        return("FOXA2")
+    } else if (w4_cellmatch$LINC00261[i] == TRUE) {
+        return("LINC00261")
+    } else {
+        return("none")
+    }
+})
+
+w4_cellmatch$duo
+ggplot(data = w4_cellmatch, aes(x = umap_1, y = umap_2, color = duo)) +
+    geom_point(size = 1.5) +
+    scale_color_manual(values = c("both" = "#ffdd00", "none" = "grey", "FOXA2" = "#ff0000", "LINC00261" = "green")) +
+    custom_theme()
+
+
+
+
+
+
 sc_meta_week3$GLI1 <- seurat_week3@assays$RNA$scale.data["GLI1", sc_meta_week3$barcode]
 sc_meta_week3$GLI1 <- ifelse(sc_meta_week3$GLI1 > median(sc_meta_week3$GLI1), "GLI1", " ")
 sc_meta_week3$GLI2 <- seurat_week3@assays$RNA$scale.data["GLI2", sc_meta_week3$barcode]
