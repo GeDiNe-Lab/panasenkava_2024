@@ -212,33 +212,14 @@ colnames(scaled_mat) <- colnames(vsd_DEGs)
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
 
-# sub-clustering of each cluster
-sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
-    sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), ]
-    sub_clustering <- hclust(dist(sub_mat))
-    return(cutree(sub_clustering, k = 4))
-})
-names(sub_clusters_list) <- paste0("cluster_", unique(clusters))
-sub_clusters <- sub_clusters_list %>%
-    unname() %>%
-    unlist()
-sub_clusters <- sub_clusters[names(clusters)]
-
 
 # cluster and subcluster annotation
 clusters_ha <- rowAnnotation(
     cluster = as.character(clusters[clustering$order]),
-    sub_cluster = as.character(sub_clusters[clustering$order]),
     col = list(
         cluster = c(
             "1" = "#b16060",
             "2" = "#4d6da5"
-        ),
-        sub_cluster = c(
-            "1" = "black",
-            "2" = "pink",
-            "3" = "yellow",
-            "4" = "brown"
         )
     )
 )
@@ -291,8 +272,6 @@ for (cluster in unique(clusters)) {
     ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 15, height = 10)
 }
 
-
-
 png(filename = "results/images/Figure_1/F1_3_DE_HM.png", width = 1600, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering$order, ],
@@ -323,3 +302,88 @@ DEGs_vAN_vs_dAN$clusters <- clusters[rownames(DEGs_vAN_vs_dAN)]
 DEGs_vAN_vs_dAN$sub_clusters <- sub_clusters[rownames(DEGs_vAN_vs_dAN)]
 
 write.csv(DEGs_vAN_vs_dAN, "results/tables/Figure_1/DEGs_vAN_vs_dAN.csv")
+
+
+DEG_vAN_vs_dAN_LON <- DESeqDataSetFromMatrix(
+    countData = counts[, filter(meta, line == "LON71")$sample],
+    colData = filter(meta, line == "LON71"),
+    design = ~type
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
+    as.data.frame() %>%
+    na.omit()
+DEG_vAN_vs_dAN_LON$gene <- rownames(DEG_vAN_vs_dAN_LON) %>% gene_converter("ENSEMBL", "SYMBOL")
+DEG_vAN_vs_dAN_LON_f <- filter(DEG_vAN_vs_dAN_LON, padj < 0.01, abs(log2FoldChange) >= 1, !is.na(gene))
+
+DEG_vAN_vs_dAN_WTC <- DESeqDataSetFromMatrix(
+    countData = counts[, filter(meta, line == "WTC")$sample],
+    colData = filter(meta, line == "WTC"),
+    design = ~type
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
+    as.data.frame() %>%
+    na.omit()
+DEG_vAN_vs_dAN_WTC$gene <- rownames(DEG_vAN_vs_dAN_WTC) %>% gene_converter("ENSEMBL", "SYMBOL")
+DEG_vAN_vs_dAN_WTC_f <- filter(DEG_vAN_vs_dAN_WTC, padj < 0.01, abs(log2FoldChange) >= 1, !is.na(gene))
+
+common_DE <- intersect(rownames(DEG_vAN_vs_dAN_LON_f), rownames(DEG_vAN_vs_dAN_WTC_f))
+
+
+vsd_DEGs <- assay(vsd[common_DE, ])
+scaled_mat <- t(apply(vsd_DEGs, 1, scale))
+colnames(scaled_mat) <- colnames(vsd_DEGs)
+
+# hierarchical clustering using euclidian distance and "complete" method
+clustering <- hclust(dist(scaled_mat))
+clusters <- cutree(clustering, k = 2)
+
+
+
+# cluster and subcluster annotation
+clusters_ha <- rowAnnotation(
+    cluster = as.character(clusters[clustering$order]),
+    col = list(
+        cluster = c(
+            "1" = "#b16060",
+            "2" = "#4d6da5"
+        )
+    )
+)
+clusters %>% table()
+
+# sample annotation
+sample_ha <- columnAnnotation(
+    line = meta$line,
+    type = meta$type,
+    col = list(
+        line = c("LON71" = "#c1c1c1", "WTC" = "#7d7d7d"),
+        type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
+    )
+)
+
+png(filename = "results/images/Figure_1/F1_3_DE_HM_variante.png", width = 1600, height = 1600, res = 250)
+Heatmap(
+    scaled_mat[clustering$order, ],
+    name = "Normalized expression",
+    row_title_gp = gpar(fontsize = 16, fontface = "bold"),
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    show_row_names = FALSE,
+    left_annotation = clusters_ha,
+    bottom_annotation = sample_ha,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    show_row_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(scaled_mat) * unit(4, "mm"),
+    # height = nrow(mat) * unit(5, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+dev.off()
