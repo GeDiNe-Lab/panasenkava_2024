@@ -61,7 +61,7 @@ fe_info <- attr(pca.data, "factoextra")
 
 png(filename = "results/images/Figure_1/F1_2_PCA.png", width = 1600, height = 1200, res = 250)
 ggplot(pca.data, aes(PC1, PC2, color = type, shape = line)) +
-    geom_point(size = 2, stroke = 1) +
+    geom_point(size = 5, stroke = 1) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#A1A1DE", "#80AD3C")) +
@@ -141,16 +141,14 @@ rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMB
 marker_ha <- rowAnnotation(
     markers = c(
         rep("pluripotency", 2),
-        rep("neuroectoderm", 5),
-        rep("anterior neuroectoderm", 2),
-        rep("dorsal", 8),
+        rep("anterior neuroectoderm", 7),
+        rep("dorsal", 7),
         rep("ventral", 9),
         rep("posterior neuroectoderm", 4)
     ),
     col = list(
         markers = c(
             "pluripotency" = "#b16060",
-            "neuroectoderm" = "#cdd48d",
             "anterior neuroectoderm" = "#4d6da5",
             "ventral" = "#5e9a5e",
             "dorsal" = "#78588c",
@@ -258,7 +256,6 @@ sample_ha <- columnAnnotation(
 
 # performing GO enrichment on clusters
 for (cluster in unique(clusters)) {
-    print(cluster)
     GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
         OrgDb = "org.Hs.eg.db",
         keyType = "ENSEMBL",
@@ -269,15 +266,27 @@ for (cluster in unique(clusters)) {
         eval(parse(text = x))
     }) %>% unname()
     GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
+
     GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
 
-    enrichplot::dotplot(GO_enrichment, showCategory = 15)
-    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = Description, fill = p.adjust)) +
+    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
         geom_bar(stat = "identity") +
+        geom_text(aes(label = Description),
+            hjust = 1.1, # Move text inside the bar, adjust as needed
+            color = "black", # Make the text white for better visibility
+            size = 10
+        ) + # Adjust size to fit the text inside the bar
         custom_theme() +
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
-        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)"))
+        theme(
+            axis.text.y = element_blank(), # Remove y-axis text
+            axis.ticks.y = element_blank(),
+            axis.title.y = element_blank(),
+            legend.text = element_text(size = 16), # Adjusts the legend text size
+            legend.title = element_text(size = 18), # Adjusts the legend title size
+            legend.key.size = unit(1.5, "lines")
+        )
     write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
     ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 15, height = 10)
 }

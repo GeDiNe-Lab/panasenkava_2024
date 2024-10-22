@@ -374,8 +374,7 @@ sub_clusters_WTC_ha <- rowAnnotation(
 
 # GO enrichment for WTC lineage only
 for (cluster in unique(clusters_WTC)) {
-    print(cluster)
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_WTC[which(clusters_WTC == cluster)]),
         OrgDb = "org.Hs.eg.db",
         keyType = "ENSEMBL",
         ont = "BP"
@@ -384,15 +383,28 @@ for (cluster in unique(clusters_WTC)) {
     GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
         eval(parse(text = x))
     }) %>% unname()
-    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
+    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:5], ]
+    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 60)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
-    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = Description, fill = p.adjust)) +
+    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
         geom_bar(stat = "identity") +
+        geom_text(aes(label = Description),
+            hjust = 1.1, # Move text inside the bar, adjust as needed
+            color = "black", # Make the text white for better visibility
+            size = 10
+        ) + # Adjust size to fit the text inside the bar
         custom_theme() +
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
-        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)"))
-    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, "_WTC.csv"))
-    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_WTC.png"), goplot, width = 20, height = 10)
+        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)")) +
+        theme(
+            axis.text.y = element_blank(), # Remove y-axis text
+            axis.ticks.y = element_blank(),
+            legend.text = element_text(size = 12), # Adjusts the legend text size
+            legend.title = element_text(size = 14), # Adjusts the legend title size
+            legend.key.size = unit(1.5, "lines")
+        )
+    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_diapo", cluster, "_WTC.csv"))
+    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust_diapo", cluster, "_WTC.png"), goplot, width = 20, height = 10)
 }
 
 png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 250)

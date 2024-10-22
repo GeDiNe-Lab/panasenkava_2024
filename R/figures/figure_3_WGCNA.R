@@ -121,7 +121,8 @@ ventral <- c(
 dorsal <- c("PAX6", "ADD3", "ATP2B1", "CNN3", "COLGALT2", "EPHA4", "FZD3", "GLI2", "GLI3", "HOMER1", "NLGN1", "NUAK2", "OPTN", "PALLD", "PDP1", "PLK2", "PRDX6", "SLC3A2", "VCL", "ZIC2", "ZIC5", "ZNF385B", "ZFHX4")
 
 # Known SHH related genes
-known_genes <- c("GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2-1", "PAX6", "PTCH1", "SHH")
+known_genes <- c("GAS1", "GLI1", "GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2-1", "PAX6", "PTCH1", "SHH", "BOC", "CDON")
+
 
 # keeping only genes with higher variance (50% quantile)
 vsd_var <- assay(vsd)[which(rowVars(assay(vsd)) >= quantile(apply(assay(vsd), 1, var), 0.5)), ]
@@ -224,6 +225,8 @@ sub_clusters <- sub_clusters_list %>%
     unlist()
 sub_clusters <- sub_clusters[names(clusters)]
 
+
+
 # Heatmap gene annotation
 clusters_ha <- rowAnnotation(
     cluster = as.character(clusters[clustering$order]),
@@ -258,13 +261,26 @@ for (cluster in unique(clusters)) {
     GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
     GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
-    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = Description, fill = p.adjust)) +
+
+    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
         geom_bar(stat = "identity") +
+        geom_text(aes(label = Description),
+            hjust = 1.1, # Move text inside the bar, adjust as needed
+            color = "black", # Make the text white for better visibility
+            size = 10
+        ) + # Adjust size to fit the text inside the bar
         custom_theme() +
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
-        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)"))
-    write.csv(GO_enrichment, paste0("results/tables/Figure_3/GO_enrichment_cluster_", cluster, ".csv"))
-    ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_", cluster, ".png"), goplot, width = 15, height = 10)
+        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)")) +
+        theme(
+            axis.text.y = element_blank(), # Remove y-axis text
+            axis.ticks.y = element_blank(),
+            legend.text = element_text(size = 12), # Adjusts the legend text size
+            legend.title = element_text(size = 14), # Adjusts the legend title size
+            legend.key.size = unit(1.5, "lines")
+        )
+    write.csv(GO_enrichment, paste0("results/tables/Figure_3/GO_enrichment_cluster_diapo", cluster, ".csv"))
+    ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_diapo", cluster, ".png"), goplot, width = 15, height = 10)
 }
 
 png(filename = "results/images/Figure_3/F3_cyclo_genes_HM.png", width = 2400, height = 1600, res = 250)
@@ -291,6 +307,31 @@ Heatmap(
 )
 dev.off()
 View(meta)
+
+
+dds_WGCNA <- DESeqDataSetFromMatrix(
+    countData = counts[filter(cluster_df, merged_module == "blue", !is.na(gene))$ENSEMBLE, ],
+    colData = meta,
+    design = ~cyclo_dose_qual
+)
+
+DE_WGCNA <- dds_WGCNA %>%
+    DESeq() %>%
+    results(alpha = 0.01, contrast = c("cyclo_dose_qual", "high", "none")) %>%
+    as.data.frame()
+DE_WGCNA$cluster <- clusters[rownames(DE_WGCNA)]
+
+
+DE_WGCNA %>% View()
+DE_WGCNA$gene <- gene_converter(rownames(DE_WGCNA), "ENSEMBL", "SYMBOL")
+DE_WGCNA_f <- filter(DE_WGCNA, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
+
+
+
+
+
+
+
 
 dds_quant <- DESeqDataSetFromMatrix(
     countData = counts,
@@ -387,6 +428,28 @@ SHH_corr
 STRING_edges$type <- ifelse(SHH_corr[STRING_edges$gene1] > 0, "positive", "negative")
 STRING_edges$known <- ifelse(STRING_edges$gene1 %in% known_genes, "known", "unknown")
 
+STRING_edges <- read.csv("results/tables/Figure_3/STRING_edges_format_WGCNA.csv")
+STRING_edges %>% View()
+
+ggplot(data = STRING_edges, aes(x = combined_score, y = betweenness, color = degree, shape = known)) +
+    geom_point() +
+    scale_color_gradientn(colors = c("white", "cyan", "green"), guide = guide_colorbar(frame.colour = "black")) +
+    custom_theme()
+# Compute degree for each individual node
+degree <- table(c(STRING_edges$gene1, STRING_edges$gene2))
+degree_df <- data.frame(node = names(degree), degree = as.numeric(degree))
+STRING_edges$degree <- degree_df$degree[match(STRING_edges$gene1, degree_df$node)]
+# Compute centrality of each node
+
+g <- graph_from_data_frame(STRING_edges[, 1:2], directed = FALSE)
+
+# Compute betweenness centrality for all nodes
+betweenness_centrality <- betweenness(g, directed = FALSE)
+
+# Add the betweenness centrality for the source nodes (gene1) to the dataframe
+STRING_edges$betweenness <- betweenness_centrality[STRING_edges$gene1]
+
+View(STRING_edges)
 write.csv(STRING_edges, file = "results/tables/Figure_3/STRING_edges_format_WGCNA.csv", row.names = FALSE)
 
 

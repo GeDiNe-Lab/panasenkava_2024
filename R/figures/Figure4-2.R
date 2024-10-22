@@ -7,7 +7,7 @@ library(ggpubr)
 library(DESeq2)
 library(gridExtra)
 library(UpSetR)
-UpSetR::elements()
+
 # Setting working directory
 rstudioapi::getSourceEditorContext()$path %>%
     str_split("/") %>%

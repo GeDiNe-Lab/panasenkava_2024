@@ -233,22 +233,43 @@ w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
 
 
 w4_cellmatch$duo <- sapply(c(1:nrow(w4_cellmatch)), function(i) {
-    if (w4_cellmatch$FOXA2[i] == TRUE & w4_cellmatch$LINC00261[i] == TRUE) {
+    if (w4_cellmatch$CAPN6[i] == TRUE & w4_cellmatch$`NKX2-1`[i] == TRUE) {
         return("both")
-    } else if (w4_cellmatch$FOXA2[i] == TRUE) {
-        return("FOXA2")
-    } else if (w4_cellmatch$LINC00261[i] == TRUE) {
-        return("LINC00261")
+    } else if (w4_cellmatch$CAPN6[i] == TRUE) {
+        return("CAPN6")
+    } else if (w4_cellmatch$`NKX2-1`[i] == TRUE) {
+        return("NKX2-1")
     } else {
         return("none")
     }
 })
-
-w4_cellmatch$duo
-ggplot(data = w4_cellmatch, aes(x = umap_1, y = umap_2, color = duo)) +
-    geom_point(size = 1.5) +
-    scale_color_manual(values = c("both" = "#ffdd00", "none" = "grey", "FOXA2" = "#ff0000", "LINC00261" = "green")) +
+w4_cellmatch$expression <- w4_cellmatch$duo
+View(w4_cellmatch)
+ggplot(data = w4_cellmatch, aes(x = umap_1, y = umap_2, color = expression)) +
+    geom_point(size = 3) +
+    scale_color_manual(values = c("both" = "#ffdd00", "none" = "grey", "NKX2-1" = "#ff0000", "CAPN6" = "green")) +
     custom_theme()
+
+ggplot(data = w4_cellmatch, aes(x = umap_1, y = umap_2, color = celltype_region)) +
+    geom_point(size = 3) +
+    custom_theme()
+
+NKX21 <- nrow(filter(w4_cellmatch, duo == "NKX2-1"))
+CAPN6 <- nrow(filter(w4_cellmatch, duo == "CAPN6"))
+both <- nrow(filter(w4_cellmatch, duo == "both"))
+
+both / (NKX21 + both) * 100
+both / (CAPN6 + both) * 100
+
+cytoscape <- read.csv("results/tables/Figure_3/STRING_edges_format_WGCNA.csv")
+
+
+
+
+
+
+
+
 
 
 
