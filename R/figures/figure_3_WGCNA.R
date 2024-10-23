@@ -510,3 +510,31 @@ ggplot(df_pos, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, colo
     geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.2) +
     custom_theme(diag_text = TRUE)
 dev.off()
+
+STRING <- read.csv("results/tables/Figure_3/STRING_edges_format_WGCNA.csv")
+View(STRING)
+
+negative_genes <- unique(filter(STRING, type == "negative")$gene1)
+positive_genes <- unique(filter(STRING, type == "positive")$gene1)
+negative_genes %>% sort()
+positive_genes %>% sort()
+
+
+
+negativeSTRING <- filter(STRING, (gene1 %in% negative_genes & gene2 %in% negative_genes) | (gene1 %in% negative_genes & gene2 == "SHH") | (gene1 == "SHH" & gene2 %in% negative_genes))
+negative_degree <- table(negativeSTRING$gene1)
+negativeSTRING$degree <- negativeSTRING$gene1 %>% sapply(function(gene) {
+    return(negative_degree[gene])
+})
+negativeSTRING$isSHH <- ifelse(negativeSTRING$gene1 == "SHH", "SHH", "no")
+View(negativeSTRING)
+
+positiveSTRING <- filter(STRING, (gene1 %in% positive_genes & gene2 %in% positive_genes) | (gene1 %in% positive_genes & gene2 == "SHH") | (gene1 == "SHH" & gene2 %in% positive_genes))
+positive_degree <- table(positiveSTRING$gene1)
+positiveSTRING$degree <- positiveSTRING$gene1 %>% sapply(function(gene) {
+    return(positive_degree[gene])
+})
+positiveSTRING$isSHH <- ifelse(positiveSTRING$gene1 == "SHH", "SHH", "no")
+
+write.csv(negativeSTRING, "results/tables/Figure_3/negativeSTRING.csv")
+write.csv(positiveSTRING, "results/tables/Figure_3/positiveSTRING.csv")
