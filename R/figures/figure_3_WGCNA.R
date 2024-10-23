@@ -179,6 +179,15 @@ merge <- mergeCloseModules(t(vsd_var),
 )
 mergedColors <- merge$colors
 
+plotDendroAndColors(gene.tree,
+    mergedColors,
+    "Merged dynamic",
+    dendroLabels = FALSE,
+    hang = 0.03,
+    addGuide = TRUE,
+    guideHang = 0.05
+)
+
 
 # get cluster into a dataframe
 merged_clusters <- rownames(vsd_var)
