@@ -179,6 +179,7 @@ merge <- mergeCloseModules(t(vsd_var),
 )
 mergedColors <- merge$colors
 
+png(filename = "results/images/Figure_3/WGCNA_dendrogram.png", width = 1600, height = 1200, res = 250)
 plotDendroAndColors(gene.tree,
     mergedColors,
     "Merged dynamic",
@@ -187,8 +188,9 @@ plotDendroAndColors(gene.tree,
     addGuide = TRUE,
     guideHang = 0.05
 )
+dev.off()
 
-
+table(mergedColors)
 # get cluster into a dataframe
 merged_clusters <- rownames(vsd_var)
 merged_clusters_sym <- gene_converter(merged_clusters, "ENSEMBL", "SYMBOL")
@@ -547,3 +549,9 @@ positiveSTRING$isSHH <- ifelse(positiveSTRING$gene1 == "SHH", "SHH", "no")
 
 write.csv(negativeSTRING, "results/tables/Figure_3/negativeSTRING.csv")
 write.csv(positiveSTRING, "results/tables/Figure_3/positiveSTRING.csv")
+
+
+please <- read.csv("results/tables/Figure_3/SHH_cluster_500.csv")
+View(please)
+write.csv(filter(please, cor > 0)$gene, "results/tables/Figure_3/folder_pos.csv",row.names=FALSE)
+write.csv(filter(please, cor < 0)$gene, "results/tables/Figure_3/folder_neg.csv", row.names = FALSE)
