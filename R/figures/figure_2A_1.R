@@ -447,14 +447,106 @@ rownames(genes_cluster) <- hm_genes
 write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
 
 
-genes_ventral <- c("NKX2-1", "HTR1D", "PTCH1", "FGF19", "FOXA2", "FREM1", "LINC00261", "CAPN6")
+
+
+
+
+rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
+rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
+
+# LON71_D12_2 does not have any reads in the count file
+# though, the fastQC report shows that the sample is good
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line %in% c("LON71", "WTC")) | (sample == "WTC6cipc"))
+lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
+View(lp_meta)
+# filtering out lowly expressed genes
+lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
+
+# making DESeq object with lineage,days and type as covariates
+lp_vsd <- DESeqDataSetFromMatrix(
+    countData = lp_counts,
+    colData = lp_meta,
+    design = ~ line + day + type
+) %>% vst(blind = FALSE)
+
+
+# genes_ventral <- c("NKX2-1", "HTR1D", "PTCH1", "FGF19", "FOXA2", "FREM1", "LINC00261", "CAPN6")
+genes_ventral <- c("SHH", "NKX2-1", "PTCH1", "FOXA2", "FREM1", "LINC00261", "CAPN6")
 genes_dorsal <- c("CNTN2", "PAX6", "PAX3", "EMX2", "GLI3")
 
-vAN_meta <- filter(meta, type == "ventral")
-vAN_vsd <- assay(vsd)[, vAN_meta$sample]
+vAN_meta <- filter(lp_meta, type != "dorsal")
+vAN_vsd <- assay(lp_vsd)[, vAN_meta$sample]
 scaled_vAN_vsd <- vAN_vsd - min(vAN_vsd)
 
 vAN_df <- t(scaled_vAN_vsd[genes_ventral %>% gene_converter("SYMBOL", "ENSEMBL"), ])
 colnames(vAN_df) <- colnames(vAN_df) %>% gene_converter("ENSEMBL", "SYMBOL")
 vAN_df <- cbind(dplyr::select(vAN_meta, "day"), vAN_df)
-View(vAN_metavAN_df)
+
+head(vAN_df)
+
+df_long <- vAN_df %>%
+    pivot_longer(
+        cols = -day, # All columns except 'day'
+        names_to = "gene", # New column for gene names
+        values_to = "expression"
+    ) # New column for expression values
+
+# Calculate mean and standard error for each gene on each day
+df_summary <- df_long %>%
+    group_by(day, gene) %>%
+    summarise(
+        expression_mean = mean(expression, na.rm = TRUE),
+        expression_se = sd(expression, na.rm = TRUE) / sqrt(n()),
+        .groups = "drop"
+    )
+
+ggplot(df_summary, aes(x = day, y = expression_mean, group = gene, color = gene)) +
+    geom_point(size = 3) +
+    geom_line(size = 1) +
+    geom_errorbar(aes(ymin = expression_mean - expression_se, ymax = expression_mean + expression_se), width = 0.1) +
+    custom_theme() +
+    ylim(0, 7.5) +
+    labs(
+        x = "Days",
+        y = "Mean scaled normalized expression",
+    )
+ggsave("results/images/Figure_2A/F2A_lineplots_genes_ventral.png", width = 10, height = 10)
+
+
+dAN_meta <- filter(lp_meta, type != "ventral")
+dAN_vsd <- assay(lp_vsd)[, dAN_meta$sample]
+scaled_dAN_vsd <- dAN_vsd - min(dAN_vsd)
+
+dAN_df <- t(scaled_dAN_vsd[genes_dorsal %>% gene_converter("SYMBOL", "ENSEMBL"), ])
+colnames(dAN_df) <- colnames(dAN_df) %>% gene_converter("ENSEMBL", "SYMBOL")
+dAN_df <- cbind(dplyr::select(dAN_meta, "day"), dAN_df)
+
+head(dAN_df)
+
+df_long <- dAN_df %>%
+    pivot_longer(
+        cols = -day, # All columns except 'day'
+        names_to = "gene", # New column for gene names
+        values_to = "expression"
+    ) # New column for expression values
+
+# Calculate mean and standard error for each gene on each day
+df_summary <- df_long %>%
+    group_by(day, gene) %>%
+    summarise(
+        expression_mean = mean(expression, na.rm = TRUE),
+        expression_se = sd(expression, na.rm = TRUE) / sqrt(n()),
+        .groups = "drop"
+    )
+
+ggplot(df_summary, aes(x = day, y = expression_mean, group = gene, color = gene)) +
+    geom_point(size = 3) +
+    geom_line(size = 1) +
+    geom_errorbar(aes(ymin = expression_mean - expression_se, ymax = expression_mean + expression_se), width = 0.1) +
+    custom_theme() +
+    ylim(0, 7.5) +
+    labs(
+        x = "Days",
+        y = "Mean scaled normalized expression",
+    )
+ggsave("results/images/Figure_2A/F2A_lineplots_genes_dorsal.png", width = 10, height = 10)

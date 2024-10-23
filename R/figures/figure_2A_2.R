@@ -320,7 +320,7 @@ DEGs_day_10_vs_08_ventral_f <- filter(DEGs_day_10_vs_08_ventral_f, padj < 0.01, 
 
 DEGs_day_10_vs_08_ventral$classic_threshold <- ifelse(DEGs_day_10_vs_08_ventral$padj < 0.01 & abs(DEGs_day_10_vs_08_ventral$log2FoldChange) >= 1, "yes", "no")
 DEGs_day_10_vs_08_ventral$volcano_treshold <- ifelse(DEGs_day_10_vs_08_ventral$padj < 0.01 & abs(DEGs_day_10_vs_08_ventral$log2FoldChange) >= 2, "yes", "no")
-write.csv(DEGs_day_10_vs_08_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_10_vs_08_ventral.csv", row.names = FALSE)
+write.csv(DEGs_day_10_vs_08_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_10_vs_08_ventral.csv", row.names = FALSE)
 
 # DEGs day12 vs day10 for dorsal samples
 DEGs_day_12_vs_10_dorsal <- DESeqDataSetFromMatrix(
