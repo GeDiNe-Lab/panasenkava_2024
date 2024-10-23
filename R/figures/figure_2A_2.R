@@ -41,6 +41,8 @@ DEGs_vAN_vs_dAN$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN), "ENSEMBL", "SY
 DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN, !is.na(gene))
 DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_vAN_vs_dAN$classic_threshold <- ifelse(DEGs_vAN_vs_dAN$padj < 0.01 & abs(DEGs_vAN_vs_dAN$log2FoldChange) >= 1, "yes", "no")
+DEGs_vAN_vs_dAN$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN$padj < 0.01 & abs(DEGs_vAN_vs_dAN$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN.csv", row.names = FALSE)
 
 # DEGs ventral VS dorsal at day02
@@ -57,6 +59,8 @@ DEGs_vAN_vs_dAN_day02$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day02), "E
 DEGs_vAN_vs_dAN_day02_f <- filter(DEGs_vAN_vs_dAN_day02, !is.na(gene))
 DEGs_vAN_vs_dAN_day02_f <- filter(DEGs_vAN_vs_dAN_day02_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_vAN_vs_dAN_day02$classic_threshold <- ifelse(DEGs_vAN_vs_dAN_day02$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day02$log2FoldChange) >= 1, "yes", "no")
+DEGs_vAN_vs_dAN_day02$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN_day02$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day02$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN_day02, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day02.csv", row.names = FALSE)
 
 
@@ -74,6 +78,8 @@ DEGs_vAN_vs_dAN_day04$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day04), "E
 DEGs_vAN_vs_dAN_day04_f <- filter(DEGs_vAN_vs_dAN_day04, !is.na(gene))
 DEGs_vAN_vs_dAN_day04_f <- filter(DEGs_vAN_vs_dAN_day04_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_vAN_vs_dAN_day04$classic_threshold <- ifelse(DEGs_vAN_vs_dAN_day04$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day04$log2FoldChange) >= 1, "yes", "no")
+DEGs_vAN_vs_dAN_day04$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN_day04$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day04$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN_day04, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day04.csv", row.names = FALSE)
 
 # DEGs ventral VS dorsal at day06
@@ -90,6 +96,8 @@ DEGs_vAN_vs_dAN_day06$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day06), "E
 DEGs_vAN_vs_dAN_day06_f <- filter(DEGs_vAN_vs_dAN_day06, !is.na(gene))
 DEGs_vAN_vs_dAN_day06_f <- filter(DEGs_vAN_vs_dAN_day06_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_vAN_vs_dAN_day06$classic_threshold <- ifelse(DEGs_vAN_vs_dAN_day06$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day06$log2FoldChange) >= 1, "yes", "no")
+DEGs_vAN_vs_dAN_day06$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN_day06$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day06$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN_day06, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day06.csv", row.names = FALSE)
 
 
@@ -107,6 +115,8 @@ DEGs_vAN_vs_dAN_day08$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day08), "E
 DEGs_vAN_vs_dAN_day08_f <- filter(DEGs_vAN_vs_dAN_day08, !is.na(gene))
 DEGs_vAN_vs_dAN_day08_f <- filter(DEGs_vAN_vs_dAN_day08_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_vAN_vs_dAN_day08$classic_threshold <- ifelse(DEGs_vAN_vs_dAN_day08$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day08$log2FoldChange) >= 1, "yes", "no")
+DEGs_vAN_vs_dAN_day08$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN_day08$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day08$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN_day08, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day08.csv", row.names = FALSE)
 
 # DEGs ventral VS dorsal at day10
@@ -123,6 +133,8 @@ DEGs_vAN_vs_dAN_day10$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day10), "E
 DEGs_vAN_vs_dAN_day10_f <- filter(DEGs_vAN_vs_dAN_day10, !is.na(gene))
 DEGs_vAN_vs_dAN_day10_f <- filter(DEGs_vAN_vs_dAN_day10_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_vAN_vs_dAN_day10$classic_threshold <- ifelse(DEGs_vAN_vs_dAN_day10$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day10$log2FoldChange) >= 1, "yes", "no")
+DEGs_vAN_vs_dAN_day10$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN_day10$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day10$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN_day10, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day10.csv", row.names = FALSE)
 
 # DEGs ventral VS dorsal at day12
@@ -139,6 +151,8 @@ DEGs_vAN_vs_dAN_day12$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day12), "E
 DEGs_vAN_vs_dAN_day12_f <- filter(DEGs_vAN_vs_dAN_day12, !is.na(gene))
 DEGs_vAN_vs_dAN_day12_f <- filter(DEGs_vAN_vs_dAN_day12_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_vAN_vs_dAN_day12$classic_threshold <- ifelse(DEGs_vAN_vs_dAN_day12$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day12$log2FoldChange) >= 1, "yes", "no")
+DEGs_vAN_vs_dAN_day12$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN_day12$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day12$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN_day12, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day12.csv", row.names = FALSE)
 
 # Making Volcano plots
@@ -178,6 +192,8 @@ DEGs_day_04_vs_02_dorsal$gene <- gene_converter(rownames(DEGs_day_04_vs_02_dorsa
 DEGs_day_04_vs_02_dorsal_f <- filter(DEGs_day_04_vs_02_dorsal, !is.na(gene))
 DEGs_day_04_vs_02_dorsal_f <- filter(DEGs_day_04_vs_02_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_04_vs_02_dorsal$classic_threshold <- ifelse(DEGs_day_04_vs_02_dorsal$padj < 0.01 & abs(DEGs_day_04_vs_02_dorsal$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_04_vs_02_dorsal$volcano_treshold <- ifelse(DEGs_day_04_vs_02_dorsal$padj < 0.01 & abs(DEGs_day_04_vs_02_dorsal$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_04_vs_02_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_04_vs_02_dorsal.csv", row.names = FALSE)
 
 # DEGs day04 vs day02 for ventral samples
@@ -194,6 +210,8 @@ DEGs_day_04_vs_02_ventral$gene <- gene_converter(rownames(DEGs_day_04_vs_02_vent
 DEGs_day_04_vs_02_ventral_f <- filter(DEGs_day_04_vs_02_ventral, !is.na(gene))
 DEGs_day_04_vs_02_ventral_f <- filter(DEGs_day_04_vs_02_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_04_vs_02_ventral$classic_threshold <- ifelse(DEGs_day_04_vs_02_ventral$padj < 0.01 & abs(DEGs_day_04_vs_02_ventral$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_04_vs_02_ventral$volcano_treshold <- ifelse(DEGs_day_04_vs_02_ventral$padj < 0.01 & abs(DEGs_day_04_vs_02_ventral$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_04_vs_02_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_04_vs_02_ventral.csv", row.names = FALSE)
 
 # DEGs day06 vs day04 for dorsal samples
@@ -210,6 +228,8 @@ DEGs_day_06_vs_04_dorsal$gene <- gene_converter(rownames(DEGs_day_06_vs_04_dorsa
 DEGs_day_06_vs_04_dorsal_f <- filter(DEGs_day_06_vs_04_dorsal, !is.na(gene))
 DEGs_day_06_vs_04_dorsal_f <- filter(DEGs_day_06_vs_04_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_06_vs_04_dorsal$classic_threshold <- ifelse(DEGs_day_06_vs_04_dorsal$padj < 0.01 & abs(DEGs_day_06_vs_04_dorsal$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_06_vs_04_dorsal$volcano_treshold <- ifelse(DEGs_day_06_vs_04_dorsal$padj < 0.01 & abs(DEGs_day_06_vs_04_dorsal$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_06_vs_04_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_06_vs_04_dorsal.csv", row.names = FALSE)
 
 # DEGs day06 vs day04 for ventral samples
@@ -226,6 +246,8 @@ DEGs_day_06_vs_04_ventral$gene <- gene_converter(rownames(DEGs_day_06_vs_04_vent
 DEGs_day_06_vs_04_ventral_f <- filter(DEGs_day_06_vs_04_ventral, !is.na(gene))
 DEGs_day_06_vs_04_ventral_f <- filter(DEGs_day_06_vs_04_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_06_vs_04_ventral$classic_threshold <- ifelse(DEGs_day_06_vs_04_ventral$padj < 0.01 & abs(DEGs_day_06_vs_04_ventral$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_06_vs_04_ventral$volcano_treshold <- ifelse(DEGs_day_06_vs_04_ventral$padj < 0.01 & abs(DEGs_day_06_vs_04_ventral$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_06_vs_04_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_06_vs_04_ventral.csv", row.names = FALSE)
 
 # DEGs day08 vs day06 for dorsal samples
@@ -242,6 +264,8 @@ DEGs_day_08_vs_06_dorsal$gene <- gene_converter(rownames(DEGs_day_08_vs_06_dorsa
 DEGs_day_08_vs_06_dorsal_f <- filter(DEGs_day_08_vs_06_dorsal, !is.na(gene))
 DEGs_day_08_vs_06_dorsal_f <- filter(DEGs_day_08_vs_06_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_08_vs_06_dorsal$classic_threshold <- ifelse(DEGs_day_08_vs_06_dorsal$padj < 0.01 & abs(DEGs_day_08_vs_06_dorsal$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_08_vs_06_dorsal$volcano_treshold <- ifelse(DEGs_day_08_vs_06_dorsal$padj < 0.01 & abs(DEGs_day_08_vs_06_dorsal$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_08_vs_06_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_08_vs_06_dorsal.csv", row.names = FALSE)
 
 # DEGs day08 vs day06 for ventral samples
@@ -258,7 +282,8 @@ DEGs_day_08_vs_06_ventral$gene <- gene_converter(rownames(DEGs_day_08_vs_06_vent
 DEGs_day_08_vs_06_ventral_f <- filter(DEGs_day_08_vs_06_ventral, !is.na(gene))
 DEGs_day_08_vs_06_ventral_f <- filter(DEGs_day_08_vs_06_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
-
+DEGs_day_08_vs_06_ventral$classic_threshold <- ifelse(DEGs_day_08_vs_06_ventral$padj < 0.01 & abs(DEGs_day_08_vs_06_ventral$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_08_vs_06_ventral$volcano_treshold <- ifelse(DEGs_day_08_vs_06_ventral$padj < 0.01 & abs(DEGs_day_08_vs_06_ventral$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_08_vs_06_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_08_vs_06_ventral.csv", row.names = FALSE)
 
 # DEGs day10 vs day08 for dorsal samples
@@ -275,6 +300,8 @@ DEGs_day_10_vs_08_dorsal$gene <- gene_converter(rownames(DEGs_day_10_vs_08_dorsa
 DEGs_day_10_vs_08_dorsal_f <- filter(DEGs_day_10_vs_08_dorsal, !is.na(gene))
 DEGs_day_10_vs_08_dorsal_f <- filter(DEGs_day_10_vs_08_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_10_vs_08_dorsal$classic_threshold <- ifelse(DEGs_day_10_vs_08_dorsal$padj < 0.01 & abs(DEGs_day_10_vs_08_dorsal$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_10_vs_08_dorsal$volcano_treshold <- ifelse(DEGs_day_10_vs_08_dorsal$padj < 0.01 & abs(DEGs_day_10_vs_08_dorsal$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_10_vs_08_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_10_vs_08_dorsal.csv", row.names = FALSE)
 
 # DEGs day10 vs day08 for ventral samples
@@ -291,6 +318,8 @@ DEGs_day_10_vs_08_ventral$gene <- gene_converter(rownames(DEGs_day_10_vs_08_vent
 DEGs_day_10_vs_08_ventral_f <- filter(DEGs_day_10_vs_08_ventral, !is.na(gene))
 DEGs_day_10_vs_08_ventral_f <- filter(DEGs_day_10_vs_08_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_10_vs_08_ventral$classic_threshold <- ifelse(DEGs_day_10_vs_08_ventral$padj < 0.01 & abs(DEGs_day_10_vs_08_ventral$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_10_vs_08_ventral$volcano_treshold <- ifelse(DEGs_day_10_vs_08_ventral$padj < 0.01 & abs(DEGs_day_10_vs_08_ventral$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_10_vs_08_ventral_f, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_10_vs_08_ventral.csv", row.names = FALSE)
 
 # DEGs day12 vs day10 for dorsal samples
@@ -307,6 +336,8 @@ DEGs_day_12_vs_10_dorsal$gene <- gene_converter(rownames(DEGs_day_12_vs_10_dorsa
 DEGs_day_12_vs_10_dorsal_f <- filter(DEGs_day_12_vs_10_dorsal, !is.na(gene))
 DEGs_day_12_vs_10_dorsal_f <- filter(DEGs_day_12_vs_10_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_12_vs_10_dorsal$classic_threshold <- ifelse(DEGs_day_12_vs_10_dorsal$padj < 0.01 & abs(DEGs_day_12_vs_10_dorsal$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_12_vs_10_dorsal$volcano_treshold <- ifelse(DEGs_day_12_vs_10_dorsal$padj < 0.01 & abs(DEGs_day_12_vs_10_dorsal$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_12_vs_10_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_10_dorsal.csv", row.names = FALSE)
 
 # DEGs day12 vs day10 for ventral samples
@@ -323,6 +354,8 @@ DEGs_day_12_vs_10_ventral$gene <- gene_converter(rownames(DEGs_day_12_vs_10_vent
 DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral, !is.na(gene))
 DEGs_day_12_vs_10_ventral_f <- filter(DEGs_day_12_vs_10_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_12_vs_10_ventral$classic_threshold <- ifelse(DEGs_day_12_vs_10_ventral$padj < 0.01 & abs(DEGs_day_12_vs_10_ventral$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_12_vs_10_ventral$volcano_treshold <- ifelse(DEGs_day_12_vs_10_ventral$padj < 0.01 & abs(DEGs_day_12_vs_10_ventral$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_12_vs_10_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_10_ventral.csv", row.names = FALSE)
 
 # DEGs day12 vs day10 for ventral samples
@@ -339,6 +372,8 @@ DEGs_day_12_vs_06_ventral$gene <- gene_converter(rownames(DEGs_day_12_vs_06_vent
 DEGs_day_12_vs_06_ventral_f <- filter(DEGs_day_12_vs_06_ventral, !is.na(gene))
 DEGs_day_12_vs_06_ventral_f <- filter(DEGs_day_12_vs_06_ventral_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_12_vs_06_ventral$classic_threshold <- ifelse(DEGs_day_12_vs_06_ventral$padj < 0.01 & abs(DEGs_day_12_vs_06_ventral$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_12_vs_06_ventral$volcano_treshold <- ifelse(DEGs_day_12_vs_06_ventral$padj < 0.01 & abs(DEGs_day_12_vs_06_ventral$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_12_vs_06_ventral, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_06_ventral.csv", row.names = FALSE)
 
 # DEGs day12 vs day6 for dorsal samples
@@ -355,6 +390,8 @@ DEGs_day_12_vs_06_dorsal$gene <- gene_converter(rownames(DEGs_day_12_vs_06_dorsa
 DEGs_day_12_vs_06_dorsal_f <- filter(DEGs_day_12_vs_06_dorsal, !is.na(gene))
 DEGs_day_12_vs_06_dorsal_f <- filter(DEGs_day_12_vs_06_dorsal_f, padj < 0.01, abs(log2FoldChange) >= 2)
 
+DEGs_day_12_vs_06_dorsal$classic_threshold <- ifelse(DEGs_day_12_vs_06_dorsal$padj < 0.01 & abs(DEGs_day_12_vs_06_dorsal$log2FoldChange) >= 1, "yes", "no")
+DEGs_day_12_vs_06_dorsal$volcano_treshold <- ifelse(DEGs_day_12_vs_06_dorsal$padj < 0.01 & abs(DEGs_day_12_vs_06_dorsal$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_day_12_vs_06_dorsal, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_day_12_vs_06_dorsal.csv", row.names = FALSE)
 
 

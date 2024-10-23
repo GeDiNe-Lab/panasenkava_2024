@@ -97,6 +97,8 @@ ggsave(paste0("results/images/Figure_5/Zeng_week3_celltypes", ".png"), plot = um
 
 umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = celltype_region)) +
     geom_point(size = 1.5) +
+    scale_color_manual(values = c("#008e00", "#fb29ff", "#ab6f00", "#7d0000", "#00b7c0", "#fc1f1f", "purple", "#000091")) +
+    guides(color = guide_legend(override.aes = list(size = 6))) +
     custom_theme()
 ggsave(paste0("results/images/Figure_5/Zeng_week4_celltypes", ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
 
@@ -162,6 +164,14 @@ for (gene in marker_genes) {
 }
 
 
+
+
+
+
+
+
+
+
 focusgenes <- c("FOXG1", "CNTN6", "ZIC2", "PAX6", "FOXA2", "LINC00261", "JAG1", "QKI", "NUAK2", "TRM9", "EPHB1", "ZIC5", "NKX2-1", "SHH", "CNTNAP2", "CAPN6", "ZFHX4")
 focusduo <- combn(focusgenes, 2, simplify = FALSE)
 
@@ -180,6 +190,9 @@ for (duo in focusduo) {
     ftplot <- rawplots[[3]] + rawplots[[4]] + plot_layout(widths = c(6, 1))
     ggsave(paste0("Figure_5/duo_week4/Zeng_week4", paste(duo, collapse = "_"), ".png"), plot = ftplot, width = 14, height = 10, dpi = 300)
 }
+
+
+
 
 for (duo in focusduo) {
     duo <- focusduo[[1]]
@@ -214,42 +227,64 @@ for (duo in focusduo) {
     ftplot <- rawplots[[3]] + rawplots[[4]] + plot_layout(widths = c(6, 1))
     ggsave(paste0("Figure_5/duo_week5/Zeng_week5", paste(duo, collapse = "_"), ".png"), plot = ftplot, width = 14, height = 10, dpi = 300)
 }
-seurat_week4@assays$RNA
+
+
+
+
+
+
+
+
+top500 <- read.csv("results/tables/Figure_3/SHH_cluster_500.csv")
+top500 %>% head()
 w4_cellmatch <- sc_meta_week4
 
-w4df <- focusgenes %>%
+w4df <- union(top500$gene, c("NKX2-1", "PAX6", "FOXA2", "LHX2")) %>%
     lapply(function(gene) {
         if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
-            return(seurat_week4@assays$RNA$counts[gene, ] > 0)
+            return(seurat_week4@assays$RNA$counts[gene, ] > 10)
         } else {
             print(paste0(gene, " not in week4"))
             return(rep(FALSE, ncol(seurat_week4@assays$RNA$data)))
         }
     }) %>%
     do.call(cbind, .)
-colnames(w4df) <- focusgenes
+colnames(w4df) <- union(top500$gene, c("NKX2-1", "PAX6", "FOXA2", "LHX2"))
 
 w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
 
+pairwise_df <- expand.grid(top500$gene, c("NKX2-1", "PAX6", "FOXA2", "LHX2"))
+pairwise_df$Var1 <- as.vector(pairwise_df$Var1)
+pairwise_df$Var2 <- as.vector(pairwise_df$Var2)
 
-w4_cellmatch$duo <- sapply(c(1:nrow(w4_cellmatch)), function(i) {
-    if (w4_cellmatch$CAPN6[i] == TRUE & w4_cellmatch$`NKX2-1`[i] == TRUE) {
-        return("both")
-    } else if (w4_cellmatch$CAPN6[i] == TRUE) {
-        return("CAPN6")
-    } else if (w4_cellmatch$`NKX2-1`[i] == TRUE) {
-        return("NKX2-1")
-    } else {
-        return("none")
-    }
-})
-w4_cellmatch$expression <- w4_cellmatch$duo
-View(w4_cellmatch)
-ggplot(data = w4_cellmatch, aes(x = umap_1, y = umap_2, color = expression)) +
-    geom_point(size = 3) +
-    scale_color_manual(values = c("both" = "#ffdd00", "none" = "grey", "NKX2-1" = "#ff0000", "CAPN6" = "green")) +
-    custom_theme()
-
+# execute this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+for (i in c(1:nrow(pairwise_df))) {
+    gene1 <- pairwise_df$Var1[i]
+    gene2 <- pairwise_df$Var2[i]
+    w4_cellmatch$gene1 <- w4_cellmatch[, pairwise_df$Var1[i]]
+    w4_cellmatch$gene2 <- w4_cellmatch[, pairwise_df$Var2[i]]
+    w4_cellmatch$duo <- sapply(c(1:nrow(w4_cellmatch)), function(i) {
+        if (w4_cellmatch$gene1[i] == TRUE & w4_cellmatch$gene2[i] == TRUE) {
+            return("both")
+        } else if (w4_cellmatch$gene1[i] == TRUE) {
+            return(gene1)
+        } else if (w4_cellmatch$gene2[i] == TRUE) {
+            return(gene2)
+        } else {
+            return("none")
+        }
+    })
+    w4_cellmatch$expression <- w4_cellmatch$duo
+    # w4_cellmatch[, c("umap1", "umap2", "expression")] %>% head()
+    colors <- c("#ffdd00", "grey", "#ff0000", "green")
+    names(colors) <- c("both", "none", pairwise_df$Var1[i], pairwise_df$Var2[i])
+    plot <- ggplot(data = w4_cellmatch[, c("umap_1", "umap_2", "expression", "gene1", "gene2")], aes(x = umap_1, y = umap_2, color = expression)) +
+        geom_point(size = 1) +
+        ggtitle(paste0("Week4: gene1 = ", gene1, " and gene2 = ", gene2)) +
+        scale_color_manual(values = colors) +
+        custom_theme()
+    ggsave(paste0("results/images/Figure_5/final_week4/", gene1, "_", gene2, ".png"), plot = plot, width = 14, height = 10, dpi = 300)
+}
 ggplot(data = w4_cellmatch, aes(x = umap_1, y = umap_2, color = celltype_region)) +
     geom_point(size = 3) +
     custom_theme()
@@ -261,7 +296,6 @@ both <- nrow(filter(w4_cellmatch, duo == "both"))
 both / (NKX21 + both) * 100
 both / (CAPN6 + both) * 100
 
-cytoscape <- read.csv("results/tables/Figure_3/STRING_edges_format_WGCNA.csv")
 
 
 

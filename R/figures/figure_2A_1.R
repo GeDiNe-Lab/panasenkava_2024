@@ -445,3 +445,16 @@ genes_cluster <- data.frame(
 rownames(genes_cluster) <- hm_genes
 
 write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
+
+
+genes_ventral <- c("NKX2-1", "HTR1D", "PTCH1", "FGF19", "FOXA2", "FREM1", "LINC00261", "CAPN6")
+genes_dorsal <- c("CNTN2", "PAX6", "PAX3", "EMX2", "GLI3")
+
+vAN_meta <- filter(meta, type == "ventral")
+vAN_vsd <- assay(vsd)[, vAN_meta$sample]
+scaled_vAN_vsd <- vAN_vsd - min(vAN_vsd)
+
+vAN_df <- t(scaled_vAN_vsd[genes_ventral %>% gene_converter("SYMBOL", "ENSEMBL"), ])
+colnames(vAN_df) <- colnames(vAN_df) %>% gene_converter("ENSEMBL", "SYMBOL")
+vAN_df <- cbind(dplyr::select(vAN_meta, "day"), vAN_df)
+View(vAN_metavAN_df)
