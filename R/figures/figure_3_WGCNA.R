@@ -126,7 +126,8 @@ known_genes <- c("GAS1", "GLI1", "GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2
 
 # keeping only genes with higher variance (50% quantile)
 vsd_var <- assay(vsd)[which(rowVars(assay(vsd)) >= quantile(apply(assay(vsd), 1, var), 0.5)), ]
-
+counts["ENSG00000174469", ]
+rawcounts["ENSG00000174469", filter(rawmeta, diff == "diff9")$sample]
 # WGCNA analysis
 # soft thresholding
 sft <- pickSoftThreshold(t(vsd_var),
@@ -553,5 +554,5 @@ write.csv(positiveSTRING, "results/tables/Figure_3/positiveSTRING.csv")
 
 please <- read.csv("results/tables/Figure_3/SHH_cluster_500.csv")
 View(please)
-write.csv(filter(please, cor > 0)$gene, "results/tables/Figure_3/folder_pos.csv",row.names=FALSE)
+write.csv(filter(please, cor > 0)$gene, "results/tables/Figure_3/folder_pos.csv", row.names = FALSE)
 write.csv(filter(please, cor < 0)$gene, "results/tables/Figure_3/folder_neg.csv", row.names = FALSE)
