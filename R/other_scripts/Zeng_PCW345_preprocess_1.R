@@ -32,7 +32,7 @@ week3 <- readMM("/home/jules/Documents/phd/Data/Article_veranika/single_cell/Zen
 meta_week3 <- filter(meta, week_stage == "W3-1")
 rownames(week3) <- genes
 colnames(week3) <- meta_week3$index
-
+library(Seurat)
 nrow(meta_week3)
 seurat_week3 <- CreateSeuratObject(counts = week3[which(rowSums(week3) > 0), ], min.cells = 3, min.features = 200)
 # seurat_week3[["percent.mt"]] <- PercentageFeatureSet(seurat_week3, pattern = "^MT-")

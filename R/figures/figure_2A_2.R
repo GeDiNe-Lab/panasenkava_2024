@@ -155,6 +155,48 @@ DEGs_vAN_vs_dAN_day12$classic_threshold <- ifelse(DEGs_vAN_vs_dAN_day12$padj < 0
 DEGs_vAN_vs_dAN_day12$volcano_treshold <- ifelse(DEGs_vAN_vs_dAN_day12$padj < 0.01 & abs(DEGs_vAN_vs_dAN_day12$log2FoldChange) >= 2, "yes", "no")
 write.csv(DEGs_vAN_vs_dAN_day12, "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGs_vAN_vs_dAN_day12.csv", row.names = FALSE)
 
+
+genes_ventral <- list(
+    day_02 = filter(DEGs_vAN_vs_dAN_day02, log2FoldChange >= 2, padj < 0.01, !is.na(gene))$gene,
+    day_04 = filter(DEGs_vAN_vs_dAN_day04, log2FoldChange >= 2, padj < 0.01, !is.na(gene))$gene,
+    day_06 = filter(DEGs_vAN_vs_dAN_day06, log2FoldChange >= 2, padj < 0.01, !is.na(gene))$gene,
+    day_08 = filter(DEGs_vAN_vs_dAN_day08, log2FoldChange >= 2, padj < 0.01, !is.na(gene))$gene,
+    day_10 = filter(DEGs_vAN_vs_dAN_day10, log2FoldChange >= 2, padj < 0.01, !is.na(gene))$gene,
+    day_12 = filter(DEGs_vAN_vs_dAN_day12, log2FoldChange >= 2, padj < 0.01, !is.na(gene))$gene
+) %>% Reduce(union, .)
+DE_df_ventral <- data.frame(
+    gene = genes_ventral,
+    day02 = ifelse(genes_ventral %in% DEGs_vAN_vs_dAN_day02$gene, "YES", "no"),
+    day04 = ifelse(genes_ventral %in% DEGs_vAN_vs_dAN_day04$gene, "YES", "no"),
+    day06 = ifelse(genes_ventral %in% DEGs_vAN_vs_dAN_day06$gene, "YES", "no"),
+    day08 = ifelse(genes_ventral %in% DEGs_vAN_vs_dAN_day08$gene, "YES", "no"),
+    day10 = ifelse(genes_ventral %in% DEGs_vAN_vs_dAN_day10$gene, "YES", "no"),
+    day12 = ifelse(genes_ventral %in% DEGs_vAN_vs_dAN_day12$gene, "YES", "no")
+)
+write.csv(DE_df_ventral, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_by_day_ventral.csv", row.names = FALSE, quote = FALSE)
+
+
+genes_dorsal <- list(
+    day_02 = filter(DEGs_vAN_vs_dAN_day02, log2FoldChange <= -2, padj < 0.01, !is.na(gene))$gene,
+    day_04 = filter(DEGs_vAN_vs_dAN_day04, log2FoldChange <= -2, padj < 0.01, !is.na(gene))$gene,
+    day_06 = filter(DEGs_vAN_vs_dAN_day06, log2FoldChange <= -2, padj < 0.01, !is.na(gene))$gene,
+    day_08 = filter(DEGs_vAN_vs_dAN_day08, log2FoldChange <= -2, padj < 0.01, !is.na(gene))$gene,
+    day_10 = filter(DEGs_vAN_vs_dAN_day10, log2FoldChange <= -2, padj < 0.01, !is.na(gene))$gene,
+    day_12 = filter(DEGs_vAN_vs_dAN_day12, log2FoldChange <= -2, padj < 0.01, !is.na(gene))$gene
+) %>% Reduce(union, .)
+DE_df_dorsal <- data.frame(
+    gene = genes_dorsal,
+    day02 = ifelse(genes_dorsal %in% DEGs_vAN_vs_dAN_day02$gene, "YES", "no"),
+    day04 = ifelse(genes_dorsal %in% DEGs_vAN_vs_dAN_day04$gene, "YES", "no"),
+    day06 = ifelse(genes_dorsal %in% DEGs_vAN_vs_dAN_day06$gene, "YES", "no"),
+    day08 = ifelse(genes_dorsal %in% DEGs_vAN_vs_dAN_day08$gene, "YES", "no"),
+    day10 = ifelse(genes_dorsal %in% DEGs_vAN_vs_dAN_day10$gene, "YES", "no"),
+    day12 = ifelse(genes_dorsal %in% DEGs_vAN_vs_dAN_day12$gene, "YES", "no")
+)
+write.csv(DE_df_dorsal, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_by_day_dorsal.csv", row.names = FALSE, quote = FALSE)
+
+
+
 # Making Volcano plots
 DE_vAN_vs_dAN <- list(
     day_02 = DEGs_vAN_vs_dAN_day02_f,
