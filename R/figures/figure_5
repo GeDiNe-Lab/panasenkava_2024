@@ -264,11 +264,25 @@ View(percents_tot)
 
 write.csv(percents_tot, file = "Figure_5/SHH_cluster_500_percents.csv", quote = FALSE)
 
+percents_tot <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/Figure_5/SHH_cluster_500_percents.csv", row.names = 1)
+
+
+
+percents_tot_pos <- percents_tot[filter(top500, cor > 0)$gene, ]
+write.csv(percents_tot_pos, file = "/home/jules/Documents/phd/projects/panasenkava_2024/Figure_5/SHH_cluster_500_percents_pos.csv", quote = FALSE)
+
+percents_tot_neg <- percents_tot[filter(top500, cor < 0)$gene, ]
+write.csv(percents_tot_neg, file = "/home/jules/Documents/phd/projects/panasenkava_2024/Figure_5/SHH_cluster_500_percents_neg.csv", quote = FALSE)
+
+
+View(percents_tot)
+
+
 
 sc_meta_week4$celltype_region %>% table()
 
 
-top500 <- read.csv("results/tables/Figure_3/SHH_cluster_500.csv")
+top500 <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_3/SHH_cluster_500.csv")
 top500 %>% head()
 w4_cellmatch <- sc_meta_week4
 

@@ -473,10 +473,10 @@ lp_vsd <- DESeqDataSetFromMatrix(
 
 
 # genes_ventral <- c("NKX2-1", "HTR1D", "PTCH1", "FGF19", "FOXA2", "FREM1", "LINC00261", "CAPN6")
-genes_ventral1 <- c("FOXA2", "FREM1", "SHH", "NKX2-1", "PTCH1", "LINC00261", "PLCL1", "CAPN6")
-genes_ventral2 <- c("LRRK2", "DDC", "SMIM32", "GADL1", "DRC1", "CLSTN2", "FOS")
-genes_dorsal1 <- c("CNTN2", "PAX6", "PAX3", "CNTNAP2", "GLI3")
-genes_dorsal2 <- c("EMX2", "NELL2", "LHX9", "TBR1", "POU3F3")
+genes_ventral1 <- c("FOXA2", "FREM1", "SHH", "NKX2-1", "PTCH1", "LINC00261", "PLCL1", "CAPN6", "LRRK2", "DDC", "SMIM32", "GADL1", "DRC1", "CLSTN2", "SLIT2")
+genes_ventral2 <- c("LRRK2", "DDC", "SMIM32", "GADL1", "DRC1", "CLSTN2", "SLIT2")
+genes_dorsal1 <- c("CNTN2", "PAX6", "PAX3", "CNTNAP2", "GLI3", "EMX2", "NELL2", "GDF7", "SYT4", "GRIP2")
+genes_dorsal2 <- c("EMX2", "NELL2", "GDF7", "SYT4", "GRIP2")
 
 vAN_meta <- filter(lp_meta, type != "dorsal")
 vAN_vsd <- assay(lp_vsd)[, vAN_meta$sample]
@@ -503,52 +503,19 @@ df_summary_1 <- df_long_1 %>%
         expression_se = sd(expression, na.rm = TRUE) / sqrt(n()),
         .groups = "drop"
     )
-
+library(paletteer)
 ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 1) +
+    geom_point(size = 3) +
+    geom_line(size = 2) +
     geom_errorbar(aes(ymin = expression_mean - expression_se, ymax = expression_mean + expression_se), width = 0.1) +
-    custom_theme() +
+    scale_color_paletteer_d("ggsci::category20_d3") + # 20 distinct colors
     ylim(0, 7.5) +
     labs(
         x = "Days",
-        y = "Mean scaled normalized expression",
-    )
-ggsave("results/images/Figure_2A/F2A_lineplots_genes_ventral_1.png", width = 10, height = 10)
-
-vAN_df_2 <- t(scaled_vAN_vsd[genes_ventral2 %>% gene_converter("SYMBOL", "ENSEMBL"), ])
-colnames(vAN_df_2) <- colnames(vAN_df_2) %>% gene_converter("ENSEMBL", "SYMBOL")
-vAN_df_2 <- cbind(dplyr::select(vAN_meta, "day"), vAN_df_2)
-
-head(vAN_df_2)
-
-df_long_2 <- vAN_df_2 %>%
-    pivot_longer(
-        cols = -day, # All columns except 'day'
-        names_to = "gene", # New column for gene names
-        values_to = "expression"
-    ) # New column for expression values
-
-# Calculate mean and standard error for each gene on each day
-df_summary_2 <- df_long_2 %>%
-    group_by(day, gene) %>%
-    summarise(
-        expression_mean = mean(expression, na.rm = TRUE),
-        expression_se = sd(expression, na.rm = TRUE) / sqrt(n()),
-        .groups = "drop"
-    )
-
-ggplot(df_summary_2, aes(x = day, y = expression_mean, group = gene, color = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 1) +
-    geom_errorbar(aes(ymin = expression_mean - expression_se, ymax = expression_mean + expression_se), width = 0.1) +
-    custom_theme() +
-    ylim(0, 7.5) +
-    labs(
-        x = "Days",
-        y = "Mean scaled normalized expression",
-    )
-ggsave("results/images/Figure_2A/F2A_lineplots_genes_ventral_2.png", width = 10, height = 10)
+        y = "Mean scaled normalized expression"
+    ) +
+    custom_theme()
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_ventral.png", width = 12, height = 10)
 
 
 dAN_meta <- filter(lp_meta, type != "ventral")
@@ -578,47 +545,14 @@ df_summary_1 <- df_long_1 %>%
     )
 
 ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 1) +
+    geom_point(size = 3) +
+    geom_line(size = 2) +
     geom_errorbar(aes(ymin = expression_mean - expression_se, ymax = expression_mean + expression_se), width = 0.1) +
-    custom_theme() +
+    scale_color_paletteer_d("ggsci::category20_d3") + # 20 distinct colors
     ylim(0, 7.5) +
     labs(
         x = "Days",
-        y = "Mean scaled normalized expression",
-    )
-ggsave("results/images/Figure_2A/F2A_lineplots_genes_dorsal_1.png", width = 10, height = 10)
-
-dAN_df_2 <- t(scaled_dAN_vsd[genes_dorsal2 %>% gene_converter("SYMBOL", "ENSEMBL"), ])
-colnames(dAN_df_2) <- colnames(dAN_df_2) %>% gene_converter("ENSEMBL", "SYMBOL")
-dAN_df_2 <- cbind(dplyr::select(dAN_meta, "day"), dAN_df_2)
-
-head(dAN_df_2)
-
-df_long_2 <- dAN_df_2 %>%
-    pivot_longer(
-        cols = -day, # All columns except 'day'
-        names_to = "gene", # New column for gene names
-        values_to = "expression"
-    ) # New column for expression values
-
-# Calculate mean and standard error for each gene on each day
-df_summary_2 <- df_long_2 %>%
-    group_by(day, gene) %>%
-    summarise(
-        expression_mean = mean(expression, na.rm = TRUE),
-        expression_se = sd(expression, na.rm = TRUE) / sqrt(n()),
-        .groups = "drop"
-    )
-
-ggplot(df_summary_2, aes(x = day, y = expression_mean, group = gene, color = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 1) +
-    geom_errorbar(aes(ymin = expression_mean - expression_se, ymax = expression_mean + expression_se), width = 0.1) +
-    custom_theme() +
-    ylim(0, 7.5) +
-    labs(
-        x = "Days",
-        y = "Mean scaled normalized expression",
-    )
-ggsave("results/images/Figure_2A/F2A_lineplots_genes_dorsal_2.png", width = 10, height = 10)
+        y = "Mean scaled normalized expression"
+    ) +
+    custom_theme()
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_dorsal.png", width = 12, height = 10)
