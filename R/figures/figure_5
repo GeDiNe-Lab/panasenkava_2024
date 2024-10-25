@@ -40,7 +40,6 @@ sc_meta <- read.csv("scdata/week345_wholebody_metadata.csv") %>%
     filter(celltype_region_num %in% c(1:8)) %>%
     dplyr::select(c("week_stage", "celltype_region_num", "celltype_region", "barcode"))
 
-View(sc_meta)
 # seurat_weekAll <- CreateSeuratObject(counts = sc_counts, meta.data = sc_meta, min.cells = 20)
 # seurat_weekAll <- NormalizeData(seurat_weekAll)
 
@@ -230,10 +229,43 @@ for (duo in focusduo) {
 }
 
 
+# CHECK EXPRESSION cinétique DANS LES UMAPS
 
 
 
 
+library(data.table)
+percents <- top500$gene %>%
+    lapply(function(gene) {
+        if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
+            percent <- unique(sc_meta_week4$celltype_region) %>% sapply(function(ct) {
+                test <- seurat_week4@assays$RNA$counts[gene, ]
+                test <- ifelse(test >= 1, sc_meta_week4$celltype_region, "none")
+                test2 <- table(test)
+                ncell <- test2[ct]
+                if (is.na(ncell)) {
+                    ncell <- 0
+                }
+                return(unname(ncell / nrow(filter(sc_meta_week4, celltype_region == ct)) * 100))
+            })
+        } else {
+            percent <- rep(0, 8)
+        }
+        print(gene)
+        return(percent)
+    }) %>%
+    do.call(rbind, .) %>%
+    as.data.frame()
+rownames(percents) <- top500$gene
+View(percents)
+percents_tot <- percents
+percents_tot$total <- rowSums(percents) / 8
+View(percents_tot)
+
+write.csv(percents_tot, file = "Figure_5/SHH_cluster_500_percents.csv", quote = FALSE)
+
+
+sc_meta_week4$celltype_region %>% table()
 
 
 top500 <- read.csv("results/tables/Figure_3/SHH_cluster_500.csv")
@@ -254,8 +286,10 @@ w4df <- top500$gene %>%
     do.call(cbind, .)
 colnames(w4df) <- top500$gene
 
+w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
 
-
+which(seurat_week4@assays$RNA$counts["NKX2-1", ] > 10)
+seurat_week4@assays$RNA$counts["NKX2-1", ]
 w4df <- union(top500$gene, c("NKX2-1", "PAX6", "FOXA2", "LHX2")) %>%
     lapply(function(gene) {
         if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
