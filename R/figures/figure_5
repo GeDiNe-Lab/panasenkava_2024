@@ -116,6 +116,12 @@ blue_clust_df_f %>% View()
 marker_genes <- blue_clust_df_f$gene
 marker_genes
 gc()
+
+genes_ventral <- c("FOXA2", "FREM1", "SHH", "NKX2-1", "PTCH1", "LINC00261", "PLCL1", "CAPN6", "LRRK2", "DDC", "SMIM32", "GADL1", "DRC1", "CLSTN2", "SLIT2")
+genes_dorsal <- c("CNTN2", "PAX6", "PAX3", "CNTNAP2", "GLI3", "EMX2", "NELL2", "GDF7", "SYT4", "GRIP2")
+
+marker_genes <- genes_dorsal
+
 for (gene in marker_genes) {
     if (gene %in% rownames(seurat_week3)) {
         sc_meta_week3$expression <- seurat_week3@assays$RNA$scale.data[gene, sc_meta_week3$barcode]
@@ -124,7 +130,7 @@ for (gene in marker_genes) {
             ggtitle(gene) +
             scale_color_gradient(low = "lightblue", high = "darkred") +
             custom_theme()
-        ggsave(paste0("results/images/Figure_5/week3/Zeng_week3_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/umaps/Zeng_week3_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
         gc()
     } else {
         print(paste0(gene, " not in week3"))
@@ -140,7 +146,7 @@ for (gene in marker_genes) {
             ggtitle(gene) +
             scale_color_gradient(low = "lightblue", high = "darkred") +
             custom_theme()
-        ggsave(paste0("results/images/Figure_5/week4/Zeng_week4_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/umaps/Zeng_week4_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
         gc()
     } else {
         print(paste0(gene, " not in week4"))
@@ -156,7 +162,7 @@ for (gene in marker_genes) {
             ggtitle(gene) +
             scale_color_gradient(low = "lightblue", high = "darkred") +
             custom_theme()
-        ggsave(paste0("results/images/Figure_5/week5/Zeng_week5_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/umaps/Zeng_week5_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
         gc()
     } else {
         print(paste0(gene, " not in week5"))

@@ -7,6 +7,7 @@ library(org.Hs.eg.db)
 library(ComplexHeatmap)
 library(WGCNA)
 library(tibble)
+library(paletteer)
 
 # Setting working directory
 rstudioapi::getSourceEditorContext()$path %>%
@@ -27,7 +28,7 @@ meta <- filter(rawmeta, type %in% c("cyclo", "ventral") & sample != "L9C1_2" & s
 rownames(meta) <- meta$sample
 counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
 
-meta$cyclo_dose_quant_factor <- as.factor(meta$cyclo_dose_quant)
+meta$`Cyclopamine dose` <- as.factor(meta$cyclo_dose_quant)
 # making DESeq object
 dds <- DESeqDataSetFromMatrix(
     countData = counts,
@@ -39,12 +40,12 @@ dds <- DESeqDataSetFromMatrix(
 vsd_blind <- vst(dds, blind = TRUE)
 
 #  PCA
-pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "cyclo_dose_qual", "cyclo_dose_quant_factor"), returnData = TRUE, ntop = 3000)
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "cyclo_dose_qual", "Cyclopamine dose"), returnData = TRUE, ntop = 3000)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
 png(filename = "results/images/Figure_3/F3_PCA_1_2.png", width = 1600, height = 1200, res = 250)
-ggplot(pca.data, aes(PC1, PC2, color = type, shape = cyclo_dose_quant_factor)) +
-    geom_point(size = 2, stroke = 1) +
+ggplot(pca.data, aes(PC1, PC2, color = type, shape = Cyclopamine.dose)) +
+    geom_point(size = 3, stroke = 2) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#ecb039", "#80AD3C")) +
@@ -270,17 +271,20 @@ for (cluster in unique(clusters)) {
     GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
         eval(parse(text = x))
     }) %>% unname()
-    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
+    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:10], ]
     GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
 
     goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
         geom_bar(stat = "identity") +
-        geom_text(aes(label = Description),
+        geom_text(
+            aes(
+                label = Description,
+                size = ifelse(Description == "none", 6, 10) # Set specific text size for one bar
+            ),
             hjust = 1.1, # Move text inside the bar, adjust as needed
-            color = "black", # Make the text white for better visibility
-            size = 10
-        ) + # Adjust size to fit the text inside the bar
+            color = "black" # Make the text white for better visibility
+        ) +
         custom_theme() +
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
         ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)")) +
@@ -290,9 +294,11 @@ for (cluster in unique(clusters)) {
             legend.text = element_text(size = 12), # Adjusts the legend text size
             legend.title = element_text(size = 14), # Adjusts the legend title size
             legend.key.size = unit(1.5, "lines")
-        )
-    write.csv(GO_enrichment, paste0("results/tables/Figure_3/GO_enrichment_cluster_diapo", cluster, ".csv"))
-    ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_diapo", cluster, ".png"), goplot, width = 15, height = 10)
+        ) +
+        scale_size_identity() # This ensures ggplot doesn't scale the sizes automatically
+
+    write.csv(GO_enrichment, paste0("results/tables/Figure_3/GO_enrichment_cluster_", cluster, ".csv"))
+    ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_", cluster, ".png"), goplot, width = 15, height = 10)
 }
 
 png(filename = "results/images/Figure_3/F3_cyclo_genes_HM.png", width = 2400, height = 1600, res = 250)
@@ -502,25 +508,33 @@ df_pos <- df_pos_mean %>% reshape2::melt(id.vars = "cyclo_dose_quant")
 df_pos$sd <- reshape2::melt(df_pos_sd, id.vars = "cyclo_dose_quant")$value
 df_pos$cyclo_dose_quant <- factor(df_pos$cyclo_dose_quant, levels = c(0, 0.125, 0.25, 0.5, 1))
 colnames(df_pos) <- c("cyclo_dose_quant", "gene", "expression_mean", "expression_sd")
-
+df_neg
 png(filename = "results/images/Figure_3/F3_lineplot_negative.png", width = 2400, height = 1600, res = 250)
-ggplot(df_neg, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, color = gene, shape = gene)) +
-    geom_line() +
-    geom_point(size = 2) +
-    scale_shape_manual(values = 1:10) +
-    ylim(0, max(cbind(subset_assay_neg, subset_assay_pos))) +
-    geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.2) +
-    custom_theme(diag_text = TRUE)
+ggplot(df_neg, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, color = gene)) +
+    geom_point(size = 3) +
+    geom_line(size = 2) +
+    geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.1) +
+    scale_color_paletteer_d("ggsci::category20_d3") + # 20 distinct colors
+    ylim(0, 7.5) +
+    labs(
+        x = "Cyclopamine dose",
+        y = "Mean scaled normalized expression"
+    ) +
+    custom_theme()
 dev.off()
 
 png(filename = "results/images/Figure_3/F3_lineplot_positive.png", width = 2400, height = 1600, res = 250)
-ggplot(df_pos, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, color = gene, shape = gene)) +
-    geom_line() +
-    geom_point(size = 2) +
-    scale_shape_manual(values = 1:10) +
-    ylim(0, max(cbind(subset_assay_neg, subset_assay_pos))) +
-    geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.2) +
-    custom_theme(diag_text = TRUE)
+ggplot(df_pos, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, color = gene)) +
+    geom_point(size = 3) +
+    geom_line(size = 2) +
+    geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.1) +
+    scale_color_paletteer_d("ggsci::category20_d3") + # 20 distinct colors
+    ylim(0, 7.5) +
+    labs(
+        x = "Cyclopamine dose",
+        y = "Mean scaled normalized expression"
+    ) +
+    custom_theme()
 dev.off()
 
 STRING <- read.csv("results/tables/Figure_3/STRING_edges_format_WGCNA.csv")
