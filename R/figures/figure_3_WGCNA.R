@@ -515,7 +515,7 @@ ggplot(df_neg, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, colo
     geom_line(size = 2) +
     geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.1) +
     scale_color_paletteer_d("ggsci::category20_d3") + # 20 distinct colors
-    ylim(0, 7.5) +
+    ylim(0, 4) +
     labs(
         x = "Cyclopamine dose",
         y = "Mean scaled normalized expression"
@@ -529,7 +529,7 @@ ggplot(df_pos, aes(x = cyclo_dose_quant, y = expression_mean, group = gene, colo
     geom_line(size = 2) +
     geom_errorbar(aes(ymin = expression_mean - expression_sd, ymax = expression_mean + expression_sd), width = 0.1) +
     scale_color_paletteer_d("ggsci::category20_d3") + # 20 distinct colors
-    ylim(0, 7.5) +
+    ylim(0, 4) +
     labs(
         x = "Cyclopamine dose",
         y = "Mean scaled normalized expression"
