@@ -282,8 +282,7 @@ sub_clusters_LON_ha <- rowAnnotation(
 )
 # GO enrichment for LON71 lineage only
 for (cluster in unique(clusters_LON)) {
-    print(cluster)
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_LON[which(clusters_LON == cluster)]),
         OrgDb = "org.Hs.eg.db",
         keyType = "ENSEMBL",
         ont = "BP"
@@ -292,17 +291,37 @@ for (cluster in unique(clusters_LON)) {
     GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
         eval(parse(text = x))
     }) %>% unname()
-    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:15], ]
+    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:5], ]
+    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
-    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = Description, fill = p.adjust)) +
+
+    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
         geom_bar(stat = "identity") +
+        geom_text(
+            aes(
+                label = Description,
+                size = ifelse(Description == "none", 6, 10) # Set specific text size for one bar
+            ),
+            hjust = 1.1, # Move text inside the bar, adjust as needed
+            color = "black" # Make the text white for better visibility
+        ) +
         custom_theme() +
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
-        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)"))
+        ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)")) +
+        theme(
+            axis.text.y = element_blank(), # Remove y-axis text
+            axis.ticks.y = element_blank(),
+            legend.text = element_text(size = 12), # Adjusts the legend text size
+            legend.title = element_text(size = 14), # Adjusts the legend title size
+            legend.key.size = unit(1.5, "lines")
+        ) +
+        scale_size_identity() # This ensures ggplot doesn't scale the sizes automatically
     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, "_LON.csv"))
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_LON.png"), goplot, width = 20, height = 10)
 }
-
+table(clusters_LON)
+table(clusters_WTC)
+table(clusters)
 png(filename = "results/images/Figure_2A/F2A_DE_HM_LON.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering_LON$order, sample_order_LON],
@@ -374,7 +393,8 @@ sub_clusters_WTC_ha <- rowAnnotation(
 
 # GO enrichment for WTC lineage only
 for (cluster in unique(clusters_WTC)) {
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_WTC[which(clusters_WTC == cluster)]),
+    cluster <- 1
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
         OrgDb = "org.Hs.eg.db",
         keyType = "ENSEMBL",
         ont = "BP"
@@ -384,15 +404,19 @@ for (cluster in unique(clusters_WTC)) {
         eval(parse(text = x))
     }) %>% unname()
     GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:5], ]
-    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 60)
+    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40)
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
+
     goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
         geom_bar(stat = "identity") +
-        geom_text(aes(label = Description),
+        geom_text(
+            aes(
+                label = Description,
+                size = ifelse(Description == "none", 6, 10) # Set specific text size for one bar
+            ),
             hjust = 1.1, # Move text inside the bar, adjust as needed
-            color = "black", # Make the text white for better visibility
-            size = 10
-        ) + # Adjust size to fit the text inside the bar
+            color = "black" # Make the text white for better visibility
+        ) +
         custom_theme() +
         scale_fill_gradient(low = "#e06663", high = "#327eba") +
         ggtitle(paste0("GO enrichment on cluster", cluster, " (biological processes only)")) +
@@ -402,7 +426,9 @@ for (cluster in unique(clusters_WTC)) {
             legend.text = element_text(size = 12), # Adjusts the legend text size
             legend.title = element_text(size = 14), # Adjusts the legend title size
             legend.key.size = unit(1.5, "lines")
-        )
+        ) +
+        scale_size_identity() # This ensures ggplot doesn't scale the sizes automatically
+
     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_diapo", cluster, "_WTC.csv"))
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust_diapo", cluster, "_WTC.png"), goplot, width = 20, height = 10)
 }
@@ -456,7 +482,7 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line %in% c("LON71", "WTC")) | (sample == "WTC6cipc"))
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71") | (sample == "WTC6cipc"))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
 View(lp_meta)
 # filtering out lowly expressed genes
@@ -468,7 +494,7 @@ lp_meta$line
 lp_vsd <- DESeqDataSetFromMatrix(
     countData = lp_counts,
     colData = lp_meta,
-    design = ~ line + day
+    design = ~day
 ) %>% vst(blind = FALSE)
 
 
@@ -515,7 +541,7 @@ ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gen
         y = "Mean scaled normalized expression"
     ) +
     custom_theme()
-ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_ventral.png", width = 12, height = 10)
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_ventral_LON.png", width = 12, height = 10)
 
 
 dAN_meta <- filter(lp_meta, type != "ventral")
@@ -555,4 +581,4 @@ ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gen
         y = "Mean scaled normalized expression"
     ) +
     custom_theme()
-ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_dorsal.png", width = 12, height = 10)
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_dorsal_LON.png", width = 12, height = 10)

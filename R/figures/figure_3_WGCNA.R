@@ -127,6 +127,7 @@ known_genes <- c("GAS1", "GLI1", "GLI2", "GLI3", "ZIC2", "FOXA1", "FOXA2", "NKX2
 
 # keeping only genes with higher variance (50% quantile)
 vsd_var <- assay(vsd)[which(rowVars(assay(vsd)) >= quantile(apply(assay(vsd), 1, var), 0.5)), ]
+nrow(vsd_var)
 counts["ENSG00000174469", ]
 rawcounts["ENSG00000174469", filter(rawmeta, diff == "diff9")$sample]
 # WGCNA analysis
@@ -192,7 +193,11 @@ plotDendroAndColors(gene.tree,
 )
 dev.off()
 
-table(mergedColors)
+table(dynamic.colors)
+
+test <- rownames(vsd_var)[which(mergedColors == "blue")] %>% gene_converter("ENSEMBL", "SYMBOL")
+length(test) - length(which(is.na(test)))
+length(test)
 # get cluster into a dataframe
 merged_clusters <- rownames(vsd_var)
 merged_clusters_sym <- gene_converter(merged_clusters, "ENSEMBL", "SYMBOL")
