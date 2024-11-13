@@ -138,6 +138,7 @@ for (gene in marker_genes) {
 }
 
 gc()
+marker_genes <- c("SFTA3", "CAPN6", "EPHB1", "ZIC5", "AFF2", "NUAK2")
 for (gene in marker_genes) {
     if (gene %in% rownames(seurat_week4)) {
         sc_meta_week4$expression <- seurat_week4@assays$RNA$scale.data[gene, sc_meta_week4$barcode]
@@ -146,7 +147,7 @@ for (gene in marker_genes) {
             ggtitle(gene) +
             scale_color_gradient(low = "lightblue", high = "darkred") +
             custom_theme()
-        ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/umaps/Zeng_week4_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
+        ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Zeng_week4_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
         gc()
     } else {
         print(paste0(gene, " not in week4"))
@@ -294,7 +295,7 @@ w4_cellmatch <- sc_meta_week4
 
 
 top500$gene
-w4df <- top500$gene %>%
+w4df <- c("SFTA3","EPHB1") %>%
     lapply(function(gene) {
         if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
             return(seurat_week4@assays$RNA$counts[gene, ] > 10)
@@ -304,32 +305,31 @@ w4df <- top500$gene %>%
         }
     }) %>%
     do.call(cbind, .)
-colnames(w4df) <- top500$gene
+colnames(w4df) <- c("SFTA3","EPHB1")
 
 w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
 
-which(seurat_week4@assays$RNA$counts["NKX2-1", ] > 10)
+which(seurat_week4@assays$RNA$counts["NKX2-1", ] > 1)
 seurat_week4@assays$RNA$counts["NKX2-1", ]
-w4df <- union(top500$gene, c("NKX2-1", "PAX6", "FOXA2", "LHX2")) %>%
+w4df <- union(c("SFTA3","EPHB1"), c("NKX2-1", "PAX6", "FOXA2", "LHX2")) %>%
     lapply(function(gene) {
         if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
-            return(seurat_week4@assays$RNA$counts[gene, ] > 10)
+            return(seurat_week4@assays$RNA$counts[gene, ] > 1)
         } else {
             print(paste0(gene, " not in week4"))
             return(rep(FALSE, ncol(seurat_week4@assays$RNA$data)))
         }
     }) %>%
     do.call(cbind, .)
-colnames(w4df) <- union(top500$gene, c("NKX2-1", "PAX6", "FOXA2", "LHX2"))
+colnames(w4df) <- union(c("SFTA3","EPHB1"), c("NKX2-1", "PAX6", "FOXA2", "LHX2"))
 
 w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
 
-pairwise_df <- expand.grid(top500$gene, c("NKX2-1", "PAX6", "FOXA2", "LHX2"))
+pairwise_df <- expand.grid(c("SFTA3","EPHB1"), c("NKX2-1", "PAX6", "FOXA2", "LHX2"))
 pairwise_df$Var1 <- as.vector(pairwise_df$Var1)
 pairwise_df$Var2 <- as.vector(pairwise_df$Var2)
 
 which(w4_cellmatch[, "NKX2-1"] == TRUE)
-
 # execute this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 for (i in c(1:nrow(pairwise_df))) {
     gene1 <- pairwise_df$Var1[i]
@@ -356,7 +356,7 @@ for (i in c(1:nrow(pairwise_df))) {
         ggtitle(paste0("Week4: gene1 = ", gene1, " and gene2 = ", gene2)) +
         scale_color_manual(values = colors) +
         custom_theme()
-    ggsave(paste0("results/images/Figure_5/final_week4/", gene1, "_", gene2, ".png"), plot = plot, width = 14, height = 10, dpi = 300)
+    ggsave(paste0("results/images/", gene1, "_", gene2, ".png"), plot = plot, width = 14, height = 10, dpi = 300)
 }
 
 
