@@ -240,6 +240,8 @@ vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_f), ])
 scaled_mat <- t(apply(vsd_DEGs, 1, scale))
 colnames(scaled_mat) <- colnames(vsd_DEGs)
 
+ordered_samples <- c("L9D_1", "L9D_2", "L9D_3", "L9D_4", "L9D_5", "W6C12D_1", "W6C12D_2", "W6C12D_3", "W6C12D_4", "W6C12D_5", "W6C12D_6", "L9V_1", "L9V_2", "L9V_3", "L9V_4", "L9V_5", "W6C12V_1", "W6C12V_2", "W6C12V_3", "W6C12V_4", "W6C12V_5", "W6C12V_6") %>% as.factor()
+
 # hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
@@ -257,10 +259,13 @@ clusters_ha <- rowAnnotation(
 )
 clusters %>% table()
 
+meta$line[order(ordered_samples)]
+
 # sample annotation
+rownames(meta) <- meta$sample
 sample_ha <- columnAnnotation(
-    line = meta$line,
-    type = meta$type,
+    line = meta[ordered_samples, ]$line,
+    type = meta[ordered_samples, ]$type,
     col = list(
         line = c("LON71" = "#c1c1c1", "WTC" = "#7d7d7d"),
         type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
@@ -283,7 +288,7 @@ for (cluster in unique(clusters)) {
 
     GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40) %>% str_to_upper()
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
-    
+
     goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
         geom_bar(stat = "identity") +
         geom_text(aes(label = Description),
@@ -308,13 +313,13 @@ for (cluster in unique(clusters)) {
     ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 17, height = 10)
 }
 
-png(filename = "results/images/Figure_1/F1_3_DE_HM_noinvert.png", width = 1600, height = 1600, res = 250)
+png(filename = "results/images/Figure_1/F1_3_DE_HM_noinvert_noclust.png", width = 1600, height = 1600, res = 250)
 Heatmap(
-    scaled_mat[clustering$order, ],
+    scaled_mat[clustering$order, ordered_samples],
     name = "Normalized expression",
     row_title_gp = gpar(fontsize = 16, fontface = "bold"),
     cluster_rows = FALSE,
-    cluster_columns = TRUE,
+    cluster_columns = FALSE,
     show_row_names = FALSE,
     left_annotation = clusters_ha,
     bottom_annotation = sample_ha,
