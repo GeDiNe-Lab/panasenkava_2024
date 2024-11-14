@@ -22,7 +22,7 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"))
+meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"), manip == "veranika")
 View(meta)
 # filtering out lowly expressed genes
 counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
@@ -148,7 +148,7 @@ sample_order <- c(
 # hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat[, sample_order]))
 clusters <- cutree(clustering, k = 4)
-
+table(clusters)
 # Subclustering within each cluster
 sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), sample_order]
@@ -355,7 +355,7 @@ sample_order_WTC <- c(
 
 clustering_WTC <- hclust(dist(scaled_mat[, sample_order_WTC]))
 clusters_WTC <- cutree(clustering_WTC, k = 4)
-
+table(clusters_WTC)
 sub_clusters_WTC_list <- unique(clusters_WTC) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters_WTC[which(clusters_WTC == cluster)]), sample_order_WTC]
     sub_clustering_WTC <- hclust(dist(sub_mat))
@@ -482,7 +482,7 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71") | (sample == "WTC6cipc"))
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & manip == "veranika") | (sample == "WTC6cipc"))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
 View(lp_meta)
 # filtering out lowly expressed genes
@@ -541,7 +541,7 @@ ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gen
         y = "Mean scaled normalized expression"
     ) +
     custom_theme()
-ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_ventral_LON.png", width = 12, height = 10)
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_ventral_WTC.png", width = 12, height = 10)
 
 
 dAN_meta <- filter(lp_meta, type != "ventral")
@@ -581,4 +581,4 @@ ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gen
         y = "Mean scaled normalized expression"
     ) +
     custom_theme()
-ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_dorsal_LON.png", width = 12, height = 10)
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_dorsal_WTC.png", width = 12, height = 10)

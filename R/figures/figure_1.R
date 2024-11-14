@@ -233,7 +233,7 @@ DEGs_vAN_vs_dAN$gene <- rownames(DEGs_vAN_vs_dAN) %>% gene_converter("ENSEMBL", 
 DEGs_vAN_vs_dAN_f <- filter(DEGs_vAN_vs_dAN, padj < 0.01, abs(log2FoldChange) >= 1)
 # filter out genes with inverted log2FoldChange in LON and WTC
 DEGs_vAN_vs_dAN_f <- DEGs_vAN_vs_dAN_f[!rownames(DEGs_vAN_vs_dAN_f) %in% rownames(invert), ]
-
+View(DEGs_vAN_vs_dAN_f)
 
 # Heatmap of vAN vs dAN DEGs
 vsd_DEGs <- assay(vsd[rownames(DEGs_vAN_vs_dAN_f), ])
@@ -271,11 +271,11 @@ sample_ha <- columnAnnotation(
         type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
     )
 )
-
+table(clusters)
 # performing GO enrichment on clusters
 for (cluster in unique(clusters)) {
-    cluster <- 2
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters == cluster)]),
+    cluster <- c(1, 2)
+    GO_enrichment <- clusterProfiler::enrichGO(names(clusters[which(clusters %in% cluster)]),
         OrgDb = "org.Hs.eg.db",
         keyType = "ENSEMBL",
         ont = "BP"
@@ -284,7 +284,9 @@ for (cluster in unique(clusters)) {
     GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
         eval(parse(text = x))
     }) %>% unname()
-    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[c(1, 2, 4, 5, 8, 9, 11, 12, 13, 14)], ]
+    GO_results$rank <- rank(-GO_results$GeneRatio, ties.method = "first")
+    View(GO_results)
+    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:20], ]
 
     GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 40) %>% str_to_upper()
     GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
@@ -309,8 +311,8 @@ for (cluster in unique(clusters)) {
             legend.key.size = unit(2, "lines")
         )
     goplot
-    write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
-    ggsave(paste0("results/images/Figure_1/F1_DE_GO_clust", cluster, ".png"), goplot, width = 17, height = 10)
+    # write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
+    ggsave(paste0("results/images/Figure_1/test", cluster, ".png"), goplot, width = 17, height = 10)
 }
 
 png(filename = "results/images/Figure_1/F1_3_DE_HM_noinvert_noclust.png", width = 1600, height = 1600, res = 250)
