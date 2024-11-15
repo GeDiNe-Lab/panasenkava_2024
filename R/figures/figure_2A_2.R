@@ -23,7 +23,8 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"))
+meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"), ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12")))
+
 # filtering out lowly expressed genes
 counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
 

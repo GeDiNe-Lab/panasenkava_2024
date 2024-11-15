@@ -22,7 +22,7 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"), manip == "veranika")
+meta <- filter(rawmeta, sample != "LON71_D12_2", diff == "diff13", line %in% c("LON71", "WTC"), ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12")))
 View(meta)
 # filtering out lowly expressed genes
 counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
@@ -45,13 +45,12 @@ pca_var <- attr(pca.data, "factoextra")
 
 png(filename = "results/images/Figure_2A/F2A_1_PCA_1_2_days_3000genes.png", width = 1600, height = 1200, res = 250)
 ggplot(pca.data, aes(PC1, PC2, color = line, shape = day)) +
-    geom_point(size = 2, stroke = 1) +
+    geom_point(size = 3, stroke = 1.5) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#868686", "#000000")) +
     scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
-    custom_theme() +
-    ggtitle("First and second PCs of dorsal and ventral kinetics all genes")
+    custom_theme()
 dev.off()
 
 # Variance explained by each PCs
@@ -319,6 +318,7 @@ for (cluster in unique(clusters_LON)) {
     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, "_LON.csv"))
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_LON.png"), goplot, width = 20, height = 10)
 }
+View(GLI_fullnet)
 table(clusters_LON)
 table(clusters_WTC)
 table(clusters)
@@ -352,13 +352,16 @@ sample_order_WTC <- c(
     filter(meta, type == "ventral" & line == "WTC")$sample[order(filter(meta, type == "ventral" & line == "WTC")$day, decreasing = TRUE)],
     filter(meta, type == "dorsal" & line == "WTC")$sample[order(filter(meta, type == "dorsal" & line == "WTC")$day)]
 )
-
-clustering_WTC <- hclust(dist(scaled_mat[, sample_order_WTC]))
+cortest <- scaled_mat[, sample_order_WTC] %>%
+    t() %>%
+    cor()
+cortest %>% nrow()
+clustering_WTC <- hclust(as.dist(1 - cortest))
 clusters_WTC <- cutree(clustering_WTC, k = 4)
 table(clusters_WTC)
 sub_clusters_WTC_list <- unique(clusters_WTC) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters_WTC[which(clusters_WTC == cluster)]), sample_order_WTC]
-    sub_clustering_WTC <- hclust(dist(sub_mat))
+    sub_clustering_WTC <- hclust(as.dist(1 - cor(t(sub_mat))))
     return(cutree(sub_clustering_WTC, k = 4))
 })
 names(sub_clusters_WTC_list) <- paste0("cluster_", unique(clusters_WTC))
@@ -433,7 +436,7 @@ for (cluster in unique(clusters_WTC)) {
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust_diapo", cluster, "_WTC.png"), goplot, width = 20, height = 10)
 }
 
-png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 250)
+png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC_cor.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering_WTC$order, sample_order_WTC],
     name = "Normalized expression",
@@ -472,6 +475,9 @@ rownames(genes_cluster) <- hm_genes
 
 write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
 
+clustering
+
+
 
 
 
@@ -482,7 +488,7 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & manip == "veranika") | (sample == "WTC6cipc"))
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
 View(lp_meta)
 # filtering out lowly expressed genes
@@ -541,7 +547,7 @@ ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gen
         y = "Mean scaled normalized expression"
     ) +
     custom_theme()
-ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_ventral_WTC.png", width = 12, height = 10)
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_ventral_LON.png", width = 12, height = 10)
 
 
 dAN_meta <- filter(lp_meta, type != "ventral")
@@ -581,4 +587,4 @@ ggplot(df_summary_1, aes(x = day, y = expression_mean, group = gene, color = gen
         y = "Mean scaled normalized expression"
     ) +
     custom_theme()
-ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_dorsal_WTC.png", width = 12, height = 10)
+ggsave("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_genes_dorsal_LON.png", width = 12, height = 10)

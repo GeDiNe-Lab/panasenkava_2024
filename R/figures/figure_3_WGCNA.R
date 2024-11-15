@@ -312,7 +312,7 @@ Heatmap(
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
     cluster_rows = FALSE,
-    cluster_columns = FALSE,
+    cluster_columns = TRUE,
     left_annotation = clusters_ha,
     show_row_names = FALSE,
     row_names_side = "left",

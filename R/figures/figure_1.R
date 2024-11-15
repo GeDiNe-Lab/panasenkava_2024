@@ -55,7 +55,7 @@ dds <- DESeqDataSetFromMatrix(
 vsd_blind <- vst(dds, blind = TRUE)
 
 # PCA plot of top 3000 most variable genes
-pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("line", "type"), returnData = TRUE, ntop = 3000)
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("line", "type"), returnData = TRUE, ntop = nrow(vsd_blind))
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 fe_info <- attr(pca.data, "factoextra")
 
