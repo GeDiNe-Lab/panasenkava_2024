@@ -349,7 +349,7 @@ for (cluster in unique(clusters_WTC)) {
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_WTC.png"), goplot, width = 19, height = 10)
 }
 
-png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 250)
+png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC_test.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering_WTC$order, sample_order_WTC],
     name = "Normalized expression",
@@ -357,7 +357,7 @@ Heatmap(
     cluster_rows = FALSE,
     left_annotation = sub_clusters_WTC_ha,
     right_annotation = clusters_WTC_ha,
-    cluster_columns = FALSE,
+    cluster_columns = TRUE,
     show_row_names = FALSE,
     row_names_side = "left",
     show_column_names = TRUE,

@@ -539,37 +539,86 @@ for (dayrange in names(DE_days_dorsal)) {
     )
 }
 
-
 genes_ventral <- list(
-    day_04_02 = filter(DEGs_day_04_vs_02_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_06_04 = filter(DEGs_day_06_vs_04_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_08_06 = filter(DEGs_day_08_vs_06_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_10_08 = filter(DEGs_day_10_vs_08_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_12_10 = filter(DEGs_day_12_vs_10_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene
+    day_04_02 = filter(DEGs_day_04_vs_02_ventral, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_06_04 = filter(DEGs_day_06_vs_04_ventral, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_08_06 = filter(DEGs_day_08_vs_06_ventral, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_10_08 = filter(DEGs_day_10_vs_08_ventral, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_12_10 = filter(DEGs_day_12_vs_10_ventral, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene
 ) %>% Reduce(union, .)
 DE_df_ventral <- data.frame(
     gene = genes_ventral,
-    day_04_02 = ifelse(genes_ventral %in% filter(DEGs_day_04_vs_02_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_06_04 = ifelse(genes_ventral %in% filter(DEGs_day_06_vs_04_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_08_06 = ifelse(genes_ventral %in% filter(DEGs_day_08_vs_06_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_10_08 = ifelse(genes_ventral %in% filter(DEGs_day_10_vs_08_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_12_10 = ifelse(genes_ventral %in% filter(DEGs_day_12_vs_10_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no")
+    day_04_02 = ifelse(
+        genes_ventral %in% filter(DEGs_day_04_vs_02_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_ventral %in% filter(DEGs_day_04_vs_02_ventral, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_06_04 = ifelse(
+        genes_ventral %in% filter(DEGs_day_06_vs_04_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_ventral %in% filter(DEGs_day_06_vs_04_ventral, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_08_06 = ifelse(
+        genes_ventral %in% filter(DEGs_day_08_vs_06_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_ventral %in% filter(DEGs_day_08_vs_06_ventral, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_10_08 = ifelse(
+        genes_ventral %in% filter(DEGs_day_10_vs_08_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_ventral %in% filter(DEGs_day_10_vs_08_ventral, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_12_10 = ifelse(
+        genes_ventral %in% filter(DEGs_day_12_vs_10_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_ventral %in% filter(DEGs_day_12_vs_10_ventral, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    )
 )
 write.csv(DE_df_ventral, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", quote = FALSE)
 
 genes_dorsal <- list(
-    day_04_02 = filter(DEGs_day_04_vs_02_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_06_04 = filter(DEGs_day_06_vs_04_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_08_06 = filter(DEGs_day_08_vs_06_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_10_08 = filter(DEGs_day_10_vs_08_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
-    day_12_10 = filter(DEGs_day_12_vs_10_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene
+    day_04_02 = filter(DEGs_day_04_vs_02_dorsal, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_06_04 = filter(DEGs_day_06_vs_04_dorsal, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_08_06 = filter(DEGs_day_08_vs_06_dorsal, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_10_08 = filter(DEGs_day_10_vs_08_dorsal, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_12_10 = filter(DEGs_day_12_vs_10_dorsal, abs(log2FoldChange) >= 1 & padj < 0.01 & !is.na(gene))$gene
 ) %>% Reduce(union, .)
 DE_df_dorsal <- data.frame(
     gene = genes_dorsal,
-    day_04_02 = ifelse(genes_dorsal %in% filter(DEGs_day_04_vs_02_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_06_04 = ifelse(genes_dorsal %in% filter(DEGs_day_06_vs_04_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_08_06 = ifelse(genes_dorsal %in% filter(DEGs_day_08_vs_06_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_10_08 = ifelse(genes_dorsal %in% filter(DEGs_day_10_vs_08_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
-    day_12_10 = ifelse(genes_dorsal %in% filter(DEGs_day_12_vs_10_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no")
+    day_04_02 = ifelse(
+        genes_dorsal %in% filter(DEGs_day_04_vs_02_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_dorsal %in% filter(DEGs_day_04_vs_02_dorsal, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_06_04 = ifelse(
+        genes_dorsal %in% filter(DEGs_day_06_vs_04_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_dorsal %in% filter(DEGs_day_06_vs_04_dorsal, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_08_06 = ifelse(
+        genes_dorsal %in% filter(DEGs_day_08_vs_06_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_dorsal %in% filter(DEGs_day_08_vs_06_dorsal, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_10_08 = ifelse(
+        genes_dorsal %in% filter(DEGs_day_10_vs_08_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_dorsal %in% filter(DEGs_day_10_vs_08_dorsal, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    ),
+    day_12_10 = ifelse(
+        genes_dorsal %in% filter(DEGs_day_12_vs_10_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "UP",
+        ifelse(
+            genes_dorsal %in% filter(DEGs_day_12_vs_10_dorsal, log2FoldChange <= -1 & padj < 0.01 & !is.na(gene))$gene, "DOWN", "no"
+        )
+    )
 )
 write.csv(DE_df_dorsal, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_dorsal.csv", quote = FALSE)
