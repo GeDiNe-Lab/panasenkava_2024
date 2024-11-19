@@ -348,7 +348,7 @@ for (cluster in unique(clusters_WTC)) {
     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_diapo", cluster, "_WTC.csv"))
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_WTC.png"), goplot, width = 19, height = 10)
 }
-
+table(clusters_WTC)
 png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC_test.png", width = 2400, height = 1600, res = 250)
 Heatmap(
     scaled_mat[clustering_WTC$order, sample_order_WTC],
@@ -396,7 +396,7 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
 # filtering out lowly expressed genes
 lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
@@ -420,19 +420,20 @@ filter(dbd_ventral, gene %in% selection_v) %>% View()
 selection_d <- c("CNTN2", "CNTNAP2", "EMX2", "GDF7", "GLI3", "GRIP2", "NELL2", "PAX3", "PAX6", "SYT4")
 filter(dbd_dorsal, gene %in% selection_d) %>% View()
 
-DE <- "day_6_10"
-genes_dorsal <- filter(
-    dbd_dorsal,
-    day_04_02 == "no",
-    day_06_04 == "no",
-    day_08_06 == "YES",
-    day_10_08 == "YES",
-    day_12_10 == "no",
+DE <- "day_UP_2_4_thenDOWN"
+genes_ventral <- filter(
+    dbd_ventral,
+    day_04_02 == "UP",
+    day_06_04 != "DOWN",
+    day_08_06 != "UP",
+    day_10_08 != "UP",
+    day_12_10 != "UP",
 )$gene
+genes_ventral
 
-lp_meta <- filter(lp_meta, type != "ventral")
+lp_meta <- filter(lp_meta, type != "dorsal")
 scaled_lp_vsd <- assay(lp_vsd)[, lp_meta$sample] - min(assay(lp_vsd)[, lp_meta$sample])
-lp_df_1 <- t(scaled_lp_vsd[genes_dorsal %>% gene_converter("SYMBOL", "ENSEMBL"), ])
+lp_df_1 <- t(scaled_lp_vsd[genes_ventral %>% gene_converter("SYMBOL", "ENSEMBL"), ])
 colnames(lp_df_1) <- colnames(lp_df_1) %>% gene_converter("ENSEMBL", "SYMBOL")
 lp_df_1 <- cbind(dplyr::select(lp_meta, "day"), lp_df_1)
 
@@ -451,7 +452,7 @@ df_mean <- df_long %>%
     group_by(day) %>%
     summarise(mean_of_means = mean(mean_value, na.rm = TRUE))
 
-df_long$selection <- ifelse(df_long$gene %in% selection_d, "Selected", "Not selected")
+df_long$selection <- ifelse(df_long$gene %in% selection_v, "Selected", "Not selected")
 # Plot
 # Determine label positions for "Selected" genes (last day for each selected gene)
 label_positions <- df_long %>%
@@ -501,4 +502,4 @@ ggplot() +
         axis.title.x = element_blank(),
         axis.text.x = element_text(size = 16),
     )
-ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_LON_genes_dorsal_", DE, ".png"), width = 10, height = 8)
+ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_WTC_genes_ventral_", DE, ".png"), width = 10, height = 8)
