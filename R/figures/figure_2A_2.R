@@ -199,25 +199,44 @@ write.csv(DE_df_dorsal, file = "/home/jules/Documents/phd/projects/panasenkava_2
 
 # Making Volcano plots
 DE_vAN_vs_dAN <- list(
-    day_02 = DEGs_vAN_vs_dAN_day02_f,
-    day_04 = DEGs_vAN_vs_dAN_day04_f,
-    day_06 = DEGs_vAN_vs_dAN_day06_f,
-    day_08 = DEGs_vAN_vs_dAN_day08_f,
-    day_10 = DEGs_vAN_vs_dAN_day10_f,
-    day_12 = DEGs_vAN_vs_dAN_day12_f
+    day_02 = DEGs_vAN_vs_dAN_day02,
+    day_04 = DEGs_vAN_vs_dAN_day04,
+    day_06 = DEGs_vAN_vs_dAN_day06,
+    day_08 = DEGs_vAN_vs_dAN_day08,
+    day_10 = DEGs_vAN_vs_dAN_day10,
+    day_12 = DEGs_vAN_vs_dAN_day12
 )
 names(DE_vAN_vs_dAN)
-
+DEGs_vAN_vs_dAN_day02 %>% View()
 for (days in names(DE_vAN_vs_dAN)) {
     print(days)
     DE <- DE_vAN_vs_dAN[[days]]
+    # Create a column for plotting, filter out the "yes" and "no" conditions
+    DE$dot_label <- ifelse(DE$classic_threshold == "yes" & DE$volcano_treshold == "no", "dot",
+        ifelse(DE$volcano_treshold == "yes", "label", NA)
+    )
+    View(DE)
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        geom_text(size = 2) +
+        # Plot dots for genes with "yes" in T1 and "no" in T2
+        geom_point(data = subset(DE, dot_label == "dot"), alpha = 0.2, size = 2) +
+        # Plot labels for genes with "yes" in T2
+        geom_text(
+            data = subset(DE, dot_label == "label"),
+            aes(x = log2FoldChange, y = -log10(padj), label = gene),
+            size = 3, hjust = -0.2
+        ) + # Adjust hjust to move label slightly to the right
         custom_theme() +
+        xlim(min(DE$log2FoldChange - 2), max(DE$log2FoldChange + 2)) +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs vAN vs dAN at ", days), subtitle = "|log2FC| >= 2 & FDR < 0.01")
-    ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_vAN_vs_dAN_", days, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+        labs(
+            x = "log2FoldChange", y = "-log10(padj)",
+        )
+
+    ggsave(
+        filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_vAN_vs_dAN_", days, ".png"),
+        units = "px", width = 1800, height = 1400, dpi = 250
+    )
 }
 
 # DEGs day04 vs day02 for dorsal samples
@@ -439,46 +458,118 @@ write.csv(DEGs_day_12_vs_06_dorsal, "/home/jules/Documents/phd/projects/panasenk
 
 # Making Volcano plots for ventral samples
 DE_days_ventral <- list(
-    day_04_vs_02 = DEGs_day_04_vs_02_ventral_f,
-    day_06_vs_04 = DEGs_day_06_vs_04_ventral_f,
-    day_08_vs_06 = DEGs_day_08_vs_06_ventral_f,
-    day_10_vs_08 = DEGs_day_10_vs_08_ventral_f,
-    day_12_vs_10 = DEGs_day_12_vs_10_ventral_f,
-    day_12_vs_06 = DEGs_day_12_vs_06_ventral_f
+    day_04_vs_02 = DEGs_day_04_vs_02_ventral,
+    day_06_vs_04 = DEGs_day_06_vs_04_ventral,
+    day_08_vs_06 = DEGs_day_08_vs_06_ventral,
+    day_10_vs_08 = DEGs_day_10_vs_08_ventral,
+    day_12_vs_10 = DEGs_day_12_vs_10_ventral,
+    day_12_vs_06 = DEGs_day_12_vs_06_ventral
 )
 names(DE_days_ventral)
 
 for (dayrange in names(DE_days_ventral)) {
     print(dayrange)
     DE <- DE_days_ventral[[dayrange]]
+    # Create a column for plotting, filter out the "yes" and "no" conditions
+    DE$dot_label <- ifelse(DE$classic_threshold == "yes" & DE$volcano_treshold == "no", "dot",
+        ifelse(DE$volcano_treshold == "yes", "label", NA)
+    )
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        geom_text(size = 2) +
+        # Plot dots for genes with "yes" in T1 and "no" in T2
+        geom_point(data = subset(DE, dot_label == "dot"), alpha = 0.2, size = 2) +
+        # Plot labels for genes with "yes" in T2
+        geom_text(
+            data = subset(DE, dot_label == "label"),
+            aes(x = log2FoldChange, y = -log10(padj), label = gene),
+            size = 3, hjust = -0.2
+        ) + # Adjust hjust to move label slightly to the right
         custom_theme() +
+        xlim(min(DE$log2FoldChange - 2), max(DE$log2FoldChange + 2)) +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for ventral samples ", dayrange), subtitle = "|log2FC| >= 2 & FDR < 0.01")
-    ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_ventral_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+        labs(
+            x = "log2FoldChange", y = "-log10(padj)",
+        )
+
+    ggsave(
+        filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_ventral_", dayrange, ".png"),
+        units = "px", width = 1800, height = 1400, dpi = 250
+    )
 }
+
 
 # Making Volcano plots for dorsal samples
 DE_days_dorsal <- list(
-    day_04_vs_02 = DEGs_day_04_vs_02_dorsal_f,
-    day_06_vs_04 = DEGs_day_06_vs_04_dorsal_f,
-    day_08_vs_06 = DEGs_day_08_vs_06_dorsal_f,
-    day_10_vs_08 = DEGs_day_10_vs_08_dorsal_f,
-    day_12_vs_10 = DEGs_day_12_vs_10_dorsal_f,
-    day_12_vs_06 = DEGs_day_12_vs_06_dorsal_f
+    day_04_vs_02 = DEGs_day_04_vs_02_dorsal,
+    day_06_vs_04 = DEGs_day_06_vs_04_dorsal,
+    day_08_vs_06 = DEGs_day_08_vs_06_dorsal,
+    day_10_vs_08 = DEGs_day_10_vs_08_dorsal,
+    day_12_vs_10 = DEGs_day_12_vs_10_dorsal,
+    day_12_vs_06 = DEGs_day_12_vs_06_dorsal
 )
 names(DE_days_dorsal)
 
 for (dayrange in names(DE_days_dorsal)) {
     print(dayrange)
     DE <- DE_days_dorsal[[dayrange]]
+    # Create a column for plotting, filter out the "yes" and "no" conditions
+    DE$dot_label <- ifelse(DE$classic_threshold == "yes" & DE$volcano_treshold == "no", "dot",
+        ifelse(DE$volcano_treshold == "yes", "label", NA)
+    )
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
-        geom_text(size = 2) +
+        # Plot dots for genes with "yes" in T1 and "no" in T2
+        geom_point(data = subset(DE, dot_label == "dot"), alpha = 0.2, size = 2) +
+        # Plot labels for genes with "yes" in T2
+        geom_text(
+            data = subset(DE, dot_label == "label"),
+            aes(x = log2FoldChange, y = -log10(padj), label = gene),
+            size = 3, hjust = -0.2
+        ) + # Adjust hjust to move label slightly to the right
         custom_theme() +
+        xlim(min(DE$log2FoldChange - 2), max(DE$log2FoldChange + 2)) +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
-        labs(x = "log2FoldChange", y = "-log10(padj)", title = paste0("DEGs for dorsal samples ", dayrange), subtitle = "|log2FC| >= 2 & FDR < 0.01")
-    ggsave(filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_dorsal_", dayrange, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
+        labs(
+            x = "log2FoldChange", y = "-log10(padj)",
+        )
+
+    ggsave(
+        filename = paste0("results/images/Figure_2A/volcano_plots/DEGs_dorsal_", dayrange, ".png"),
+        units = "px", width = 1800, height = 1400, dpi = 250
+    )
 }
+
+
+genes_ventral <- list(
+    day_04_02 = filter(DEGs_day_04_vs_02_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_06_04 = filter(DEGs_day_06_vs_04_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_08_06 = filter(DEGs_day_08_vs_06_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_10_08 = filter(DEGs_day_10_vs_08_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_12_10 = filter(DEGs_day_12_vs_10_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene
+) %>% Reduce(union, .)
+DE_df_ventral <- data.frame(
+    gene = genes_ventral,
+    day_04_02 = ifelse(genes_ventral %in% filter(DEGs_day_04_vs_02_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_06_04 = ifelse(genes_ventral %in% filter(DEGs_day_06_vs_04_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_08_06 = ifelse(genes_ventral %in% filter(DEGs_day_08_vs_06_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_10_08 = ifelse(genes_ventral %in% filter(DEGs_day_10_vs_08_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_12_10 = ifelse(genes_ventral %in% filter(DEGs_day_12_vs_10_ventral, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no")
+)
+write.csv(DE_df_ventral, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", quote = FALSE)
+
+genes_dorsal <- list(
+    day_04_02 = filter(DEGs_day_04_vs_02_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_06_04 = filter(DEGs_day_06_vs_04_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_08_06 = filter(DEGs_day_08_vs_06_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_10_08 = filter(DEGs_day_10_vs_08_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene,
+    day_12_10 = filter(DEGs_day_12_vs_10_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene
+) %>% Reduce(union, .)
+DE_df_dorsal <- data.frame(
+    gene = genes_dorsal,
+    day_04_02 = ifelse(genes_dorsal %in% filter(DEGs_day_04_vs_02_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_06_04 = ifelse(genes_dorsal %in% filter(DEGs_day_06_vs_04_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_08_06 = ifelse(genes_dorsal %in% filter(DEGs_day_08_vs_06_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_10_08 = ifelse(genes_dorsal %in% filter(DEGs_day_10_vs_08_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no"),
+    day_12_10 = ifelse(genes_dorsal %in% filter(DEGs_day_12_vs_10_dorsal, log2FoldChange >= 1 & padj < 0.01 & !is.na(gene))$gene, "YES", "no")
+)
+write.csv(DE_df_dorsal, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_dorsal.csv", quote = FALSE)
