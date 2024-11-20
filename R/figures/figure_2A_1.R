@@ -231,7 +231,7 @@ for (cluster in unique(clusters_LON)) {
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_LON.png"), goplot, width = 19, height = 10)
 }
 
-png(filename = "results/images/Figure_2A/F2A_DE_HM_LON.png", width = 2400, height = 1600, res = 250)
+png(filename = "results/images/Figure_2A/F2A_DE_HM_LON.png", width = 2400, height = 1600, res = 20)
 Heatmap(
     scaled_mat[clustering_LON$order, sample_order_LON],
     name = "Normalized expression",
@@ -348,8 +348,9 @@ for (cluster in unique(clusters_WTC)) {
     write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_diapo", cluster, "_WTC.csv"))
     ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_WTC.png"), goplot, width = 19, height = 10)
 }
-table(clusters_WTC)
-png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC_test.png", width = 2400, height = 1600, res = 250)
+
+
+png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 260)
 Heatmap(
     scaled_mat[clustering_WTC$order, sample_order_WTC],
     name = "Normalized expression",
@@ -357,7 +358,7 @@ Heatmap(
     cluster_rows = FALSE,
     left_annotation = sub_clusters_WTC_ha,
     right_annotation = clusters_WTC_ha,
-    cluster_columns = TRUE,
+    cluster_columns = FALSE,
     show_row_names = FALSE,
     row_names_side = "left",
     show_column_names = TRUE,
@@ -389,14 +390,14 @@ rownames(genes_cluster) <- hm_genes
 write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
 
 
-
+library(paletteer)
 
 rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
 rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
 # filtering out lowly expressed genes
 lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
@@ -414,22 +415,42 @@ dbd_ventral <- filter(dbd_ventral, gene %in% gene_converter(rownames(lp_vsd), "E
 dbd_dorsal <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_dorsal.csv", header = TRUE)
 dbd_dorsal <- filter(dbd_dorsal, gene %in% gene_converter(rownames(lp_vsd), "ENSEMBL", "SYMBOL"))
 
-selection_v <- c("CAPN6", "CLSTN2", "DDC", "DRC1", "FOXA2", "FREM1", "GADL1", "LINC00261", "LRRK2", "NKX2-1", "PLC1", "PTCH1", "SHH", "SLIT2")
-filter(dbd_ventral, gene %in% selection_v) %>% View()
+selection_v_known <- c("FGF10", "LRP2", "FGF9", "FOXA2", "NKX2-2", "RAX", "NKX2-1", "SIX3", "SHH", "PTCH1", "GADL1", "DRC1", "CLSTN2")
+selection_v_new <- c("CAPN6", "PLCL1", "FRZB", "FREM1", "LINC01833", "LINC00261", "SPON1", "DDC", "SLIT2", "LRRK2", "SMIM32")
 
 selection_d <- c("CNTN2", "CNTNAP2", "EMX2", "GDF7", "GLI3", "GRIP2", "NELL2", "PAX3", "PAX6", "SYT4")
-filter(dbd_dorsal, gene %in% selection_d) %>% View()
 
-DE <- "day_UP_2_4_thenDOWN"
+
+DE <- "from_day_2"
+
+# by_day
 genes_ventral <- filter(
     dbd_ventral,
     day_04_02 == "UP",
-    day_06_04 != "DOWN",
-    day_08_06 != "UP",
-    day_10_08 != "UP",
-    day_12_10 != "UP",
+    # day_06_04 == "UP",
+    # day_08_06 == "UP",
+    # day_10_08 == "UP",
+    # day_12_10 != "UP"
 )$gene
 genes_ventral
+# # early
+# genes_ventral <- filter(
+#     dbd_ventral,
+#     (day_04_02 == "UP" | day_06_04 == "UP"),
+#     (day_04_02 != "DOWN" & day_06_04 != "DOWN"),
+#     day_08_06 != "UP",
+#     day_10_08 != "UP",
+#     day_12_10 != "UP"
+# )$gene
+# genes_ventral
+# tardif
+# genes_ventral <- filter(
+#     dbd_ventral,
+#     day_04_02 != "UP",
+#     day_06_04 != "UP",
+#     (day_08_06 == "UP" | day_10_08 == "UP" | day_12_10 == "UP"),
+#     (day_08_06 != "DOWN" & day_10_08 != "DOWN" & day_12_10 != "DOWN")
+# )$gene
 
 lp_meta <- filter(lp_meta, type != "dorsal")
 scaled_lp_vsd <- assay(lp_vsd)[, lp_meta$sample] - min(assay(lp_vsd)[, lp_meta$sample])
@@ -452,33 +473,35 @@ df_mean <- df_long %>%
     group_by(day) %>%
     summarise(mean_of_means = mean(mean_value, na.rm = TRUE))
 
-df_long$selection <- ifelse(df_long$gene %in% selection_v, "Selected", "Not selected")
+df_long$selection <- ifelse(df_long$gene %in% selection_v_known, "known", "no")
+df_long$selection <- ifelse(df_long$gene %in% selection_v_new, "new", df_long$selection)
+df_long$selection
 # Plot
 # Determine label positions for "Selected" genes (last day for each selected gene)
 label_positions <- df_long %>%
-    filter(selection == "Selected") %>%
+    filter(selection != "no") %>%
     group_by(gene) %>%
     slice_tail(n = 1)
 
 ggplot() +
     # Plot "Not selected" genes in light grey
     geom_line(
-        data = filter(df_long, selection == "Not selected"),
+        data = filter(df_long, selection == "no"),
         aes(x = day, y = mean_value, group = gene),
         color = "lightgrey", size = 0.5
     ) +
     # Plot "Selected" genes with unique colors using the color palette
     geom_line(
-        data = filter(df_long, selection == "Selected"),
-        aes(x = day, y = mean_value, group = gene, color = gene),
+        data = filter(df_long, selection != "no"),
+        aes(x = day, y = mean_value, group = gene, color = selection),
         size = 1
     ) +
     # Add labels for "Selected" genes at the last point
     geom_text_repel(
         data = label_positions,
-        aes(x = day, y = mean_value, label = gene, color = gene),
-        size = 4, nudge_x = 1, direction = "y",
-        hjust = 0, segment.color = "grey50", segment.size = 0.5
+        aes(x = day, y = mean_value, label = gene, color = selection),
+        size = 5, nudge_x = 1, direction = "y",
+        hjust = 0, segment.color = "grey50", segment.size = 0.5, force = 0.1
     ) +
     # Overlay the overall mean in black with a thicker line
     geom_line(
@@ -502,4 +525,4 @@ ggplot() +
         axis.title.x = element_blank(),
         axis.text.x = element_text(size = 16),
     )
-ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_WTC_genes_ventral_", DE, ".png"), width = 10, height = 8)
+ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/specific_timepoints_lineplots/F2A_lineplots_LON_genes_ventral_", DE, ".png"), width = 12, height = 10)
