@@ -149,7 +149,6 @@ sample_order_LON <- c(
 clustering_LON <- hclust(dist(scaled_mat[, sample_order_LON]))
 clusters_LON <- cutree(clustering_LON, k = 4)
 
-
 sub_clusters_LON_list <- unique(clusters_LON) %>% lapply(function(cluster) {
     sub_mat <- scaled_mat[names(clusters_LON[which(clusters_LON == cluster)]), sample_order_LON]
     sub_clustering_LON <- hclust(dist(sub_mat))
@@ -264,7 +263,19 @@ sample_order_WTC <- c(
 
 
 clustering_WTC <- hclust(dist(scaled_mat[, sample_order_WTC]))
-clusters_WTC <- cutree(clustering_WTC, k = 4)
+clusters_WTC <- cutree(clustering_WTC, h = 9)
+
+# Find the heights for merging clusters
+merge_heights <- sort(clustering_WTC$height, decreasing = TRUE)
+
+# Interval for h to get two clusters
+h_start <- merge_heights[4] # Second largest height where split happens
+h_end <- merge_heights[3] # Largest height before all merge into one cluster
+
+# Output interval
+cat("Interval for h to get k=2: (", h_start, ",", h_end, "]\n")
+
+
 
 # Replace values
 clusters_WTC <- ifelse(clusters_WTC == 1, "Early differentiation",
@@ -350,7 +361,7 @@ for (cluster in unique(clusters_WTC)) {
 }
 
 
-png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC.png", width = 2400, height = 1600, res = 260)
+png(filename = "results/images/Figure_2A/F2A_DE_HM_WTC_test.png", width = 2400, height = 1600, res = 260)
 Heatmap(
     scaled_mat[clustering_WTC$order, sample_order_WTC],
     name = "Normalized expression",
@@ -358,7 +369,7 @@ Heatmap(
     cluster_rows = FALSE,
     left_annotation = sub_clusters_WTC_ha,
     right_annotation = clusters_WTC_ha,
-    cluster_columns = FALSE,
+    cluster_columns = TRUE,
     show_row_names = FALSE,
     row_names_side = "left",
     show_column_names = TRUE,
@@ -391,13 +402,68 @@ write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
 
 
 library(paletteer)
-
+library(DEGreport)
 rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
 rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
+dbd_ventral <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", header = TRUE)
+genes <- dbd_ventral$gene
+
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
+# filtering out lowly expressed genes
+lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
+lp_meta %>% View()
+# making DESeq object with lineage,days and type as covariates
+lp_vsd <- DESeqDataSetFromMatrix(
+    countData = lp_counts,
+    colData = lp_meta,
+    design = ~day
+) %>% vst(blind = FALSE)
+filtered <- assay(lp_vsd)[rownames(lp_vsd) %in% gene_converter(genes, "SYMBOL", "ENSEMBL"), ]
+rownames(lp_meta) <- lp_meta$sample
+lp_meta$day <- as.factor(lp_meta$day)
+
+clusters <- degPatterns(
+    filtered,
+    meta = lp_meta,
+    time = "day",
+    reduce = TRUE,
+    nClusters = 10,
+)
+df_cluster <- clusters$df
+clusters$normalize %>% View()
+
+
+df_cluster$symbol <- df_cluster$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+df_cluster$refseq <- df_cluster$genes %>% gene_converter("ENSEMBL", "REFSEQ")
+df_cluster %>% View()
+filter(df_cluster, cluster == 9)$symbol
+
+write.csv(df_cluster, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/DEGpattern.csv", quote = FALSE, row.names = FALSE)
+assay(lp_vsd)[filter(df_cluster, cluster == 9)$genes, c("WTC6c_V12_L1", "WTC6c_V12_L2")] %>% View()
+
+degPlotCluster(table, time,
+    color = NULL, min_genes = 10,
+    process = FALSE, points = TRUE, boxes = TRUE, smooth = TRUE,
+    lines = TRUE, facet = TRUE, cluster_column = "cluster"
+)
+
+
+gene_converter(c("CAPN6", "FREM1", "FGF19", "HTR1D", "SPON1", "GPC3", "LRP2", "SOX3"), "SYMBOL", "REFSEQ")
+
+
+
+
+
+
+
+
+
+
+
 # LON71_D12_2 does not have any reads in the count file
 # though, the fastQC report shows that the sample is good
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
 # filtering out lowly expressed genes
 lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
@@ -420,28 +486,34 @@ selection_v_new <- c("CAPN6", "PLCL1", "FRZB", "FREM1", "LINC01833", "LINC00261"
 
 selection_d <- c("CNTN2", "CNTNAP2", "EMX2", "GDF7", "GLI3", "GRIP2", "NELL2", "PAX3", "PAX6", "SYT4")
 
+loess_marker_genes <- c("NKX2-1", "PTCH1", "FOXA2", "FGF19", "FREM1")
 
-DE <- "from_day_2"
+
+mean_df <- assay(lp_vsd)[!rownames(assay(lp_vsd)) %in% c(loess_marker_genes %>% gene_converter("SYMBOL", "ENSEMBL")), ]
+
+DESeq2::DEpa
+
+DE <- "UP_then_DOWN"
 
 # by_day
-genes_ventral <- filter(
-    dbd_ventral,
-    day_04_02 == "UP",
-    # day_06_04 == "UP",
-    # day_08_06 == "UP",
-    # day_10_08 == "UP",
-    # day_12_10 != "UP"
-)$gene
-genes_ventral
-# # early
 # genes_ventral <- filter(
 #     dbd_ventral,
-#     (day_04_02 == "UP" | day_06_04 == "UP"),
-#     (day_04_02 != "DOWN" & day_06_04 != "DOWN"),
-#     day_08_06 != "UP",
-#     day_10_08 != "UP",
-#     day_12_10 != "UP"
+#     day_04_02 == "UP",
+#     # day_06_04 == "UP",
+#     # day_08_06 == "UP",
+#     # day_10_08 == "UP",
+#     # day_12_10 != "UP"
 # )$gene
+# genes_ventral
+# # early
+genes_ventral <- filter(
+    dbd_ventral,
+    (day_04_02 == "UP" | day_06_04 == "UP"),
+    (day_04_02 != "DOWN" & day_06_04 != "DOWN"),
+    day_08_06 != "UP",
+    day_10_08 != "UP",
+    day_12_10 != "UP"
+)$gene
 # genes_ventral
 # tardif
 # genes_ventral <- filter(
@@ -452,11 +524,14 @@ genes_ventral
 #     (day_08_06 != "DOWN" & day_10_08 != "DOWN" & day_12_10 != "DOWN")
 # )$gene
 
+genes_ventral <- loess_marker_genes
+
 lp_meta <- filter(lp_meta, type != "dorsal")
-scaled_lp_vsd <- assay(lp_vsd)[, lp_meta$sample] - min(assay(lp_vsd)[, lp_meta$sample])
-lp_df_1 <- t(scaled_lp_vsd[genes_ventral %>% gene_converter("SYMBOL", "ENSEMBL"), ])
+# scaled_lp_vsd <- assay(lp_vsd)[, lp_meta$sample] - min(assay(lp_vsd)[, lp_meta$sample])
+lp_df_1 <- t(assay(lp_vsd)[genes_ventral %>% gene_converter("SYMBOL", "ENSEMBL"), lp_meta$sample])
 colnames(lp_df_1) <- colnames(lp_df_1) %>% gene_converter("ENSEMBL", "SYMBOL")
 lp_df_1 <- cbind(dplyr::select(lp_meta, "day"), lp_df_1)
+lp_df_1
 
 # Reshape dataframe to long format and compute mean by day for each gene
 df_long <- lp_df_1 %>%
@@ -468,61 +543,231 @@ df_long <- lp_df_1 %>%
     group_by(day, gene) %>%
     summarise(mean_value = mean(value, na.rm = TRUE), .groups = "drop") # Compute mean
 
-# Compute mean of means for each day
-df_mean <- df_long %>%
-    group_by(day) %>%
-    summarise(mean_of_means = mean(mean_value, na.rm = TRUE))
 
 df_long$selection <- ifelse(df_long$gene %in% selection_v_known, "known", "no")
 df_long$selection <- ifelse(df_long$gene %in% selection_v_new, "new", df_long$selection)
-df_long$selection
-# Plot
-# Determine label positions for "Selected" genes (last day for each selected gene)
+
+df_long$day_numeric <- match(df_long$day, c("day00", "day02", "day04", "day06", "day08", "day10", "day12"))
+
+clustering <- rep(0, length(colnames(dplyr::select(lp_df_1, !c("day")))))
+# clustering <- hclust(as.dist(1 - cor(dplyr::select(lp_df_1, !c("day"))))) %>%
+#     dynamicTreeCut::cutreeDynamic(cutHeight = 0.9, minClusterSize = 45)
+clustering %>% table()
+names(clustering) <- colnames(dplyr::select(lp_df_1, !c("day")))
+df_long$clustering <- clustering[df_long$gene]
+
+df_fit <- data.frame(day = unique(df_long$day))
+df_fit <- cbind(
+    df_fit, Reduce(cbind, lapply(unique(clustering), function(cluster) {
+        return(unique(predict(loess(mean_value ~ day_numeric, data = filter(df_long, clustering == cluster), span = 0.25))))
+    }))
+)
+colnames(df_fit) <- c("day", paste0("fit", (as.character(unique(clustering)))))
+
+
+loess_fit <- df_fit
+
+
+
 label_positions <- df_long %>%
     filter(selection != "no") %>%
     group_by(gene) %>%
     slice_tail(n = 1)
 
-ggplot() +
-    # Plot "Not selected" genes in light grey
-    geom_line(
-        data = filter(df_long, selection == "no"),
-        aes(x = day, y = mean_value, group = gene),
-        color = "lightgrey", size = 0.5
-    ) +
-    # Plot "Selected" genes with unique colors using the color palette
-    geom_line(
-        data = filter(df_long, selection != "no"),
-        aes(x = day, y = mean_value, group = gene, color = selection),
-        size = 1
-    ) +
-    # Add labels for "Selected" genes at the last point
-    geom_text_repel(
-        data = label_positions,
-        aes(x = day, y = mean_value, label = gene, color = selection),
-        size = 5, nudge_x = 1, direction = "y",
-        hjust = 0, segment.color = "grey50", segment.size = 0.5, force = 0.1
-    ) +
-    # Overlay the overall mean in black with a thicker line
-    geom_line(
-        data = df_mean, aes(x = day, y = mean_of_means, group = 1),
-        color = "black", size = 1.5 # Thicker line for the mean
-    ) +
-    # Add a label for the mean line
-    annotate("text",
-        x = max(df_mean$day), y = max(df_mean$mean_of_means),
-        label = "Mean Expression", color = "black", size = 5, hjust = 1, vjust = 0
-    ) +
-    # Customize labels and theme
-    labs(
-        y = "Scaled mean expression by day",
-    ) +
-    # Apply color palette for selected genes
-    scale_color_paletteer_d("ggsci::category20_d3") + # Use the "category20_d3" palette
-    custom_theme(diag_text = TRUE) +
-    theme(
-        legend.position = "none", # Remove legend
-        axis.title.x = element_blank(),
-        axis.text.x = element_text(size = 16),
+for (cluster in unique(clustering)) {
+    fit <- colnames(df_fit)[2 + cluster]
+    df_fit$fit <- df_fit[, fit]
+    lineplot <- ggplot() +
+        # Plot "Not selected" genes in light grey
+        geom_line(
+            data = filter(df_long, clustering == cluster, selection == "no"),
+            aes(x = day, y = mean_value, group = gene),
+            color = "lightgrey", size = 0.5
+        ) +
+        # Plot "Selected" genes with unique colors using the color palette
+        geom_line(
+            data = filter(df_long, clustering == cluster, selection != "no"),
+            aes(x = day, y = mean_value, group = gene, color = selection),
+            size = 1
+        ) +
+        # Add labels for "Selected" genes at the last point
+        geom_text_repel(
+            data = filter(label_positions, clustering == cluster),
+            aes(x = day, y = mean_value, label = gene, color = selection),
+            size = 5, nudge_x = 1, direction = "y",
+            hjust = 0, segment.color = "grey50", segment.size = 0.5, force = 0.1
+        ) +
+        # Overlay the overall mean in black with a thicker line
+        geom_line(
+            data = df_fit, aes(x = day, y = fit, group = 1),
+            color = "black", size = 1.5 # Thicker line for the mean
+        ) +
+        # Add a label for the mean line
+        annotate("text",
+            x = max(df_fit$day), y = max(df_fit$fit),
+            label = "Mean Expression", color = "black", size = 5, hjust = 1, vjust = 0
+        ) +
+        # Customize labels and theme
+        labs(
+            y = "Scaled mean expression by day",
+        ) +
+        # Apply color palette for selected genes
+        scale_color_paletteer_d("ggsci::category20_d3") + # Use the "category20_d3" palette
+        custom_theme(diag_text = TRUE) +
+        theme(
+            legend.position = "none", # Remove legend
+            axis.title.x = element_blank(),
+            axis.text.x = element_text(size = 16),
+        )
+
+    ggsave(plot = lineplot, paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/F2A_lineplots_WTC_genes_ventral_", DE, cluster, ".png"), width = 12, height = 10)
+}
+
+
+
+
+
+
+
+rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
+rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
+
+# LON71_D12_2 does not have any reads in the count file
+# though, the fastQC report shows that the sample is good
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))) | (sample == "WTC6cipc"))
+lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day00"
+# filtering out lowly expressed genes
+lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
+
+# making DESeq object with lineage,days and type as covariates
+lp_vsd <- DESeqDataSetFromMatrix(
+    countData = lp_counts,
+    colData = lp_meta,
+    design = ~day
+) %>% vst(blind = FALSE)
+
+dbd_ventral <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", header = TRUE)
+dbd_ventral <- filter(dbd_ventral, gene %in% gene_converter(rownames(lp_vsd), "ENSEMBL", "SYMBOL"))
+
+dbd_dorsal <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_dorsal.csv", header = TRUE)
+dbd_dorsal <- filter(dbd_dorsal, gene %in% gene_converter(rownames(lp_vsd), "ENSEMBL", "SYMBOL"))
+
+selection_v_known <- c("FGF10", "LRP2", "FGF9", "FOXA2", "NKX2-2", "RAX", "NKX2-1", "SIX3", "SHH", "PTCH1", "GADL1", "DRC1", "CLSTN2")
+selection_v_new <- c("CAPN6", "PLCL1", "FRZB", "FREM1", "LINC01833", "LINC00261", "SPON1", "DDC", "SLIT2", "LRRK2", "SMIM32")
+# selection_v_new <- c("")
+
+selection_d <- c("CNTN2", "CNTNAP2", "EMX2", "GDF7", "GLI3", "GRIP2", "NELL2", "PAX3", "PAX6", "SYT4")
+
+excluded <- "dorsal"
+dbd <- dbd_ventral
+
+DE_list <- list(
+    filter(
+        dbd,
+        (day_04_02 == "UP" | day_06_04 == "UP"),
+        (day_04_02 != "DOWN" & day_06_04 != "DOWN"),
+        day_08_06 != "UP",
+        day_10_08 != "UP",
+        day_12_10 != "UP"
+    )$gene,
+    filter(dbd, day_04_02 == "UP")$gene,
+    filter(dbd, day_04_02 != "UP", day_06_04 == "UP")$gene,
+    filter(dbd, day_04_02 != "UP", day_06_04 != "UP", day_08_06 == "UP")$gene,
+    filter(dbd, day_04_02 != "UP", day_06_04 != "UP", day_08_06 != "UP", day_10_08 == "UP")$gene,
+    filter(dbd, day_04_02 != "UP", day_06_04 != "UP", day_08_06 != "UP", day_10_08 != "UP", day_12_10 == "UP")$gene
+)
+names(DE_list) <- c("UP_then_DOWN", "from_day_2", "from_day_4", "from_day_6", "from_day_8", "from_day_10")
+
+for (DE in names(DE_list)) {
+    filtered_genes <- DE_list[DE] %>%
+        unlist() %>%
+        unname()
+    filtered_genes
+    lp_meta <- filter(lp_meta, type != excluded)
+    scaled_lp_vsd <- assay(lp_vsd)[, lp_meta$sample] - min(assay(lp_vsd)[, lp_meta$sample])
+    lp_df_1 <- t(scaled_lp_vsd[filtered_genes %>% gene_converter("SYMBOL", "ENSEMBL"), ])
+    colnames(lp_df_1) <- colnames(lp_df_1) %>% gene_converter("ENSEMBL", "SYMBOL")
+    lp_df_1 <- cbind(dplyr::select(lp_meta, "day"), lp_df_1)
+
+
+    # Reshape dataframe to long format and compute mean by day for each gene
+    df_long <- lp_df_1 %>%
+        pivot_longer(
+            cols = -day, # All columns except "day"
+            names_to = "gene",
+            values_to = "value"
+        ) %>%
+        group_by(day, gene) %>%
+        summarise(mean_value = mean(value, na.rm = TRUE), .groups = "drop") # Compute mean
+
+
+
+    df_long$selection <- ifelse(df_long$gene %in% selection_v_known, "known", "no")
+    df_long$selection <- ifelse(df_long$gene %in% selection_v_new, "new", df_long$selection)
+    print(df_long$selection)
+    df_long$day_numeric <- match(df_long$day, c("day00", "day02", "day04", "day06", "day08", "day10", "day12"))
+
+    clustering <- rep(0, length(colnames(dplyr::select(lp_df_1, !c("day")))))
+    names(clustering) <- colnames(dplyr::select(lp_df_1, !c("day")))
+    df_long$clustering <- clustering[df_long$gene]
+
+    df_fit <- data.frame(day = unique(df_long$day))
+    df_fit <- cbind(
+        df_fit, Reduce(cbind, lapply(unique(clustering), function(cluster) {
+            return(unique(predict(loess(mean_value ~ day_numeric, data = filter(df_long, clustering == cluster), span = 0.25))))
+        }))
     )
-ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/specific_timepoints_lineplots/F2A_lineplots_LON_genes_ventral_", DE, ".png"), width = 12, height = 10)
+    colnames(df_fit) <- c("day", paste0("fit", (as.character(unique(clustering)))))
+
+    label_positions <- df_long %>%
+        filter(selection != "no") %>%
+        group_by(gene) %>%
+        slice_tail(n = 1)
+
+    for (cluster in unique(clustering)) {
+        fit <- colnames(df_fit)[2 + cluster]
+        df_fit$fit <- df_fit[, fit]
+        lineplot <- ggplot() +
+            # Plot "Not selected" genes in light grey
+            geom_line(
+                data = filter(df_long, clustering == cluster, selection == "no"),
+                aes(x = day, y = mean_value, group = gene),
+                color = "lightgrey", size = 0.5
+            ) +
+            # Plot "Selected" genes with unique colors using the color palette
+            geom_line(
+                data = filter(df_long, clustering == cluster, selection != "no"),
+                aes(x = day, y = mean_value, group = gene, color = selection),
+                size = 1
+            ) +
+            scale_color_manual(
+                values = c("new" = "#ff7f0e", "known" = "#1f77b4") # Define colors for "new" and "known"
+            ) +
+            # Add labels for "Selected" genes at the last point
+            geom_text_repel(
+                data = filter(label_positions, clustering == cluster),
+                aes(x = day, y = mean_value, label = gene, color = selection),
+                size = 9, nudge_x = 2, direction = "y",
+                hjust = 0, segment.color = "grey50", segment.size = 1, force = 2, force.pull = 0.2
+            ) +
+            # Overlay the overall mean in black with a thicker line
+            geom_line(
+                data = df_fit, aes(x = day, y = fit, group = 1),
+                color = "black", size = 1.5 # Thicker line for the mean
+            ) +
+            # Customize labels and theme
+            labs(
+                y = "Scaled mean expression by day",
+            ) +
+            # Apply color palette for selected genes
+            custom_theme(diag_text = TRUE) +
+            theme(
+                legend.position = "none", # Remove legend
+                axis.title.x = element_blank(),
+                axis.text.x = element_text(size = 16),
+                plot.margin = margin(t = 5, r = 5, b = 5, l = 5, unit = "pt") # Increase the right margin
+            )
+
+        ggsave(plot = lineplot, paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/specific_timepoints_lineplots/F2A_lineplots_WTC_genes_ventral_", DE, ".png"), width = 12, height = 10)
+    }
+}

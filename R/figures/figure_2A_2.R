@@ -196,7 +196,7 @@ DE_df_dorsal <- data.frame(
 )
 write.csv(DE_df_dorsal, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_by_day_dorsal.csv", quote = FALSE)
 
-
+DEGs_vAN_vs_dAN_day02
 # Making Volcano plots
 DE_vAN_vs_dAN <- list(
     day_02 = DEGs_vAN_vs_dAN_day02,
@@ -207,15 +207,15 @@ DE_vAN_vs_dAN <- list(
     day_12 = DEGs_vAN_vs_dAN_day12
 )
 names(DE_vAN_vs_dAN)
-DEGs_vAN_vs_dAN_day02 %>% View()
+
 for (days in names(DE_vAN_vs_dAN)) {
     print(days)
+    days <- "day_02"
     DE <- DE_vAN_vs_dAN[[days]]
     # Create a column for plotting, filter out the "yes" and "no" conditions
     DE$dot_label <- ifelse(DE$classic_threshold == "yes" & DE$volcano_treshold == "no", "dot",
-        ifelse(DE$volcano_treshold == "yes", "label", NA)
+        ifelse(DE$volcano_treshold == "yes", "label", "dot")
     )
-    View(DE)
     ggplot(DE, aes(x = log2FoldChange, y = -log10(padj), label = gene)) +
         # Plot dots for genes with "yes" in T1 and "no" in T2
         geom_point(data = subset(DE, dot_label == "dot"), alpha = 0.2, size = 2) +
@@ -227,6 +227,7 @@ for (days in names(DE_vAN_vs_dAN)) {
         ) + # Adjust hjust to move label slightly to the right
         custom_theme() +
         xlim(min(DE$log2FoldChange - 2), max(DE$log2FoldChange + 2)) +
+        ylim(0, 25) +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
         labs(
@@ -522,6 +523,7 @@ for (dayrange in names(DE_days_ventral)) {
         ) + # Adjust hjust to move label slightly to the right
         custom_theme() +
         xlim(min(DE$log2FoldChange - 2), max(DE$log2FoldChange + 2)) +
+        ylim(0, 15) +
         geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
         geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
         labs(
@@ -548,6 +550,7 @@ names(DE_days_dorsal)
 
 for (dayrange in names(DE_days_dorsal)) {
     print(dayrange)
+
     DE <- DE_days_dorsal[[dayrange]]
     # Create a column for plotting, filter out the "yes" and "no" conditions
     DE$dot_label <- ifelse(DE$classic_threshold == "yes" & DE$volcano_treshold == "no", "dot",

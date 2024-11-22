@@ -182,7 +182,7 @@ merge <- mergeCloseModules(t(vsd_var),
 )
 mergedColors <- merge$colors
 
-png(filename = "results/images/Figure_3/WGCNA_dendrogram.png", width = 1600, height = 1200, res = 250)
+png(filename = "results/images/Figure_3/WGCNA_dendrogram_with_dorsal.png", width = 1600, height = 1200, res = 250)
 plotDendroAndColors(gene.tree,
     mergedColors,
     "Merged dynamic",
@@ -230,6 +230,7 @@ colnames(scaled_mat) <- colnames(assay(vsd)[, sample_order])
 # hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
+
 
 # Subclustering of each cluster
 sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {

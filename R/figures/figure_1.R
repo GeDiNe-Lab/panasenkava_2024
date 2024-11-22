@@ -242,6 +242,9 @@ colnames(scaled_mat) <- colnames(vsd_DEGs)
 
 ordered_samples <- c("L9D_1", "L9D_2", "L9D_3", "L9D_4", "L9D_5", "W6C12D_1", "W6C12D_2", "W6C12D_3", "W6C12D_4", "W6C12D_5", "W6C12D_6", "L9V_1", "L9V_2", "L9V_3", "L9V_4", "L9V_5", "W6C12V_1", "W6C12V_2", "W6C12V_3", "W6C12V_4", "W6C12V_5", "W6C12V_6") %>% as.factor()
 
+
+
+
 # hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
