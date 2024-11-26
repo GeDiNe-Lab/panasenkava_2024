@@ -1,3 +1,103 @@
+MyDegPlotCluster <- function(table, time, sign_comp, color = NULL,
+                             min_genes = 10,
+                             process = FALSE,
+                             cluster_column = "cluster",
+                             prefix_title = "Group: ") {
+  stopifnot(class(table)[1] == "data.frame")
+
+  if (cluster_column %in% colnames(table)) {
+    table[["cluster"]] <- table[[cluster_column]]
+  }
+  if (process) {
+    table <- .process(table, time, color)
+  }
+
+  if ("cluster" %in% colnames(table)) {
+    counts <- table(distinct(table, genes, cluster)[["cluster"]])
+    counts <- counts[counts >= min_genes]
+    if (length(counts) == 0) {
+      stop("No clusters with min_genes > ", min_genes)
+    }
+    table <- inner_join(table,
+      data.frame(
+        cluster = as.integer(names(counts)),
+        title = paste(
+          prefix_title,
+          names(counts),
+          "- genes:",
+          counts
+        ),
+        stringsAsFactors = FALSE
+      ),
+      by = "cluster"
+    )
+  }
+
+  if (is.null(color)) {
+    color <- "dummy"
+    table[[color]] <- ""
+    lines <- FALSE
+  }
+  table[["line_group"]] <- paste(
+    table[["genes"]],
+    table[[color]]
+  )
+  splan <- length(unique(table[[time]])) - 1L
+  table$title <- table$title %>% as.factor()
+  old <- table$title %>%
+    levels() %>%
+    stringi::stri_extract_first(., regex = "\\d+") %>%
+    as.integer()
+  index <- sort(old, index.return = TRUE)[[2]]
+  table$title <- factor(table$title, levels = levels(table$title)[index])
+
+  plot <- ggplot(table, aes_string(
+    x = time, y = "value"
+  )) +
+    geom_boxplot(
+      alpha = 0,
+      outlier.size = 0,
+      outlier.shape = NA,
+      color = "#80AD3C", # Fixed color for boxplot outline
+      fill = "#80AD3C"
+    ) +
+    geom_jitter(
+      alpha = 0.4, size = 1,
+      color = "#80AD3C",
+      fill = "#80AD3C"
+    ) +
+    stat_smooth(
+      aes_string(
+        x = time, y = "value",
+        group = color, color = color
+      ),
+      se = FALSE,
+      method = "lm", formula = y ~ poly(x, splan),
+      color = "black"
+    ) +
+    geom_line(aes_string(group = "line_group"), alpha = 0.1, color = "#80AD3C") +
+    geom_signif(
+      comparisons = sign_comp, # Groups being compared
+      map_signif_level = TRUE, # Automatically converts p-values to significance stars
+      y_position = rep(2, length(sign_comp)),
+      color = "black",
+      size = 1,
+      step_increase = 0.05,
+      textsize = 10
+    ) +
+    ylab("Z-score of gene abundance") +
+    xlab("") +
+    ylim(-2.1, 3.2) +
+    custom_theme(hide_legend = TRUE) +
+    theme(
+      axis.title.y = element_text(size = 30),
+      axis.text.x = element_text(size = 30)
+    )
+  plot
+}
+
+
+
 #' Perform Principal Component Analysis (PCA) using FactoMineR package
 #'
 #' This function performs Principal Component Analysis (PCA) using the FactoMineR package.
