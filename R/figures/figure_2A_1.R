@@ -409,7 +409,7 @@ write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
 dbd_ventral <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", header = TRUE)
 genes <- dbd_ventral$gene
 
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
 # filtering out lowly expressed genes
 lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
 # lp_counts <- rawcounts[hm_genes, lp_meta$sample]
@@ -434,6 +434,8 @@ clusters <- degPatterns(
     nClusters = 10,
 )
 clusters$plot
+
+ggsave("results/images/Figure_2A/F2A_DEpattern_LON_full.png", clusters$plot, width = 15, height = 10)
 
 c1 <- filter(clusters$normalize, cluster == 1)
 c7 <- filter(clusters$normalize, cluster == 7)
