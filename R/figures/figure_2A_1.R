@@ -433,9 +433,11 @@ clusters <- degPatterns(
     reduce = TRUE,
     nClusters = 10,
 )
-clusters$plot
+clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)
 
-ggsave("results/images/Figure_2A/F2A_DEpattern_LON_full.png", clusters$plot, width = 15, height = 10)
+
+ggsave("results/images/Figure_2A/F2A_DEpattern_WTC_full.png", clusters$plot, width = 15, height = 10)
 
 c1 <- filter(clusters$normalize, cluster == 1)
 c7 <- filter(clusters$normalize, cluster == 7)
@@ -455,8 +457,8 @@ ggsave("results/images/Figure_2A/F2A_DEpattern_LON_c1.png", c1_plot, width = 15,
 c7_plot <- MyDegPlotCluster(table = c7, time = "day", sign_comp = sign_comp)
 ggsave("results/images/Figure_2A/F2A_DEpattern_LON_c7.png", c7_plot, width = 15, height = 10)
 
-clusters$normalize$symbol <- clusters$normalize$genes %>% gene_converter("ENSEMBL", "SYMBOL")
-write.csv(clusters$normalize, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)
+clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_LON.csv", quote = FALSE, row.names = FALSE)
 
 early <- c("PTCH1", "FREM1", "FOXA2")
 mid <- c("SHH", "SIX3", "LRP2", "FGF9", "FGF10", "NKX2-1", "NKX2-2")
