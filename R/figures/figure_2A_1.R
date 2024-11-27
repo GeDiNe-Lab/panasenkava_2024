@@ -452,10 +452,11 @@ source("R/custom_fct.R")
 c1_plot <- MyDegPlotCluster(table = c1, time = "day", sign_comp = sign_comp)
 ggsave("results/images/Figure_2A/F2A_DEpattern_LON_c1.png", c1_plot, width = 15, height = 10)
 
-c7_plot <- MyDegPlotCluster(table = c6, time = "day", sign_comp = sign_comp)
+c7_plot <- MyDegPlotCluster(table = c7, time = "day", sign_comp = sign_comp)
 ggsave("results/images/Figure_2A/F2A_DEpattern_LON_c7.png", c7_plot, width = 15, height = 10)
 
-write.csv(clusters$normalize, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_2A/DEGpattern_LON.csv", quote = FALSE, row.names = FALSE)
+clusters$normalize$symbol <- clusters$normalize$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+write.csv(clusters$normalize, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)
 
 early <- c("PTCH1", "FREM1", "FOXA2")
 mid <- c("SHH", "SIX3", "LRP2", "FGF9", "FGF10", "NKX2-1", "NKX2-2")
