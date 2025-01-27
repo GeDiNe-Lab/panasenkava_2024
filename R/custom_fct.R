@@ -1,4 +1,4 @@
-MyDegPlotCluster <- function(table, time, sign_comp, color = NULL,
+MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
                              min_genes = 10,
                              process = FALSE,
                              cluster_column = "cluster",
@@ -10,6 +10,7 @@ MyDegPlotCluster <- function(table, time, sign_comp, color = NULL,
   }
   if (process) {
     table <- .process(table, time, color)
+    print("huu ?")
   }
 
   if ("cluster" %in% colnames(table)) {
@@ -85,11 +86,13 @@ MyDegPlotCluster <- function(table, time, sign_comp, color = NULL,
       step_increase = 0.05,
       textsize = 10
     ) +
+    ggtitle(paste0("Cluster ", cluster_i)) +
     ylab("Z-score of gene abundance") +
     xlab("") +
     ylim(-2.1, 3.2) +
     custom_theme(hide_legend = TRUE) +
     theme(
+      plot.title = element_text(size = 35),
       axis.title.y = element_text(size = 30),
       axis.text.x = element_text(size = 30)
     )
@@ -152,11 +155,12 @@ MyDegPlotCluster <- function(table, time, sign_comp, color = NULL,
 #' @importFrom utils data
 
 plotPCA.DESeqTransform <- function(object, intgroup = "condition",
-                                   ntop = 500, returnData = FALSE, pcsToUse = 1:20, batch = NULL) {
+                                   ntop = 500, returnData = FALSE, pcsToUse = 1:15, batch = NULL) {
   message(paste0("using ntop=", ntop, " top features by variance"))
 
   # calculate the variance for each gene
-  rv <- rowVars(assay(object))
+
+  rv <- MatrixGenerics::rowVars(assay(object))
 
   # select the ntop genes by variance
   select <- order(rv, decreasing = TRUE)[seq_len(min(ntop, length(rv)))]
@@ -184,6 +188,8 @@ plotPCA.DESeqTransform <- function(object, intgroup = "condition",
 
   # assembly the data
   pcs <- paste0("PC", pcsToUse)
+  print(pcsToUse)
+
   d <- pcsToUse %>% lapply(function(PC) {
     return(pca$x[, PC])
   })
@@ -236,10 +242,6 @@ custom_theme <- function(diag_text = FALSE, hide_legend = FALSE, hide_x_lab = FA
     panel.grid = element_line(color = "#dcdcdc"),
     axis.line = element_line(size = 0.2, colour = "Black"),
     axis.title = element_text(size = 20),
-    axis.text.x = axis_text_x,
-    axis.text.y = element_text(size = 12),
-    legend.text = element_text(size = 12),
-    legend.title = element_text(size = 14),
     legend.position = hide_legend
   ))
 }
@@ -311,11 +313,21 @@ clean_ctmat <- function(ctmat, gene_thr = 0.1, sample_thr = 2) {
 }
 
 
-gene_converter <- function(gene_vec, from, to) {
-  return(mapIds(org.Hs.eg.db,
+gene_converter <- function(gene_vec, from, to, species = "human") {
+  if (species == "human") {
+    db <- org.Hs.eg.db
+  } else if (species == "mouse") {
+    db <- org.Mm.eg.db
+  }
+  SFTA3_i <- which(gene_vec == "ENSG00000229415")
+  sym <- mapIds(db,
     key = gene_vec,
     keytype = from, column = to
-  ) %>% unname())
+  ) %>% unname()
+  if (!is.null(SFTA3_i)) {
+    sym[SFTA3_i] <- "SFTA3"
+  }
+  return(sym)
 }
 
 

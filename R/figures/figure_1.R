@@ -34,7 +34,7 @@ markers <- intersect(markers, rownames(rawcounts))
 # Get rows corresponding to markers
 retained_row <- rawcounts[rownames(rawcounts) %in% markers, meta$sample]
 
-# filtering out lowly expressed genes and keeping only seleted samples
+# filtering out lowly expressed genes and keeping only selected samples
 counts <- rawcounts[, meta$sample][rowSums(rawcounts[, meta$sample]) >= 25, ]
 
 # putting back potentially filtered out markers (posterior markers for example as they should not be expressed)
@@ -137,26 +137,43 @@ vsd_symbol <- assay(vsd[markers, ])
 # convert rownames to gene symbols
 rownames(vsd_symbol) <- rownames(vsd_symbol) %>% gene_converter("ENSEMBL", "SYMBOL")
 
-# heatmap gene annotations
-marker_ha <- rowAnnotation(
-    markers = c(
-        rep("pluripotency", 2),
-        rep("anterior neuroectoderm", 7),
-        rep("dorsal", 7),
-        rep("ventral", 9),
-        rep("posterior neuroectoderm", 4)
+# Define groupings and labels for blocks
+row_split <- factor(
+    c(
+        rep("iPSCs", 2),
+        rep("forebrain", 7),
+        rep("dorsal\nforebrain", 7),
+        rep("ventral\nforebrain", 9),
+        rep("Midbrain &\nHindbrain", 4)
     ),
-    col = list(
-        markers = c(
-            "pluripotency" = "#b16060",
-            "anterior neuroectoderm" = "#4d6da5",
-            "ventral" = "#5e9a5e",
-            "dorsal" = "#78588c",
-            "posterior neuroectoderm" = "#d09322"
-        )
-    ),
-    show_annotation_name = FALSE
+    levels = c("iPSCs", "forebrain", "dorsal\nforebrain", "ventral\nforebrain", "Midbrain &\nHindbrain")
 )
+
+# Colors for each group
+group_colors <- c(
+    "iPSCs" = "#b16060",
+    "forebrain" = "#4d6da5",
+    "ventral\nforebrain" = "#80AD3C",
+    "dorsal\nforebrain" = "#A1A1DE",
+    "Midbrain &\nHindbrain" = "#d09322"
+)
+
+# Block annotation for color blocks (without outline)
+marker_ha <- rowAnnotation(
+    markers = anno_block(
+        gp = gpar(fill = group_colors[levels(row_split)], col = NA), # Remove outline with `col = NA`
+        which = "row",
+        width = unit(2, "mm") # Thinner blocks
+    ),
+    labels = anno_block(
+        gp = gpar(fill = "white", col = "white"), # Remove outline with `col = NA`
+        labels = levels(row_split), # Add group labels
+        labels_gp = gpar(fontsize = 10, fontface = "bold"), # Customize label appearance
+        labels_rot = -90, # Horizontal labels
+        labels_just = "center"
+    )
+)
+
 # heatmap sample annotation
 sample_ha <- columnAnnotation(
     line = meta[order(meta$type), ]$line,
@@ -164,18 +181,23 @@ sample_ha <- columnAnnotation(
     col = list(
         line = c("LON71" = "#c1c1c1", "WTC" = "#7d7d7d"),
         type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
-    )
+    ),
+    show_legend = FALSE,
+    annotation_name_gp = gpar(fontsize = 0)
 )
+
+
 png(filename = "results/images/Figure_1/F1_1_marker_HM.png", width = 2000, height = 1800, res = 250)
 Heatmap(
     vsd_symbol[, meta[order(meta$type), ]$sample],
     name = "Normalized expression",
-    row_title_gp = gpar(fontsize = 16, fontface = "bold"),
+    row_title = NULL,
+    row_split = row_split,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     show_row_names = TRUE,
     row_names_side = "left",
-    show_column_names = TRUE,
+    show_column_names = FALSE,
     bottom_annotation = sample_ha,
     right_annotation = marker_ha,
     show_row_dend = FALSE,
@@ -190,36 +212,6 @@ Heatmap(
     ))(1000),
 )
 dev.off()
-
-
-
-DEGs_LON <- DESeqDataSetFromMatrix(
-    countData = counts[, filter(meta, line == "LON71")$sample],
-    colData = filter(meta, line == "LON71"),
-    design = ~type
-) %>%
-    DESeq() %>%
-    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
-    as.data.frame() %>%
-    na.omit()
-# Add "LON" prefix to column names
-colnames(DEGs_LON) <- paste0("LON", colnames(DEGs_LON))
-
-DEGs_WTC <- DESeqDataSetFromMatrix(
-    countData = counts[, filter(meta, line == "WTC")$sample],
-    colData = filter(meta, line == "WTC"),
-    design = ~type
-) %>%
-    DESeq() %>%
-    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
-    as.data.frame() %>%
-    na.omit()
-colnames(DEGs_WTC) <- paste0("WTC", colnames(DEGs_WTC))
-
-# Get genes DE in a different way in the two lines
-common <- intersect(rownames(DEGs_WTC), rownames(DEGs_LON))
-DEGs_LON_WTC <- cbind(DEGs_LON[common, ], DEGs_WTC[common, ])
-invert <- filter(DEGs_LON_WTC, LONlog2FoldChange * WTClog2FoldChange < 0)
 
 # Compute ventral vs dorsal DEGs
 DEGs_vAN_vs_dAN <- dds %>%
@@ -242,13 +234,9 @@ colnames(scaled_mat) <- colnames(vsd_DEGs)
 
 ordered_samples <- c("L9D_1", "L9D_2", "L9D_3", "L9D_4", "L9D_5", "W6C12D_1", "W6C12D_2", "W6C12D_3", "W6C12D_4", "W6C12D_5", "W6C12D_6", "L9V_1", "L9V_2", "L9V_3", "L9V_4", "L9V_5", "W6C12V_1", "W6C12V_2", "W6C12V_3", "W6C12V_4", "W6C12V_5", "W6C12V_6") %>% as.factor()
 
-
-
-
 # hierarchical clustering using euclidian distance and "complete" method
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
-
 
 # cluster and subcluster annotation
 clusters_ha <- rowAnnotation(
@@ -260,9 +248,6 @@ clusters_ha <- rowAnnotation(
         )
     )
 )
-clusters %>% table()
-
-meta$line[order(ordered_samples)]
 
 # sample annotation
 rownames(meta) <- meta$sample
@@ -274,7 +259,9 @@ sample_ha <- columnAnnotation(
         type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
     )
 )
-table(clusters)
+
+
+
 # performing GO enrichment on clusters
 for (cluster in unique(clusters)) {
     cluster <- c(1, 2)
@@ -313,7 +300,6 @@ for (cluster in unique(clusters)) {
             legend.title = element_text(size = 30), # Adjusts the legend title size
             legend.key.size = unit(2, "lines")
         )
-    goplot
     # write.csv(GO_enrichment, paste0("results/tables/Figure_1/GO_enrichment_cluster_", cluster, ".csv"))
     ggsave(paste0("results/images/Figure_1/test", cluster, ".png"), goplot, width = 17, height = 10)
 }
@@ -345,91 +331,5 @@ dev.off()
 
 # adding cluster and subcluster to DEGs table
 DEGs_vAN_vs_dAN$clusters <- clusters[rownames(DEGs_vAN_vs_dAN)]
-# DEGs_vAN_vs_dAN$sub_clusters <- sub_clusters[rownames(DEGs_vAN_vs_dAN)]
 
 write.csv(DEGs_vAN_vs_dAN, "results/tables/Figure_1/DEGs_vAN_vs_dAN.csv")
-
-
-DEG_vAN_vs_dAN_LON <- DESeqDataSetFromMatrix(
-    countData = counts[, filter(meta, line == "LON71")$sample],
-    colData = filter(meta, line == "LON71"),
-    design = ~type
-) %>%
-    DESeq() %>%
-    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
-    as.data.frame() %>%
-    na.omit()
-DEG_vAN_vs_dAN_LON$gene <- rownames(DEG_vAN_vs_dAN_LON) %>% gene_converter("ENSEMBL", "SYMBOL")
-DEG_vAN_vs_dAN_LON_f <- filter(DEG_vAN_vs_dAN_LON, padj < 0.01, abs(log2FoldChange) >= 1, !is.na(gene))
-
-DEG_vAN_vs_dAN_WTC <- DESeqDataSetFromMatrix(
-    countData = counts[, filter(meta, line == "WTC")$sample],
-    colData = filter(meta, line == "WTC"),
-    design = ~type
-) %>%
-    DESeq() %>%
-    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
-    as.data.frame() %>%
-    na.omit()
-DEG_vAN_vs_dAN_WTC$gene <- rownames(DEG_vAN_vs_dAN_WTC) %>% gene_converter("ENSEMBL", "SYMBOL")
-DEG_vAN_vs_dAN_WTC_f <- filter(DEG_vAN_vs_dAN_WTC, padj < 0.01, abs(log2FoldChange) >= 1, !is.na(gene))
-
-common_DE <- intersect(rownames(DEG_vAN_vs_dAN_LON_f), rownames(DEG_vAN_vs_dAN_WTC_f))
-
-
-vsd_DEGs <- assay(vsd[common_DE, ])
-scaled_mat <- t(apply(vsd_DEGs, 1, scale))
-colnames(scaled_mat) <- colnames(vsd_DEGs)
-
-# hierarchical clustering using euclidian distance and "complete" method
-clustering <- hclust(dist(scaled_mat))
-clusters <- cutree(clustering, k = 2)
-
-
-
-# cluster and subcluster annotation
-clusters_ha <- rowAnnotation(
-    cluster = as.character(clusters[clustering$order]),
-    col = list(
-        cluster = c(
-            "1" = "#b16060",
-            "2" = "#4d6da5"
-        )
-    )
-)
-clusters %>% table()
-
-# sample annotation
-sample_ha <- columnAnnotation(
-    line = meta$line,
-    type = meta$type,
-    col = list(
-        line = c("LON71" = "#c1c1c1", "WTC" = "#7d7d7d"),
-        type = c("dorsal" = "#A1A1DE", "ventral" = "#80AD3C")
-    )
-)
-
-png(filename = "results/images/Figure_1/F1_3_DE_HM_variante.png", width = 1600, height = 1600, res = 250)
-Heatmap(
-    scaled_mat[clustering$order, ],
-    name = "Normalized expression",
-    row_title_gp = gpar(fontsize = 16, fontface = "bold"),
-    cluster_rows = FALSE,
-    cluster_columns = TRUE,
-    show_row_names = FALSE,
-    left_annotation = clusters_ha,
-    bottom_annotation = sample_ha,
-    row_names_side = "left",
-    show_column_names = TRUE,
-    show_row_dend = FALSE,
-    show_heatmap_legend = TRUE,
-    width = ncol(scaled_mat) * unit(4, "mm"),
-    # height = nrow(mat) * unit(5, "mm"),
-    col = colorRampPalette(c(
-        "black",
-        "purple",
-        "orange",
-        "yellow"
-    ))(1000),
-)
-dev.off()

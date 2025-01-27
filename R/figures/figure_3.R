@@ -392,3 +392,53 @@ for (contrast in names(DE_cyclo)) {
         )
     ggsave(filename = paste0("results/images/Figure_3/Volcano_", contrast, ".png"), units = "px", width = 1800, height = 1400, dpi = 250)
 }
+
+
+
+
+
+
+# DEGPattern/lineplots
+lp_vsd <- DESeqDataSetFromMatrix(
+    countData = lp_counts,
+    colData = lp_meta,
+    design = ~day
+) %>% vst(blind = FALSE)
+
+filtered <- assay(lp_vsd)[rownames(lp_vsd) %in% gene_converter(genes, "SYMBOL", "ENSEMBL"), ]
+
+rownames(lp_meta) <- lp_meta$sample
+lp_meta$day <- as.factor(lp_meta$day)
+
+clusters <- degPatterns(
+    filtered,
+    meta = lp_meta,
+    time = "day",
+    reduce = TRUE,
+    nClusters = 10,
+)
+clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+# write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_LON.csv", quote = FALSE, row.names = FALSE)
+
+sign_comp <- list(
+    c("day02", "day04"),
+    c("day04", "day06"),
+    c("day06", "day08"),
+    c("day08", "day10"),
+    c("day10", "day12")
+)
+source("R/custom_fct.R")
+
+for (i in 1:9) {
+    plot <- MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "day", sign_comp = sign_comp, cluster_i = i)
+    ggsave(paste0("results/images/Figure_2A/F2A_DEpattern_LON_", i, ".png"), plot, width = 15, height = 10)
+}
+library(grid)
+
+# Example ggplots
+plot_list <- lapply(1:9, function(i) {
+    return(MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "day", sign_comp = sign_comp, cluster_i = i))
+})
+combined_plot <- wrap_plots(plot_list, ncol = 3)
+
+ggsave(paste0("results/images/Figure_2A/F2A_DEpattern_WTC_all.png"), combined_plot, width = 35, height = 25)

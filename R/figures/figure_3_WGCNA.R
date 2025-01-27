@@ -182,7 +182,7 @@ merge <- mergeCloseModules(t(vsd_var),
 )
 mergedColors <- merge$colors
 
-png(filename = "results/images/Figure_3/WGCNA_dendrogram_with_dorsal.png", width = 1600, height = 1200, res = 250)
+# png(filename = "results/images/Figure_3/WGCNA_dendrogram_with_dorsal.png", width = 1600, height = 1200, res = 250)
 plotDendroAndColors(gene.tree,
     mergedColors,
     "Merged dynamic",
@@ -191,7 +191,7 @@ plotDendroAndColors(gene.tree,
     addGuide = TRUE,
     guideHang = 0.05
 )
-dev.off()
+# dev.off()
 
 table(dynamic.colors)
 
@@ -217,6 +217,10 @@ blue_clust_df_f$cor <- sapply(c(1:nrow(blue_clust_df_f)), function(x) {
 })
 View(blue_clust_df_f)
 
+library(DESeq2)
+
+
+
 # get get the top 500 genes most co-expressed with SHH in the WGCNA modules to show on the STRINGdb plot
 write.csv(blue_clust_df_f[order(blue_clust_df_f$cor_abs, decreasing = TRUE), ] %>% head(500), "results/tables/Figure_3/SHH_cluster_500.csv")
 write.csv(blue_clust_df_f[order(blue_clust_df_f$cor_abs, decreasing = TRUE), ], "results/tables/Figure_3/SHH_cluster.csv")
@@ -231,39 +235,66 @@ colnames(scaled_mat) <- colnames(assay(vsd)[, sample_order])
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
 
+# Check out cluster sizes and order
+clusters[clustering$order] %>% table()
+clusters[clustering$order] %>% unique()
 
-# Subclustering of each cluster
-sub_clusters_list <- unique(clusters) %>% lapply(function(cluster) {
-    sub_mat <- scaled_mat[names(clusters[which(clusters == cluster)]), sample_order]
-    sub_clustering <- hclust(dist(sub_mat))
-    return(cutree(sub_clustering, k = 5))
-})
-names(sub_clusters_list) <- paste0("cluster_", unique(clusters))
-sub_clusters <- sub_clusters_list %>%
-    unname() %>%
-    unlist()
-sub_clusters <- sub_clusters[names(clusters)]
+row_split <- factor(
+    c(
+        rep("Cluster 2", 725),
+        rep("Cluster 1", 678)
+    ),
+    levels = c("Cluster 2", "Cluster 1")
+)
 
+# Colors for each group
+group_colors <- c(
+    "Cluster 2" = "#4d6da5",
+    "Cluster 1" = "#b16060"
+)
 
-
-# Heatmap gene annotation
+# Block annotation for color blocks (without outline)
 clusters_ha <- rowAnnotation(
-    cluster = as.character(clusters[clustering$order]),
-    sub_cluster = as.character(sub_clusters[clustering$order]),
-    col = list(
-        cluster = c(
-            "1" = "#b16060",
-            "2" = "#4d6da5"
-        ),
-        sub_cluster = c(
-            "1" = "black",
-            "2" = "pink",
-            "3" = "yellow",
-            "4" = "brown",
-            "5" = "grey"
-        )
+    clusters = anno_block(
+        gp = gpar(fill = group_colors[levels(row_split)], col = NA), # Remove outline with `col = NA`
+        which = "row",
+        width = unit(2, "mm") # Thinner blocks
+    ),
+    labels = anno_block(
+        gp = gpar(fill = "white", col = "white"), # Remove outline with `col = NA`
+        labels = levels(row_split), # Add group labels
+        labels_gp = gpar(fontsize = 10, fontface = "bold"), # Customize label appearance
+        labels_rot = -90, # Horizontal labels
+        labels_just = "center"
     )
 )
+
+png(filename = "results/images/Figure_3/F3_cyclo_genes_HM.png", width = 2400, height = 1600, res = 250)
+Heatmap(
+    scaled_mat[clustering$order, sample_order],
+    name = "Normalized expression",
+    column_names_gp = gpar(fontsize = 6),
+    row_split = row_split,
+    row_title = NULL,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    right_annotation = clusters_ha,
+    show_row_names = FALSE,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    show_row_dend = FALSE,
+    show_column_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(scaled_mat) * unit(4, "mm"),
+    # height = nrow(mat) * unit(5, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+dev.off()
 
 # GO enrichment for each cluster
 for (cluster in unique(clusters)) {
@@ -307,29 +338,6 @@ for (cluster in unique(clusters)) {
     ggsave(paste0("results/images/Figure_3/GO_enrichment_cluster_", cluster, ".png"), goplot, width = 15, height = 10)
 }
 
-png(filename = "results/images/Figure_3/F3_cyclo_genes_HM.png", width = 2400, height = 1600, res = 250)
-Heatmap(
-    scaled_mat[clustering$order, sample_order],
-    name = "Normalized expression",
-    column_names_gp = gpar(fontsize = 6),
-    cluster_rows = FALSE,
-    cluster_columns = TRUE,
-    left_annotation = clusters_ha,
-    show_row_names = FALSE,
-    row_names_side = "left",
-    show_column_names = TRUE,
-    show_row_dend = FALSE,
-    show_heatmap_legend = TRUE,
-    width = ncol(scaled_mat) * unit(4, "mm"),
-    # height = nrow(mat) * unit(5, "mm"),
-    col = colorRampPalette(c(
-        "black",
-        "purple",
-        "orange",
-        "yellow"
-    ))(1000),
-)
-dev.off()
 View(meta)
 
 
@@ -576,3 +584,44 @@ please <- read.csv("results/tables/Figure_3/SHH_cluster_500.csv")
 View(please)
 write.csv(filter(please, cor > 0)$gene, "results/tables/Figure_3/folder_pos.csv", row.names = FALSE)
 write.csv(filter(please, cor < 0)$gene, "results/tables/Figure_3/folder_neg.csv", row.names = FALSE)
+
+blue_clust_df_f %>% nrow()
+meta$cyclo_text <- as.factor(as.character(meta$cyclo_dose_quant))
+rownames(meta) <- meta$sample
+clusters <- degPatterns(
+    vsd_var[blue_clust_df_f$ENSEMBLE, ],
+    meta = meta,
+    time = "cyclo_text",
+    reduce = TRUE,
+    nClusters = 10,
+)
+clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+
+# write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_LON.csv", quote = FALSE, row.names = FALSE)
+
+sign_comp <- list(
+    c("0", "0.125"),
+    c("0.125", "0.25"),
+    c("0.25", "0.5"),
+    c("0.5", "1")
+)
+source("R/custom_fct.R")
+
+for (i in unique(clusters$normalize$cluster)) {
+    plot <- MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "cyclo_text", sign_comp = sign_comp, cluster_i = i)
+    ggsave(paste0("results/images/Figure_3/F3_DEpattern_LON_", i, ".png"), plot, width = 15, height = 10)
+}
+library(grid)
+
+# Example ggplots
+plot_list <- lapply(unique(clusters$normalize$cluster), function(i) {
+    return(MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "cyclo_text", sign_comp = sign_comp, cluster_i = i))
+})
+combined_plot <- wrap_plots(plot_list, ncol = 4)
+
+ggsave(paste0("results/images/Figure_3/F3_DEpattern_LON_all.png"), combined_plot, width = 35, height = 25)
+
+
+
+clusters$df %>% write.csv("results/tables/Figure_3/DEpattern_LON.csv", row.names = FALSE, quote = FALSE)
+setdiff(blue_clust_df_f$gene, clusters$df$symbol) %>% write.csv("results/tables/Figure_3/DEpattern_LON_missing.csv", row.names = FALSE, quote = FALSE)
