@@ -235,6 +235,11 @@ colnames(scaled_mat) <- colnames(assay(vsd)[, sample_order])
 clustering <- hclust(dist(scaled_mat))
 clusters <- cutree(clustering, k = 2)
 
+cluster1 <- clusters[which(clusters == 1)] %>%
+    names() %>%
+    gene_converter("ENSEMBL", "SYMBOL")
+cluster1[which(cluster1 %in% WNT_genes)]
+
 # Check out cluster sizes and order
 clusters[clustering$order] %>% table()
 clusters[clustering$order] %>% unique()

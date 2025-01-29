@@ -1,3 +1,97 @@
+png_save <- function(plot, path, width, height, res = 250) {
+  #' Save a plot as a PNG file
+  #'
+  #' This function saves a given plot to a specified file path in PNG format.
+  #'
+  #' @param plot The plot object to be saved.
+  #' @param path A character string specifying the file path where the PNG file will be saved.
+  #' @param width The width of the PNG file in pixels.
+  #' @param height The height of the PNG file in pixels.
+  #' @param res The resolution of the PNG file in dots per inch (DPI). Default is 250.
+  #'
+  #' @return None. The function is called for its side effect of saving the plot to a file.
+  #'
+  #' @examples
+  #' \dontrun{
+  #'   library(ggplot2)
+  #'   p <- ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point()
+  #'   png_save(p, "plot.png", width = 800, height = 600)
+  #' }
+  png_save <- function(plot, path, width, height, res = 250) {
+    png(filename = path, width = width, height = height, res = res)
+    draw(plot)
+    dev.off()
+  }
+  png(filename = path, width = width, height = height, res = res)
+  draw(plot)
+  dev.off()
+}
+
+pca_anova <- function(pca_data, metadata, covariates) {
+  # Building dataframe with first 5 PC and covariates
+  PC_covariate <- cbind(pca_data[, 1:5], metadata %>%
+    dplyr::select(all_of(covariates)) %>%
+    apply(2, function(x) {
+      return(as.numeric(factor(x)) - 1)
+    }) %>%
+    as.matrix())
+
+  # Computing PC-covariate correlation and ANOVA
+  PC_covariate_cor <- cor(PC_covariate[, 1:5], PC_covariate[, 6:ncol(PC_covariate)]) %>% abs()
+  PC_covariate_ANOVA <- c(6:ncol(PC_covariate)) %>% lapply(function(i) {
+    apply(PC_covariate[, 1:5], 2, function(x) {
+      aov(x ~ PC_covariate[, i])
+    }) %>% sapply(function(x) {
+      summary(x)[[1]]$`Pr(>F)`[1]
+    })
+  })
+  PC_covariate_ANOVA <- Reduce(cbind, PC_covariate_ANOVA)
+  colnames(PC_covariate_ANOVA) <- colnames(PC_covariate)[6:ncol(PC_covariate)]
+
+  return(PC_covariate_ANOVA)
+}
+
+
+plot_go_term <- function(genelist, path, range = c(1:20), cut = 40, textsize = 20, imgw = 17, imgh = 10) {
+  GO_enrichment <- clusterProfiler::enrichGO(genelist,
+    OrgDb = "org.Hs.eg.db",
+    keyType = "ENSEMBL",
+    ont = "BP"
+  )
+  GO_results <- GO_enrichment@result
+  GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
+    eval(parse(text = x))
+  }) %>% unname()
+  GO_results$rank <- rank(-GO_results$GeneRatio, ties.method = "first")
+
+  GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[range], ]
+
+  GO_results_f$Description <- str_wrap(GO_results_f$Description, width = cut) %>% str_to_upper()
+  GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
+
+  goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = Description),
+      hjust = 1.01, # Move text inside the bar, adjust as needed
+      color = "#000000", # Make the text white for better visibility
+      size = 13
+    ) + # Adjust size to fit the text inside the bar
+    custom_theme() +
+    scale_fill_gradient(name = "p-value", low = "#e06663", high = "#327eba") +
+    theme(
+      axis.title.x = element_text(size = 30), # Adjusts the x-axis title size
+      axis.text.x = element_text(size = textsize),
+      axis.text.y = element_blank(), # Remove y-axis text
+      axis.ticks.y = element_blank(),
+      axis.title.y = element_blank(),
+      legend.text = element_text(size = 20), # Adjusts the legend text size
+      legend.title = element_text(size = 30), # Adjusts the legend title size
+      legend.key.size = unit(2, "lines")
+    )
+  ggsave(paste0(path, ".png"), goplot, width = 17, height = 10)
+  return(GO_results)
+}
+
 MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
                              min_genes = 10,
                              process = FALSE,

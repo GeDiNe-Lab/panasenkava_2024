@@ -41,21 +41,20 @@ rownames(vsd) <- gene_converter(rownames(vsd), "ENSEMBL", "SYMBOL")
 rownames(vsd)
 # loading single cell data from Zeng et al from week3,week4 and week5
 sc_counts <- readMM("scdata/week345_wholebody.mtx") %>% t()
-sc_counts <- t(sc_counts)
 
 # keeping only cells related to Central Nervous System (SNC)
-sc_meta <- read.table("scdata/indices_week345_wholebody.csv", header = TRUE, sep = ",")
+cell_ids <- read.table("scdata/indices_week345_wholebody.csv", header = TRUE, sep = ",")
 genes <- read.table("scdata/genes_week345_wholebody.tsv", header = FALSE)$V1
 
 
 rownames(sc_counts) <- genes
 
-formated_indices <- c(1:nrow(meta)) %>% sapply(function(i) {
-    c(str_split(meta[i, ]$index, "-")[[1]][1:2], meta[i, ]$week_stage) %>%
+formated_ids <- c(1:nrow(cell_ids)) %>% sapply(function(i) {
+    c(str_split(cell_ids[i, ]$index, "-")[[1]][1:2], cell_ids[i, ]$week_stage) %>%
         paste(collapse = "-") %>%
         return()
 })
-colnames(sc_counts) <- formated_indices
+colnames(sc_counts) <- formated_ids
 
 authors_meta <- read.csv("scdata/week345_wholebody_metadata.csv")
 authors_meta_f <- filter(authors_meta, celltype_region_num %in% c(1:8))
@@ -68,14 +67,73 @@ sc_counts_f <- sc_counts_f_int[names(which(gene_filter == TRUE)), ]
 rm(sc_counts_f_int)
 rm(sc_counts)
 
-table(authors_meta_f$week_stage, authors_meta_f$celltype_region)
+
+genes <- c("FGF10", "DDC", "LRRK2", "PLCL1", "DRC1", "GADL1", "SLIT2", "NKX2-2", "NKX2-1", "SHH", "LRP2", "FRZB", "FOXA2", "PTCH1", "CAPN6", "SIX3", "LINC00261")
+other_genes <- c("CAPN6", "PLCL1", "FRZB", "LINC00261", "DDC", "SLIT2", "LRRK2")
+other_genes %in% rownames(sc_counts_f)
+
+sc_violin <- sc_counts_f[genes, ] %>%
+    t() %>%
+    as.data.frame()
+sc_violin$week <- authors_meta_f$week_stage
+sc_violin$celltype <- authors_meta_f$celltype_region
+
+sc_violin_long <- sc_violin %>%
+    pivot_longer(cols = -c(week, celltype), names_to = "gene", values_to = "expression") %>%
+    as.data.frame()
+
+table(authors_meta_f$celltype_region, authors_meta_f$week_stage)
+
+sc_violin_long$gene <- factor(sc_violin_long$gene, levels = genes)
+ggplot(filter(sc_violin_long, expression != 0, celltype %in% c("FB", "Brain Neuron")), aes(x = expression, y = gene, fill = gene)) +
+    geom_boxplot() +
+    xlim(0, 30) +
+    theme_minimal() +
+    theme(
+        legend.position = "none",
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 14, face = "bold"),
+        strip.text = element_text(size = 20, face = "bold"),
+    ) +
+    facet_grid(~week, scales = "fixed")
 
 seurat_obj <- CreateSeuratObject(counts = sc_counts_f, meta.data = authors_meta_f)
 seurat_obj <- NormalizeData(seurat_obj)
 Idents(seurat_obj) <- "week_stage"
 
-DE_weeks <- FindAllMarkers(seurat_obj, logfc.threshold = 1) %>% filter(p_val_adj < 0.05)
-DE_weeks %>% View()
+DE_weeks <- FindAllMarkers(seurat_obj, logfc.threshold = 2) %>% filter(p_val_adj < 0.01)
+DE_weeks$abs_logFC <- abs(DE_weeks$avg_log2FC)
+DE_weeks$diff_pct <- DE_weeks$pct.1 - DE_weeks$pct.2
+
+
+DE_genes <- list(
+    filter(DE_weeks, cluster == "W3-1")$gene[order(filter(DE_weeks, cluster == "W3-1")$diff_pct, decreasing = TRUE)] %>% head(20),
+    filter(DE_weeks, cluster == "W4-1")$gene[order(filter(DE_weeks, cluster == "W3-1")$diff_pct, decreasing = TRUE)] %>% head(20),
+    filter(DE_weeks, cluster == "W5-1")$gene[order(filter(DE_weeks, cluster == "W3-1")$diff_pct, decreasing = TRUE)] %>% head(20)
+) %>%
+    unlist() %>%
+    unique()
+DE_genes
+
+
+
+
+
+
+
+
+
+
+
+
+DE_weeks %>%
+    filter(cluster == "W4-1") %>%
+    View()
+DE_weeks %>%
+    filter(cluster == "W5-1") %>%
+    View()
 
 sc_norm <- seurat_obj@assays$RNA$data
 

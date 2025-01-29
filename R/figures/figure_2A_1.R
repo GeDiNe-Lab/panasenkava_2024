@@ -157,10 +157,16 @@ sample_order_WTC <- c(
 clustering_WTC <- hclust(dist(scaled_mat[, sample_order_WTC]))
 clusters_WTC <- cutree(clustering_WTC, k = 4)
 
+clusters_WTC
+
 # Check out cluster sizes and order
 clusters_WTC[clustering_WTC$order] %>% table()
 clusters_WTC[clustering_WTC$order] %>% unique()
 
+cluster3 <- clusters_WTC[which(clusters_WTC == 3)] %>%
+    names() %>%
+    gene_converter("ENSEMBL", "SYMBOL")
+cluster3[which(cluster3 %in% WNT_genes)]
 # Define groupings and labels for blocks
 row_split <- factor(
     c(
