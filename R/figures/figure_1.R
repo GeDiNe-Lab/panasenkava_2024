@@ -314,7 +314,7 @@ write.csv(DEGs_vAN_vs_dAN, "results/tables/Figure_1/DE_vAN_vs_dAN.csv")
 
 # GO term plot for vAN cluster
 GO_terms_vAN <- plot_go_term(
-    names(clusters[which(clusters %in% "dAN")]),
+    names(clusters[which(clusters %in% "vAN")]),
     path = "results/images/Figure_1/Figure1F_vAN",
     range = c(1, 2, 3, 4, 5, 6, 8, 9, 12, 13)
 )

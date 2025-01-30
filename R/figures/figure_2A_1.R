@@ -9,6 +9,7 @@ library(paletteer)
 library(DEGreport)
 library(ggsignif)
 library(patchwork)
+library(grid)
 library(Matrix)
 
 # Setting working directory
@@ -45,83 +46,38 @@ dds <- DESeqDataSetFromMatrix(
 vsd_blind <- vst(dds, blind = TRUE)
 
 # PCA with 3000 genes
-genes <- 3000
-pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = genes)
+pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = 3000)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
-pca_var <- attr(pca.data, "factoextra")
 
-png(filename = "results/images/Figure_2A/F2A_1_PCA_1_2_days_3000genes.png", width = 1600, height = 1200, res = 250)
-test <- ggplot(pca.data, aes(PC1, PC2, color = line, shape = day)) +
+pca_plot <- ggplot(pca.data, aes(PC1, PC2, color = line, shape = day)) +
     geom_point(size = 3, stroke = 1.5) +
     xlab(paste0("PC1: ", percentVar[1], "% variance")) +
     ylab(paste0("PC2: ", percentVar[2], "% variance")) +
     scale_color_manual(values = c("#868686", "#000000")) +
     scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
     custom_theme()
-test
-ggplotly(test)
-dev.off()
+ggsave("results/images/Figure_2/Figure2B.png", pca_plot, width = 8, height = 6)
 
+# Get PCA/covariates ANOVA results
+PC_covariate_ANOVA <- pca_anova(
+    pca_data = pca.data,
+    metadata = meta,
+    covariates = c("line", "type", "day")
+)
+#  Saving ANOVA results
+write.csv(PC_covariate_ANOVA, "results/tables/Figure_2/Figure2_ANOVA.csv")
 
 # Variance explained by each PCs
-png(filename = "results/images/Figure_2A/F2A_1_percentvar_3000genes.png", width = 1600, height = 1200, res = 250)
-ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
+varplot <- ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:20]), levels = colnames(pca.data[1:20]))), aes(x = PC, y = perc)) +
     geom_bar(stat = "identity") +
     custom_theme(diag_text = TRUE) +
     ylim(0, 100) +
     ggtitle("Variation explained by each PCs with all genes")
-dev.off()
+ggsave("results/images/Figure_2/Figure2_percentVar.png", pca_plot, width = 8, height = 6)
 
-# Building matrix with first 5 PC and covariates
-PC_covariate_3000genes <- cbind(pca.data[, 1:5], meta %>%
-    dplyr::select(c("line", "type", "day")) %>%
-    apply(2, function(x) {
-        return(as.numeric(factor(x)) - 1)
-    }) %>%
-    as.matrix())
-
-# Computing PC-covariate correlation and ANOVA
-PC_covariate_3000genes_cor <- cor(PC_covariate_3000genes[, 1:5], PC_covariate_3000genes[, 6:ncol(PC_covariate_3000genes)]) %>% abs()
-PC_covariate_3000genes_ANOVA <- c(6:ncol(PC_covariate_3000genes)) %>% lapply(function(i) {
-    apply(PC_covariate_3000genes[, 1:5], 2, function(x) {
-        aov(x ~ PC_covariate_3000genes[, i])
-    }) %>% sapply(function(x) {
-        summary(x)[[1]]$`Pr(>F)`[1]
-    })
-})
-PC_covariate_3000genes_ANOVA <- Reduce(cbind, PC_covariate_3000genes_ANOVA)
-colnames(PC_covariate_3000genes_ANOVA) <- colnames(PC_covariate_3000genes)[6:ncol(PC_covariate_3000genes)]
-
-# Saving ANOVA results
-write.csv(PC_covariate_3000genes_ANOVA, "results/tables/Figure_2A/F2_PC_covariate_ANOVA_3000genes.csv")
-
-rownames(PC_covariate_3000genes_cor) <- paste0(rownames(PC_covariate_3000genes_cor), " (", percentVar[1:5], "%)")
-
-png(filename = "results/images/Figure_2A/F2A_PC_covariate_correlation_3000genes.png", width = 2000, height = 1800, res = 250)
-Heatmap(
-    PC_covariate_3000genes_cor,
-    cell_fun = function(j, i, x, y, width, height, fill) {
-        grid.text(sprintf("%.2f", PC_covariate_3000genes_cor[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold", col = "#646464"))
-    },
-    name = "Absolute pearson correlation",
-    row_title_gp = gpar(fontsize = 20, fontface = "bold"),
-    cluster_rows = FALSE,
-    cluster_columns = FALSE,
-    row_names_side = "left",
-    column_names_side = "top",
-    column_names_rot = 0,
-    column_names_centered = TRUE,
-    show_column_names = TRUE,
-    show_heatmap_legend = TRUE,
-    width = ncol(PC_covariate_3000genes_cor) * unit(1.5, "cm"),
-    height = nrow(PC_covariate_3000genes_cor) * unit(1, "cm"),
-    col = colorRampPalette(c(
-        "lightblue",
-        "darkblue"
-    ))(1000),
-)
-dev.off()
-
+######################################
+######################################
+# FIGURE 2 C : PC1-2 correlated genes heatmap
 
 # PC3 is associated with lineage difference, we want genes higlhy correlated with PC1 and PC2 but not PC3
 top_PC1 <- cor(pca.data$PC1, t(assay(vsd_blind))) %>% as.vector()
@@ -138,7 +94,7 @@ top_PC3 <- sort(abs(top_PC3), decreasing = TRUE)[1:1000] %>% names()
 
 # get Heatmap genes
 hm_genes <- setdiff(union(top_PC1, top_PC2), top_PC3)
-hm_genes
+
 # Normalize by variance stabilizing transformation with covariates
 vsd <- vst(dds, blind = FALSE)
 
@@ -157,25 +113,16 @@ sample_order_WTC <- c(
 clustering_WTC <- hclust(dist(scaled_mat[, sample_order_WTC]))
 clusters_WTC <- cutree(clustering_WTC, k = 4)
 
-clusters_WTC
-
 # Check out cluster sizes and order
-clusters_WTC[clustering_WTC$order] %>% table()
-clusters_WTC[clustering_WTC$order] %>% unique()
-
-cluster3 <- clusters_WTC[which(clusters_WTC == 3)] %>%
-    names() %>%
-    gene_converter("ENSEMBL", "SYMBOL")
-cluster3[which(cluster3 %in% WNT_genes)]
-# Define groupings and labels for blocks
 row_split <- factor(
-    c(
-        rep("Forebrain\nn=428", 428),
-        rep("Dorsal forebrain\nn=463", 463),
-        rep("Early differentiation\nn=585", 585),
-        rep("Ventral forebrain\nn=524", 524)
-    ),
-    levels = c("Forebrain\nn=428", "Dorsal forebrain\nn=463", "Early differentiation\nn=585", "Ventral forebrain\nn=524")
+    clusters_WTC[clustering_WTC$order],
+    levels = c(1, 2, 3, 4),
+    labels = c(
+        "Early differentiation\nn=585",
+        "Forebrain\nn=428",
+        "Ventral forebrain\nn=524",
+        "Dorsal forebrain\nn=463"
+    )
 )
 
 # Colors for each group
@@ -202,8 +149,7 @@ clusters_WTC_ha <- rowAnnotation(
     )
 )
 
-png(filename = "results/images/Figure_2A/F2A_days_HM_WTC.png", width = 2400, height = 1600, res = 260)
-Heatmap(
+WTC_ht_plot <- Heatmap(
     scaled_mat[clustering_WTC$order, sample_order_WTC],
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
@@ -226,7 +172,13 @@ Heatmap(
         "yellow"
     ))(1000),
 )
-dev.off()
+
+png_save(
+    plot = WTC_ht_plot,
+    path = "results/images/Figure_2/Figure2C.png",
+    width = 2000,
+    height = 1800
+)
 
 #  Making heatmap for WTC lineage only
 sample_order_LON <- c(
@@ -236,23 +188,17 @@ sample_order_LON <- c(
 
 clustering_LON <- hclust(dist(scaled_mat[, sample_order_LON]))
 clusters_LON <- cutree(clustering_LON, k = 4)
-
-# Define groupings and labels for blocks
-
 # Check out cluster sizes and order
-clusters_LON[clustering_LON$order] %>% table()
-clusters_LON[clustering_LON$order] %>% unique()
-
 row_split <- factor(
-    c(
-        rep("Forebrain\nn=443", 443),
-        rep("Dorsal forebrain\nn=482", 482),
-        rep("Early differentiation\nn=553", 553),
-        rep("Ventral forebrain\nn=522", 522)
-    ),
-    levels = c("Forebrain\nn=443", "Dorsal forebrain\nn=482", "Early differentiation\nn=553", "Ventral forebrain\nn=522")
+    clusters_LON[clustering_LON$order],
+    levels = c(1, 2, 3, 4),
+    labels = c(
+        "Early differentiation\nn=553",
+        "Forebrain\nn=443",
+        "Ventral forebrain\nn=522",
+        "Dorsal forebrain\nn=482"
+    )
 )
-
 
 # Colors for each group
 group_colors <- c(
@@ -278,8 +224,7 @@ clusters_LON_ha <- rowAnnotation(
     )
 )
 
-png(filename = "results/images/Figure_2A/F2A_days_HM_LON.png", width = 2400, height = 1600, res = 260)
-Heatmap(
+LON_ht_plot <- Heatmap(
     scaled_mat[clustering_LON$order, sample_order_LON],
     name = "Normalized expression",
     column_names_gp = gpar(fontsize = 6),
@@ -302,87 +247,82 @@ Heatmap(
         "yellow"
     ))(1000),
 )
-dev.off()
 
+png_save(
+    plot = LON_ht_plot,
+    path = "results/images/Figure_2/Figure2suppB.png",
+    width = 2000,
+    height = 1800
+)
+
+row_split <- factor(
+    clusters_WTC[clustering_WTC$order],
+    levels = c(1, 2, 3, 4),
+    labels = c(
+        "Early differentiation\nn=585",
+        "Forebrain\nn=428",
+        "Ventral forebrain\nn=524",
+        "Dorsal forebrain\nn=463"
+    )
+)
 # GO enrichment for WTC lineage only
-for (cluster in unique(clusters_WTC)) {
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_WTC[which(clusters_WTC == cluster)]),
-        OrgDb = "org.Hs.eg.db",
-        keyType = "ENSEMBL",
-        ont = "BP"
-    )
-    GO_results <- GO_enrichment@result
-    GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
-        eval(parse(text = x))
-    }) %>% unname()
-    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:5], ]
-
-    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 42) %>% str_to_upper()
-    GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
-
-    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
-        geom_bar(stat = "identity") +
-        geom_text(aes(label = Description),
-            hjust = 1.01, # Move text inside the bar, adjust as needed
-            color = "black", # Make the text white for better visibility
-            size = 13
-        ) + # Adjust size to fit the text inside the bar
-        custom_theme() +
-        scale_fill_gradient(name = "p-value", low = "#e06663", high = "#327eba") +
-        theme(
-            axis.title.x = element_text(size = 30), # Adjusts the x-axis title size
-            axis.text.x = element_text(size = 20),
-            axis.text.y = element_blank(), # Remove y-axis text
-            axis.ticks.y = element_blank(),
-            axis.title.y = element_blank(),
-            legend.text = element_text(size = 20), # Adjusts the legend text size
-            legend.title = element_text(size = 30), # Adjusts the legend title size
-            legend.key.size = unit(2, "lines")
-        )
-    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_diapo", cluster, "_WTC.csv"))
-    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_WTC.png"), goplot, width = 19, height = 10)
-}
-
-
-for (cluster in unique(clusters_LON)) {
-    GO_enrichment <- clusterProfiler::enrichGO(names(clusters_LON[which(clusters_LON == cluster)]),
-        OrgDb = "org.Hs.eg.db",
-        keyType = "ENSEMBL",
-        ont = "BP"
-    )
-    GO_results <- GO_enrichment@result
-    GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
-        eval(parse(text = x))
-    }) %>% unname()
-    GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[1:5], ]
-
-    GO_results_f$Description <- str_wrap(GO_results_f$Description, width = 42) %>% str_to_upper()
-    GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
-
-    goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
-        geom_bar(stat = "identity") +
-        geom_text(aes(label = Description),
-            hjust = 1.01, # Move text inside the bar, adjust as needed
-            color = "black", # Make the text white for better visibility
-            size = 13
-        ) + # Adjust size to fit the text inside the bar
-        custom_theme() +
-        scale_fill_gradient(name = "p-value", low = "#e06663", high = "#327eba") +
-        theme(
-            axis.title.x = element_text(size = 30), # Adjusts the x-axis title size
-            axis.text.x = element_text(size = 20),
-            axis.text.y = element_blank(), # Remove y-axis text
-            axis.ticks.y = element_blank(),
-            axis.title.y = element_blank(),
-            legend.text = element_text(size = 20), # Adjusts the legend text size
-            legend.title = element_text(size = 30), # Adjusts the legend title size
-            legend.key.size = unit(2, "lines")
-        )
-    goplot
-    write.csv(GO_enrichment, paste0("results/tables/Figure_2A/GO_enrichment_cluster_", cluster, "_LON.csv"))
-    ggsave(paste0("results/images/Figure_2A/F2A_DE_GO_clust", cluster, "_LON.png"), goplot, width = 19, height = 10)
-}
-
+GO_1 <- plot_go_term(
+    names(clusters_WTC[which(clusters_WTC == 1)]),
+    path = "results/images/Figure_2/Figure2supp_WTC_earlydiff.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_1, "results/tables/Figure_2/WTC_earlydiff_GO.csv")
+GO_2 <- plot_go_term(
+    names(clusters_WTC[which(clusters_WTC == 2)]),
+    path = "results/images/Figure_2/Figure2supp_WTC_forebrain.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_2, "results/tables/Figure_2/WTC_forebrain_GO.csv")
+GO_3 <- plot_go_term(
+    names(clusters_WTC[which(clusters_WTC == 3)]),
+    path = "results/images/Figure_2/Figure2supp_WTC_vAN.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_3, "results/tables/Figure_2/WTC_vAN_GO.csv")
+GO_4 <- plot_go_term(
+    names(clusters_WTC[which(clusters_WTC == 4)]),
+    path = "results/images/Figure_2/Figure2supp_WTC_dAN.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_4, "results/tables/Figure_2/WTC_dAN_GO.csv")
+# GO enrichment for LON lineage only
+GO_1b <- plot_go_term(
+    names(clusters_LON[which(clusters_LON == 1)]),
+    path = "results/images/Figure_2/Figure2supp_LON_earlydiff.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_1b, "results/tables/Figure_2/LON_earlydiff_GO.csv")
+GO_2b <- plot_go_term(
+    names(clusters_LON[which(clusters_LON == 2)]),
+    path = "results/images/Figure_2/Figure2supp_LON_forebrain.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_2b, "results/tables/Figure_2/LON_forebrain_GO.csv")
+GO_3b <- plot_go_term(
+    names(clusters_LON[which(clusters_LON == 3)]),
+    path = "results/images/Figure_2/Figure2supp_LON_vAN.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_3b, "results/tables/Figure_2/LON_vAN_GO.csv")
+GO_4b <- plot_go_term(
+    names(clusters_LON[which(clusters_LON == 4)]),
+    path = "results/images/Figure_2/Figure2supp_LON_dAN.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_4b, "results/tables/Figure_2/LON_dAN_GO.csv")
 
 # making table of genes used in heatmap with cluster and subcluster annotation
 genes_cluster <- data.frame(
@@ -398,69 +338,46 @@ rownames(genes_cluster) <- hm_genes
 
 write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
 
+######################################
+######################################
+# FIGURE 2 D-E : vAN vs dAN at day02
 
+# DEGs ventral VS dorsal at day02
+DEGs_day02 <- DESeqDataSetFromMatrix(
+    countData = counts[, filter(meta, day == "day02")$sample],
+    colData = filter(meta, day == "day02"),
+    design = ~ line + type
+) %>%
+    DESeq() %>%
+    results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
+    as.data.frame() %>%
+    na.omit()
+DEGs_day02$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day02), "ENSEMBL", "SYMBOL")
+DEGs_day02 <- filter(DEGs_day02, !is.na(gene))
+DEGs_day02$f1 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 1 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
+DEGs_day02$f2 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 2 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
 
+vplot <- ggplot(DEGs_day02, aes(x = log2FoldChange, y = -log10(padj), label = f2)) +
+    geom_point(data = filter(DEGs_day02, !is.na(f2)), aes(x = log2FoldChange, y = -log10(padj)), color = "red", size = 4) +
+    geom_point(data = filter(DEGs_day02, is.na(f2)), aes(x = log2FoldChange, y = -log10(padj)), alpha = 0.5, color = "grey", size = 4) +
+    geom_text_repel(size = 9, fontface = "bold") +
+    xlab("log2(FoldChange)") +
+    ylab("-log10(adjusted pvalue)") +
+    geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
+    geom_vline(xintercept = c(-2, 2), linetype = "dashed") +
+    theme(
+        axis.title.x = element_text(size = 30),
+        axis.title.y = element_text(size = 30),
+        axis.text.x = element_text(size = 30),
+        axis.text.y = element_text(size = 20),
+    ) +
+    custom_theme()
+ggsave("results/images/Figure_2/Figure2D.png", plot = vplot, width = 12, height = 10)
 
-#  Lineplots :
-dbd_ventral <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", header = TRUE)
-genes <- dbd_ventral$gene
-genes %>% length()
-lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
-# filtering out lowly expressed genes
-lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
-# lp_counts <- rawcounts[hm_genes, lp_meta$sample]
+######################################
+######################################
+# FIGURE 2 E : lineplots for selected genes
 
-# making DESeq object with lineage,days and type as covariates
-lp_vsd <- DESeqDataSetFromMatrix(
-    countData = lp_counts,
-    colData = lp_meta,
-    design = ~day
-) %>% vst(blind = FALSE)
-
-filtered <- assay(lp_vsd)[rownames(lp_vsd) %in% gene_converter(genes, "SYMBOL", "ENSEMBL"), ]
-
-rownames(lp_meta) <- lp_meta$sample
-lp_meta$day <- as.factor(lp_meta$day)
-
-clusters <- degPatterns(
-    filtered,
-    meta = lp_meta,
-    time = "day",
-    reduce = TRUE,
-    nClusters = 10,
-)
-clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
-# write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_LON.csv", quote = FALSE, row.names = FALSE)
-
-sign_comp <- list(
-    c("day02", "day04"),
-    c("day04", "day06"),
-    c("day06", "day08"),
-    c("day08", "day10"),
-    c("day10", "day12")
-)
-source("R/custom_fct.R")
-
-for (i in 1:9) {
-    plot <- MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "day", sign_comp = sign_comp, cluster_i = i)
-    ggsave(paste0("results/images/Figure_2A/F2A_DEpattern_LON_", i, ".png"), plot, width = 15, height = 10)
-}
-library(grid)
-
-# Example ggplots
-plot_list <- lapply(1:9, function(i) {
-    return(MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "day", sign_comp = sign_comp, cluster_i = i))
-})
-combined_plot <- wrap_plots(plot_list, ncol = 3)
-
-ggsave(paste0("results/images/Figure_2A/F2A_DEpattern_WTC_all.png"), combined_plot, width = 35, height = 25)
-
-
-
-clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
-write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)
-
-View(rawmeta)
 lp_meta <- filter(rawmeta, sample == "WTC6cipc" | (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day0"
 # filtering out lowly expressed genes
@@ -472,175 +389,89 @@ lp_vsd <- DESeqDataSetFromMatrix(
     design = ~day
 ) %>% vst(blind = FALSE)
 
-early <- c("PTCH1", "FREM1", "FOXA2")
-mid <- c("SHH", "SIX3", "LRP2", "FGF10", "NKX2-1", "NKX2-2")
-late <- c("GADL1", "DRC1", "CLSTN2", "DDC", "SLIT2")
-possible <- c("ETV4", "PDGFB", "PDE4B", "GRIP2", "VIPR2", "LRRTM2", "SHC3", "VGF", "PITX2")
+# SIX6 pas exprimmé
+early <- c("CHRD", "SOX5", "GSC", "NOG", "PTCH1", "FREM1", "FOXA2", "DKK1", "DLK1", "SPON1", "HEY1", "SHH", "SIX3", "LRP2", "FGF10", "NKX2-1")
+# SEMAC3C et ERB4 pas exprimmés
+late <- c("GADL1", "CLSTN2", "DDC", "SLIT2", "PITX2", "NTNG1", "SLC8A1", "GRM3", "TMEFF2", "LRRK2", "SIM1", "KCND3", "EDN3", "SMIM32", "CTNNA3", "SOX6", "NEDD9")
 
 symbol_vsd <- assay(lp_vsd)
 rownames(symbol_vsd) <- gene_converter(rownames(symbol_vsd), "ENSEMBL", "SYMBOL")
-filtered_vsd <- symbol_vsd[Reduce(union, list(early, mid, late, possible)), ]
+filtered_vsd <- symbol_vsd[Reduce(union, list(early, late)), ]
 scaled_filtered_vsd <- filtered_vsd - min(filtered_vsd)
 
-early_vsd <- scaled_filtered_vsd[early, ]
-early_df <- cbind(dplyr::select(lp_meta, c("day")), t(early_vsd)[lp_meta$sample, ])
-early_df_long <- reshape2::melt(early_df, id.vars = "day", variable.name = "gene", value.name = "expression")
-early_df_long <- summarise(group_by(early_df_long, gene, day), mean_expression = mean(expression), sd_expression = sd(expression))
+early_df_long <- scaled_filtered_vsd[early, ] %>%
+    t() %>%
+    cbind(dplyr::select(lp_meta, c("day")), .[lp_meta$sample, ]) %>%
+    reshape2::melt(., id.vars = "day", variable.name = "gene", value.name = "expression") %>%
+    group_by(., gene, day) %>%
+    summarise(., mean_expression = mean(expression), sd_expression = sd(expression))
 early_df_long$sd_expression[which(is.na(early_df_long$sd_expression))] <- 0
+early_plot <- kinetic_lineplots(early_df_long)
+ggsave("results/images/Figure_2/Figure2E1.png", early_plot, width = 15, height = 10)
 
-early_plot <- ggplot(early_df_long, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 2) +
-    geom_errorbar(
-        aes(
-            ymin = mean_expression - sd_expression,
-            ymax = mean_expression + sd_expression
-        ),
-        width = 0, # Width of the horizontal bar on the error bar
-        size = 1 # Thickness of the error bars
-    ) +
-    geom_text_repel(
-        data = filter(early_df_long, day == "day12"),
-        aes(x = 7.75),
-        nudge_x = 0,
-        nudge_y = 0.1,
-        direction = "y",
-        size = 10,
-        segment.color = NA
-    ) +
-    scale_x_discrete(breaks = c("day0", "day02", "day04", "day06", "day08", "day10", "day12"), expand = c(0, 0)) +
-    ylim(0, 5) +
-    ylab("Scaled normalized expression") +
-    custom_theme() +
-    theme(
-        legend.position = "none",
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size = 30),
-        axis.text.x = element_text(size = 30),
-        axis.text.y = element_text(size = 20),
-        plot.margin = margin(t = 10, r = 30, b = 10, l = 10)
-    )
-early_plot
-ggsave("results/images/Figure_2A/F2A_early_WTC.png", early_plot, width = 15, height = 10)
-
-mid_vsd <- scaled_filtered_vsd[mid, ]
-mid_df <- cbind(dplyr::select(lp_meta, c("day")), t(mid_vsd)[lp_meta$sample, ])
-mid_df_long <- reshape2::melt(mid_df, id.vars = "day", variable.name = "gene", value.name = "expression")
-mid_df_long <- summarise(group_by(mid_df_long, gene, day), mean_expression = mean(expression), sd_expression = sd(expression))
-mid_df_long$sd_expression[which(is.na(mid_df_long$sd_expression))] <- 0
-
-mid_plot <- ggplot(mid_df_long, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 2) +
-    geom_errorbar(
-        aes(
-            ymin = mean_expression - sd_expression,
-            ymax = mean_expression + sd_expression
-        ),
-        width = 0, # Width of the horizontal bar on the error bar
-        size = 1 # Thickness of the error bars
-    ) +
-    geom_text_repel(
-        data = filter(mid_df_long, day == "day12"),
-        aes(x = 7.75),
-        nudge_x = 0,
-        nudge_y = 0.1,
-        direction = "y",
-        size = 10,
-        segment.color = NA
-    ) +
-    scale_x_discrete(breaks = c("day0", "day02", "day04", "day06", "day08", "day10", "day12"), expand = c(0, 0)) +
-    ylim(0, 5) +
-    ylab("Scaled normalized expression") +
-    custom_theme() +
-    theme(
-        legend.position = "none",
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size = 30),
-        axis.text.x = element_text(size = 30),
-        axis.text.y = element_text(size = 20),
-        plot.margin = margin(t = 10, r = 30, b = 10, l = 10) # Add margin on the right
-    )
-ggsave("results/images/Figure_2A/F2A_mid_WTC.png", mid_plot, width = 15, height = 10)
-
-late_vsd <- scaled_filtered_vsd[late, ]
-late_df <- cbind(dplyr::select(lp_meta, c("day")), t(late_vsd)[lp_meta$sample, ])
-late_df_long <- reshape2::melt(late_df, id.vars = "day", variable.name = "gene", value.name = "expression")
-late_df_long <- summarise(group_by(late_df_long, gene, day), mean_expression = mean(expression), sd_expression = sd(expression))
+late_df_long <- scaled_filtered_vsd[late, ] %>%
+    t() %>%
+    cbind(dplyr::select(lp_meta, c("day")), .[lp_meta$sample, ]) %>%
+    reshape2::melt(., id.vars = "day", variable.name = "gene", value.name = "expression") %>%
+    group_by(., gene, day) %>%
+    summarise(., mean_expression = mean(expression), sd_expression = sd(expression))
 late_df_long$sd_expression[which(is.na(late_df_long$sd_expression))] <- 0
+late_plot <- kinetic_lineplots(late_df_long)
+ggsave("results/images/Figure_2/Figure2E2.png", late_plot, width = 15, height = 10)
 
-late_plot <- ggplot(late_df_long, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 2) +
-    geom_errorbar(
-        aes(
-            ymin = mean_expression - sd_expression,
-            ymax = mean_expression + sd_expression
-        ),
-        width = 0, # Width of the horizontal bar on the error bar
-        size = 1 # Thickness of the error bars
-    ) +
-    geom_text_repel(
-        data = filter(late_df_long, day == "day12"),
-        aes(x = 7.75),
-        nudge_x = 0,
-        nudge_y = 0.1,
-        direction = "y",
-        size = 10,
-        segment.color = NA
-    ) +
-    scale_x_discrete(breaks = c("day0", "day02", "day04", "day06", "day08", "day10", "day12"), expand = c(0, 0)) +
-    ylim(0, 5) +
-    ylab("Scaled normalized expression") +
-    custom_theme() +
-    theme(
-        legend.position = "none",
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size = 30),
-        axis.text.x = element_text(size = 30),
-        axis.text.y = element_text(size = 20),
-        plot.margin = margin(t = 10, r = 30, b = 10, l = 10)
-    )
-late_plot
-ggsave("results/images/Figure_2A/F2A_late_WTC.png", late_plot, width = 15, height = 10)
 
-possible_vsd <- scaled_filtered_vsd[possible, ]
-possible_df <- cbind(dplyr::select(lp_meta, c("day")), t(possible_vsd)[lp_meta$sample, ])
-possible_df_long <- reshape2::melt(possible_df, id.vars = "day", variable.name = "gene", value.name = "expression")
-possible_df_long <- summarise(group_by(possible_df_long, gene, day), mean_expression = mean(expression), sd_expression = sd(expression))
-possible_df_long$sd_expression[which(is.na(possible_df_long$sd_expression))] <- 0
+######################################
+######################################
+# FIGURE 2 D & E : Combined plot
 
-possible_plot <- ggplot(possible_df_long, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
-    geom_point(size = 2) +
-    geom_line(size = 2) +
-    geom_errorbar(
-        aes(
-            ymin = mean_expression - sd_expression,
-            ymax = mean_expression + sd_expression
-        ),
-        width = 0, # Width of the horizontal bar on the error bar
-        size = 1 # Thickness of the error bars
-    ) +
-    geom_text_repel(
-        data = filter(possible_df_long, day == "day12"),
-        aes(x = 7.75),
-        nudge_x = 0,
-        nudge_y = 0.1,
-        direction = "y",
-        size = 10,
-        segment.color = NA
-    ) +
-    scale_x_discrete(breaks = c("day0", "day02", "day04", "day06", "day08", "day10", "day12"), expand = c(0, 0)) +
-    ylim(0, 5) +
-    ylab("Scaled normalized expression") +
-    custom_theme() +
-    theme(
-        legend.position = "none",
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size = 30),
-        axis.text.x = element_text(size = 30),
-        axis.text.y = element_text(size = 20),
-        plot.margin = margin(t = 10, r = 30, b = 10, l = 10)
-    )
-possible_plot
-ggsave("results/images/Figure_2A/F2A_possible_WTC.png", possible_plot, width = 15, height = 10)
+combined_plot <- wrap_plots(list(vplot, early_plot, late_plot), nrow = 3)
+ggsave("results/images/Figure_2/Figure2DE.png", combined_plot, width = 16, height = 28)
+
+#  Lineplots :
+DEGs <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results_to_clean/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", header = TRUE)$gene %>% gene_converter("SYMBOL", "ENSEMBL")
+
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
+rownames(lp_meta) <- lp_meta$sample
+lp_meta$day <- as.factor(lp_meta$day)
+
+# filtering out lowly expressed genes
+lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
+# lp_counts <- rawcounts[hm_genes, lp_meta$sample]
+
+# making DESeq object with days as covariate
+lp_vsd <- DESeqDataSetFromMatrix(
+    countData = lp_counts,
+    colData = lp_meta,
+    design = ~day
+) %>% vst(blind = FALSE)
+
+clusters <- degPatterns(
+    assay(lp_vsd)[rownames(lp_vsd) %in% DEGs, ],
+    meta = lp_meta,
+    time = "day",
+    reduce = TRUE,
+    nClusters = 10,
+)
+# intervert cluster 2 and 6 for convenience
+clusters$normalize$cluster <- ifelse(clusters$normalize$cluster == 2, 6, ifelse(clusters$normalize$cluster == 6, 2, clusters$normalize$cluster))
+clusters$df$cluster <- ifelse(clusters$df$cluster == 2, 6, ifelse(clusters$df$cluster == 6, 2, clusters$df$cluster))
+
+sign_comp <- list(
+    c("day02", "day04"),
+    c("day04", "day06"),
+    c("day06", "day08"),
+    c("day08", "day10"),
+    c("day10", "day12")
+)
+
+plot_list <- lapply(1:9, function(i) {
+    return(MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "day", sign_comp = sign_comp, cluster_i = i))
+})
+combined_plot <- wrap_plots(plot_list, ncol = 3)
+ggsave(paste0("results/images/Figure_2/Figure2G1.png"), combined_plot, width = 35, height = 25)
+ggsave(paste0("results/images/Figure_2/Figure2G2.png"), plot_list[[1]], width = 15, height = 10)
+ggsave(paste0("results/images/Figure_2/Figure2G3.png"), plot_list[[2]], width = 15, height = 10)
+
+
+clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)

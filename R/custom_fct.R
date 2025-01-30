@@ -1,3 +1,39 @@
+kinetic_lineplots <- function(data) {
+  plot <- ggplot(data, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
+    geom_point(size = 2) +
+    geom_line(size = 2) +
+    geom_errorbar(
+      aes(
+        ymin = mean_expression - sd_expression,
+        ymax = mean_expression + sd_expression
+      ),
+      width = 0, # Width of the horizontal bar on the error bar
+      size = 1 # Thickness of the error bars
+    ) +
+    geom_text_repel(
+      data = filter(data, day == "day12"),
+      aes(x = 7.75),
+      nudge_x = 0,
+      nudge_y = 0.1,
+      direction = "y",
+      size = 10,
+      segment.color = NA,
+      max.overlaps = Inf
+    ) +
+    scale_x_discrete(breaks = c("day0", "day02", "day04", "day06", "day08", "day10", "day12"), expand = c(0, 0)) +
+    ylim(0, 5) +
+    ylab("Scaled normalized expression") +
+    custom_theme() +
+    theme(
+      legend.position = "none",
+      axis.title.x = element_blank(),
+      axis.title.y = element_text(size = 30),
+      axis.text.x = element_text(size = 30),
+      axis.text.y = element_text(size = 20),
+      plot.margin = margin(t = 10, r = 30, b = 10, l = 10)
+    )
+  return(plot)
+}
 png_save <- function(plot, path, width, height, res = 250) {
   #' Save a plot as a PNG file
   #'
@@ -88,7 +124,7 @@ plot_go_term <- function(genelist, path, range = c(1:20), cut = 40, textsize = 2
       legend.title = element_text(size = 30), # Adjusts the legend title size
       legend.key.size = unit(2, "lines")
     )
-  ggsave(paste0(path, ".png"), goplot, width = 17, height = 10)
+  ggsave(paste0(path, ".png"), goplot, width = imgw, height = imgh)
   return(GO_results)
 }
 
@@ -180,7 +216,7 @@ MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
       step_increase = 0.05,
       textsize = 10
     ) +
-    ggtitle(paste0("Cluster ", cluster_i)) +
+    ggtitle(paste0("Cluster ", cluster_i, ", ", length(unique(table$genes)), " genes")) +
     ylab("Z-score of gene abundance") +
     xlab("") +
     ylim(-2.1, 3.2) +
