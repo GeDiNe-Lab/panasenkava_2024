@@ -327,16 +327,12 @@ write.csv(GO_4b, "results/tables/Figure_2/LON_dAN_GO.csv")
 # making table of genes used in heatmap with cluster and subcluster annotation
 genes_cluster <- data.frame(
     genes = hm_genes %>% gene_converter("ENSEMBL", "SYMBOL"),
-    cluster = clusters[hm_genes],
-    subcluster = sub_clusters[hm_genes],
     cluster_LON = clusters_LON[hm_genes],
-    subclusterLON = sub_clusters_LON[hm_genes],
     cluster_WTC = clusters_WTC[hm_genes],
-    subcluster_WTC = sub_clusters_WTC[hm_genes]
 )
 rownames(genes_cluster) <- hm_genes
 
-write.csv(genes_cluster, "results/tables/Figure_2A/genes_cluster.csv")
+write.csv(genes_cluster, "results/tables/Figure_2/WTC_LON_heatmap_genes.csv")
 
 ######################################
 ######################################
@@ -427,8 +423,11 @@ ggsave("results/images/Figure_2/Figure2E2.png", late_plot, width = 15, height = 
 combined_plot <- wrap_plots(list(vplot, early_plot, late_plot), nrow = 3)
 ggsave("results/images/Figure_2/Figure2DE.png", combined_plot, width = 16, height = 28)
 
-#  Lineplots :
-DEGs <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results_to_clean/tables/Figure_2A/Volcano_DEG_dbd_ventral.csv", header = TRUE)$gene %>% gene_converter("SYMBOL", "ENSEMBL")
+######################################
+######################################
+# FIGURE 2 G : Expression pattern plots
+
+DEGs <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/Volcano_DEG_dbd_ventral.csv", header = TRUE)$gene %>% gene_converter("SYMBOL", "ENSEMBL")
 
 lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
 rownames(lp_meta) <- lp_meta$sample
@@ -436,8 +435,6 @@ lp_meta$day <- as.factor(lp_meta$day)
 
 # filtering out lowly expressed genes
 lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
-# lp_counts <- rawcounts[hm_genes, lp_meta$sample]
-
 # making DESeq object with days as covariate
 lp_vsd <- DESeqDataSetFromMatrix(
     countData = lp_counts,
@@ -471,7 +468,6 @@ combined_plot <- wrap_plots(plot_list, ncol = 3)
 ggsave(paste0("results/images/Figure_2/Figure2G1.png"), combined_plot, width = 35, height = 25)
 ggsave(paste0("results/images/Figure_2/Figure2G2.png"), plot_list[[1]], width = 15, height = 10)
 ggsave(paste0("results/images/Figure_2/Figure2G3.png"), plot_list[[2]], width = 15, height = 10)
-
 
 clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
 write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2A/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)

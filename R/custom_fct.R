@@ -222,7 +222,7 @@ MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
     ylim(-2.1, 3.2) +
     custom_theme(hide_legend = TRUE) +
     theme(
-      plot.title = element_text(size = 35),
+      plot.title = element_text(size = 40, face = "bold"),
       axis.title.y = element_text(size = 30),
       axis.text.x = element_text(size = 30)
     )
