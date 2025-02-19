@@ -27,19 +27,25 @@ rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 meta <- filter(rawmeta, type %in% c("cyclo", "ventral") & sample != "L9C1_2" & sequencing == "batch1")
 rownames(meta) <- meta$sample
 counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
-
 meta$`Cyclopamine dose` <- as.factor(meta$cyclo_dose_quant)
-# making DESeq object
+
+# Normalizing data using DESeq2 variance stabilizing transformation
+# Making DESeq object with lineage and type as covariates for design
 dds <- DESeqDataSetFromMatrix(
     countData = counts,
     colData = meta,
     design = ~cyclo_dose_qual
 )
 
-# Normalization without covariates
+# Normalization by variance stabilizing transformation with and without covariates
 vsd_blind <- vst(dds, blind = TRUE)
+vsd <- vst(dds, blind = FALSE)
 
-#  PCA
+######################################
+######################################
+# FIGURE 4A : PCA, variance percentage and covariates ANOVA
+
+# PCA plot of top 3000 most variable genes (DESeq2 default = 500)
 pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "cyclo_dose_qual", "Cyclopamine dose"), returnData = TRUE, ntop = 3000)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
@@ -70,9 +76,9 @@ percentVar_plot <- ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca
     xlab("Principal Components")
 ggsave("results/images/Figure_4/Figure4supp_percentVar.png", plot = percentVar_plot, width = 10, height = 5)
 
-
-# Normalization with covariates
-vsd <- vst(dds, blind = FALSE)
+######################################
+######################################
+# FIGURE 4 B/C : WGCNA analysis, Heatmap and GO enrichment
 
 # keeping only genes with higher variance (50% quantile)
 vsd_var <- assay(vsd)[which(rowVars(assay(vsd)) >= quantile(apply(assay(vsd), 1, var), 0.5)), ]
@@ -122,9 +128,8 @@ merged_clusters <- rownames(vsd_var)
 merged_clusters_sym <- gene_converter(merged_clusters, "ENSEMBL", "SYMBOL")
 cluster_df <- data.frame(ENSEMBLE = merged_clusters, gene = merged_clusters_sym, module = dynamic.colors, merged_module = mergedColors)
 
-# get blue module (shh modules) dataframe with weighted correlation values
+# get blue module (SHH modules) dataframe with weighted correlation values
 blue_clust_df_f <- filter(cluster_df, merged_module == "blue", !is.na(gene))
-table(cluster_df$merged_module)
 blue_clust_df_f$cor_abs <- adj["ENSG00000164690", blue_clust_df_f$ENSEMBLE]
 # get back the sign of the correlation
 blue_clust_df_f$cor <- sapply(c(1:nrow(blue_clust_df_f)), function(x) {
@@ -134,7 +139,6 @@ blue_clust_df_f$cor <- sapply(c(1:nrow(blue_clust_df_f)), function(x) {
         return(-blue_clust_df_f$cor_abs[x])
     }
 })
-blue_clust_df_f
 
 # get get the top 500 genes most co-expressed with SHH in the WGCNA modules to show on the STRINGdb plot
 write.csv(blue_clust_df_f[order(blue_clust_df_f$cor_abs, decreasing = TRUE), ] %>% head(500), "results/tables/Figure_3/SHH_cluster_500.csv")
@@ -152,8 +156,6 @@ clusters <- cutree(clustering, k = 2)
 
 # renaming clusters
 clusters <- ifelse(clusters == 1, "Cluster 1", "Cluster 2")
-
-
 
 row_split <- factor(
     clusters[clustering$order],
@@ -193,7 +195,6 @@ clusters_ha <- rowAnnotation(
     W4 = sc_percent$W4.1,
     W5 = sc_percent$W5.1
 )
-
 
 WGCNA_ht_plot <- Heatmap(
     scaled_mat[clustering$order, sample_order],
@@ -269,7 +270,7 @@ DE_WGCNA %>% View()
 DE_WGCNA$gene <- gene_converter(rownames(DE_WGCNA), "ENSEMBL", "SYMBOL")
 DE_WGCNA_f <- filter(DE_WGCNA, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
-
+# DESEQ2 object with only cyclo dose as covariate
 dds_quant <- DESeqDataSetFromMatrix(
     countData = counts,
     colData = meta,
@@ -306,7 +307,7 @@ DE_low_vs_no <- dds %>%
 DE_low_vs_no$gene <- gene_converter(rownames(DE_low_vs_no), "ENSEMBL", "SYMBOL")
 DE_low_vs_no_f <- filter(DE_low_vs_no, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
-# Building heatmap genes annotation (DE, genes in WGCNA blue cluster,  heatmap cluster, heatmap subcluster)
+# Building heatmap genes annotation (DE, genes in WGCNA blue cluster,  heatmap cluster)
 colnames(DE_high_vs_no) <- paste0("HvsN_", colnames(DE_high_vs_no))
 colnames(DE_high_vs_low) <- paste0("HvsL_", colnames(DE_high_vs_low))
 colnames(DE_low_vs_no) <- paste0("LvsN_", colnames(DE_low_vs_no))
@@ -342,5 +343,71 @@ cyclo_genes_df %>% View()
 cyclo_genes_df$genes <- gene_converter(rownames(cyclo_genes_df), "ENSEMBL", "SYMBOL")
 
 # Saving heatmap genes annotation table
-write.csv(cyclo_genes_df, "results/tables/Figure_3/cyclo_genes_df.csv")
-save(cyclo_genes_df, file = "results/tables/Figure_3/cyclo_genes_df.RData")
+write.csv(cyclo_genes_df, "results/tables/Figure_4/cyclo_genes_df.csv")
+save(cyclo_genes_df, file = "results/tables/Figure_4/cyclo_genes_df.RData")
+
+
+####################################
+####################################
+# FIGURE SUPP : comparisons with kinetic
+shh_cluster <- read.table("results/tables/Figure_4/SHH_cluster.csv", sep = ",", header = TRUE)
+kinetic_genes_df <- read.table("results/tables/Figure_2/DEGpattern_WTC.csv", sep = ",", header = TRUE)
+
+cyclo_ventral_genes <- filter(shh_cluster, cor > 0)$gene
+kinetic_genes <- filter(kinetic_genes_df, cluster %in% c(1, 2))$symbol
+
+# Create a dataframe with unique genes and their category
+unique_genes <- unique(c(cyclo_ventral_genes, kinetic_genes))
+gene_category <- sapply(unique_genes, function(gene) {
+    if (gene %in% cyclo_ventral_genes & gene %in% kinetic_genes) {
+        return("both")
+    } else if (gene %in% cyclo_ventral_genes) {
+        return("cyclo")
+    } else {
+        return("kinetic")
+    }
+})
+
+gene_df <- data.frame(
+    gene = unique_genes,
+    category = gene_category
+)
+
+# Save the dataframe
+write.csv(gene_df, "results/tables/Figure_4/intersect_genes.csv")
+
+# Venn diagram of cyclo_ventral_genes and kinetic_genes
+library(VennDiagram)
+venn.plot <- venn.diagram(
+    x = list(
+        CycloVentral = cyclo_ventral_genes,
+        Kinetic = kinetic_genes
+    ),
+    category.names = c("Cyclo Ventral Genes", "Kinetic Genes"),
+    filename = NULL,
+    output = TRUE,
+    imagetype = "png",
+    height = 800,
+    width = 800,
+    resolution = 300,
+    compression = "lzw",
+    lwd = 2,
+    col = c("red", "blue"),
+    fill = c("red", "blue"),
+    alpha = 0.5,
+    cex = 1.5,
+    fontface = "bold",
+    fontfamily = "sans",
+    cat.cex = 1.5,
+    cat.fontface = "bold",
+    cat.default.pos = "outer",
+    cat.pos = c(-20, 20),
+    cat.dist = c(0.05, 0.05),
+    cat.fontfamily = "sans",
+    cat.col = c("red", "blue")
+)
+venn.plot
+# Save Venn diagram
+png("results/images/Figure_4/Figure4supp_VennDiagram.png", width = 1800, height = 1800, res = 250)
+grid.draw(venn.plot)
+dev.off()
