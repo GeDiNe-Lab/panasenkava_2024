@@ -42,22 +42,12 @@ sc_meta <- read.csv("scdata/week345_wholebody_metadata.csv") %>%
     filter(celltype_region_num %in% c(1:8)) %>%
     dplyr::select(c("week_stage", "celltype_region_num", "celltype_region", "barcode"))
 
+# shorten some celltypes names
 sc_meta$celltype_region[which(sc_meta$celltype_region == "Spinal Cord Motor Neuron 1")] <- "SCMN 1"
 sc_meta$celltype_region[which(sc_meta$celltype_region == "Spinal Cord Motor Neuron 2")] <- "SCMN 2"
 sc_meta$celltype_region[which(sc_meta$celltype_region == "Spinal Cord Motor Neuron 3")] <- "SCMN 3"
 
-sc_meta_weekAll <- sc_meta
-seurat_weekAll <- CreateSeuratObject(counts = sc_counts[, sc_meta_weekAll$barcode], meta.data = sc_meta_weekAll, min.cells = 20)
-seurat_weekAll <- NormalizeData(seurat_weekAll)
-
-seurat_weekAll <- FindVariableFeatures(seurat_weekAll, selection.method = "vst", nfeatures = 2000)
-seurat_weekAll <- ScaleData(seurat_weekAll, features = rownames(seurat_weekAll))
-seurat_weekAll <- RunPCA(seurat_weekAll, features = VariableFeatures(object = seurat_weekAll))
-seurat_weekAll <- RunUMAP(seurat_weekAll, dims = 1:10)
-
-umap_weekAll <- seurat_weekAll[["umap"]]@cell.embeddings %>% as.data.frame()
-sc_meta_weekAll <- cbind(umap_weekAll[sc_meta_weekAll$barcode, ], sc_meta_weekAll)
-
+# Creating Seurat object for week4 data, normalizing, scaling, running PCA and UMAP
 sc_meta_week4 <- filter(sc_meta, week_stage == "W4-1")
 seurat_week4 <- CreateSeuratObject(counts = sc_counts[, sc_meta_week4$barcode], meta.data = sc_meta_week4, min.cells = 20)
 seurat_week4 <- NormalizeData(seurat_week4)
@@ -71,6 +61,7 @@ seurat_week4 <- RunUMAP(seurat_week4, dims = 1:10)
 umap_week4 <- seurat_week4[["umap"]]@cell.embeddings %>% as.data.frame()
 sc_meta_week4 <- cbind(umap_week4[sc_meta_week4$barcode, ], sc_meta_week4)
 
+# Plotting UMAP for week4 data colored by celltype
 umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = celltype_region)) +
     geom_point(size = 2.5) +
     guides(color = guide_legend(
@@ -88,60 +79,10 @@ umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = ce
 umap_plot
 ggsave(paste0("results/images/Figure_5/Zeng_week4_celltypes.png"), plot = umap_plot, width = 12, height = 10, dpi = 300)
 
+# genes selection
+marker_genes <- c("SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
 
-
-genes_final <- c("SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
-
-marker_genes <- genes_final
-for (gene in marker_genes) {
-    if (gene %in% rownames(seurat_week4)) {
-        # Extract expression data
-        sc_meta_week4$expression <- seurat_week4@assays$RNA$scale.data[gene, sc_meta_week4$barcode]
-
-        sc_meta_week4 <- sc_meta_week4 %>% arrange(expression)
-
-        # Create UMAP plot
-        umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = expression)) +
-            geom_point(size = 2.5) +
-            ggtitle(gene) +
-            scale_color_gradient(low = "lightblue", high = "darkred") +
-            labs(color = "Expression") +
-            custom_theme() +
-            theme(
-                legend.text = element_text(size = 15), # Change legend text size
-                legend.title = element_text(size = 20), # Change legend title size
-                legend.key.size = unit(1, "cm"),
-                axis.text.x = element_text(size = 20),
-                axis.text.y = element_text(size = 20)
-            )
-
-        # Save the plot
-        ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Figure_5/Zeng_week4_", gene, ".png"),
-            plot = umap_plot, width = 14, height = 10, dpi = 300
-        )
-
-        # Garbage collection
-        gc()
-    } else {
-        print(paste0(gene, " not in week4"))
-    }
-}
-
-for (gene in marker_genes) {
-    if (gene %in% rownames(seurat_week4)) {
-        sc_meta_week4$expression <- seurat_week4@assays$RNA$scale.data[gene, sc_meta_week4$barcode]
-        umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = expression)) +
-            geom_point(size = 1) +
-            ggtitle(gene) +
-            scale_color_gradient(low = "lightblue", high = "darkred") +
-            custom_theme()
-        ggsave(paste0("/home/jules/Documents/phd/projects/panasenkava_2024/results/images/Zeng_week4_", gene, ".png"), plot = umap_plot, width = 14, height = 10, dpi = 300)
-        gc()
-    } else {
-        print(paste0(gene, " not in week4"))
-    }
-}
-
+# Plotting UMAP for week4 data colored by marker genes keeping only Forebrain cells
 w4_cellmatch <- filter(sc_meta_week4, celltype_region == "FB" & umap_1 < -2 & umap_2 < -1)
 w4df <- marker_genes %>%
     lapply(function(gene) {

@@ -74,8 +74,7 @@ if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
     counts <- rbind(counts, retained_row[which(!rownames(retained_row) %in% rownames(counts)), ])
 }
 
-# Normalizing data using DESeq2 variance stabilizing transformation
-# Making DESeq object with lineage and type as covariates for design
+
 dds <- DESeqDataSetFromMatrix(
     countData = counts,
     colData = meta,
