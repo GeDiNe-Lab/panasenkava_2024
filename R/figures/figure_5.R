@@ -80,7 +80,8 @@ ggsave(paste0("results/images/Figure_5/Zeng_week4_celltypes.png"), plot = umap_p
 
 # genes selection
 marker_genes <- c("SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
-
+NKX2_1_genes <- c("SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1")
+PAX6_genes <- c("SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
 # Plotting UMAP for week4 data colored by marker genes keeping only Forebrain cells
 w4_cellmatch <- filter(sc_meta_week4, celltype_region == "FB" & umap_1 < -2 & umap_2 < -1)
 
@@ -150,3 +151,94 @@ for (i in c(1:nrow(pairwise_df))) {
         )
     ggsave(paste0("results/images/Figure_5/", gene1, "_", gene2, ".png"), plot = plot, width = 8, height = 7, dpi = 300)
 }
+
+
+# Expression by group of genes
+# Define marker gene sets
+marker_genes <- c("NKX2-1", "EMX2", "PAX6", "SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
+NKX2_1_genes <- c("NKX2-1", "SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1") #
+PAX6_genes <- c("PAX6", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
+EMX2_genes <- c("EMX2", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
+
+# Filter Forebrain cells
+w4_cellmatch <- sc_meta_week4
+
+# Build dataframe to check expression of marker genes
+w4df <- marker_genes %>%
+    lapply(function(gene) {
+        if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
+            return(seurat_week4@assays$RNA$counts[gene, ] >= 1)
+        } else {
+            print(paste0(gene, " not in week4"))
+            return(rep(FALSE, ncol(seurat_week4@assays$RNA$data)))
+        }
+    }) %>%
+    do.call(cbind, .)
+colnames(w4df) <- marker_genes
+w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
+
+# Identify cells expressing NKX2-1 and at least one other gene from NKX2_1_genes
+w4_cellmatch$NKX2_1_all <- w4_cellmatch$"NKX2-1" & rowSums(w4_cellmatch[, NKX2_1_genes]) > 1
+
+# Identify cells expressing PAX6 and at least one other gene from PAX6_genes
+w4_cellmatch$PAX6_all <- w4_cellmatch$"PAX6" & rowSums(w4_cellmatch[, PAX6_genes]) > 1
+
+# Identify cells expressing EMX2 and at least one other gene from EMX2_genes
+w4_cellmatch$EMX2_all <- w4_cellmatch$"EMX2" & rowSums(w4_cellmatch[, EMX2_genes]) > 1
+
+# Define UMAP for NKX2-1 genes
+title1 <- "Week4: Expression of NKX2-1 Gene Set"
+w4_cellmatch$expression_NKX2_1 <- factor(ifelse(w4_cellmatch$NKX2_1_all, "NKX2-1 genes expressed", "None"), levels = c("None", "NKX2-1 genes expressed"))
+colors1 <- c("None" = "grey", "NKX2-1 genes expressed" = "red")
+plot1 <- ggplot(w4_cellmatch, aes(x = umap_1, y = umap_2)) +
+    geom_point(aes(color = expression_NKX2_1), size = 4, alpha = 0.5) +
+    geom_point(data = subset(w4_cellmatch, NKX2_1_all), aes(x = umap_1, y = umap_2), color = "red", size = 4) +
+    ggtitle(title1) +
+    scale_color_manual(values = colors1) +
+    custom_theme() +
+    theme(
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 20),
+        axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20)
+    )
+
+ggsave("results/images/Figure_5/NKX2-1_expression.png", plot = plot1, width = 16, height = 12, dpi = 300)
+
+# Define UMAP for PAX6 genes
+title2 <- "Week4: Expression of PAX6 Gene Set"
+w4_cellmatch$expression_PAX6 <- factor(ifelse(w4_cellmatch$PAX6_all, "PAX6 genes expressed", "None"), levels = c("None", "PAX6 genes expressed"))
+colors2 <- c("None" = "grey", "PAX6 genes expressed" = "red")
+plot2 <- ggplot(w4_cellmatch, aes(x = umap_1, y = umap_2)) +
+    geom_point(aes(color = expression_PAX6), size = 4, alpha = 0.5) +
+    geom_point(data = subset(w4_cellmatch, PAX6_all), aes(x = umap_1, y = umap_2), color = "red", size = 4) +
+    ggtitle(title2) +
+    scale_color_manual(values = colors2) +
+    custom_theme() +
+    theme(
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 20),
+        axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20)
+    )
+
+ggsave("results/images/Figure_5/PAX6_expression.png", plot = plot2, width = 16, height = 12, dpi = 300)
+
+# Define UMAP for EMX2 genes
+title2 <- "Week4: Expression of EMX2 Gene Set"
+w4_cellmatch$expression_EMX2 <- factor(ifelse(w4_cellmatch$EMX2_all, "EMX2 genes expressed", "None"), levels = c("None", "EMX2 genes expressed"))
+colors2 <- c("None" = "grey", "EMX2 genes expressed" = "red")
+plot2 <- ggplot(w4_cellmatch, aes(x = umap_1, y = umap_2)) +
+    geom_point(aes(color = expression_EMX2), size = 4, alpha = 0.5) +
+    geom_point(data = subset(w4_cellmatch, EMX2_all), aes(x = umap_1, y = umap_2), color = "red", size = 4) +
+    ggtitle(title2) +
+    scale_color_manual(values = colors2) +
+    custom_theme() +
+    theme(
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 20),
+        axis.text.x = element_text(size = 20),
+        axis.text.y = element_text(size = 20)
+    )
+
+ggsave("results/images/Figure_5/EMX2_expression.png", plot = plot2, width = 16, height = 12, dpi = 300)

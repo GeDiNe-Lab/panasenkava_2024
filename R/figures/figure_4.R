@@ -416,3 +416,34 @@ venn.plot
 png("results/images/Figure_4/Figure4supp_VennDiagram.png", width = 1800, height = 1800, res = 250)
 grid.draw(venn.plot)
 dev.off()
+
+
+
+################
+################
+# FIGURE SUPP : DE pattern
+pat_meta <- meta
+rownames(pat_meta) <- meta$sample
+pat_meta$cyclo_dose_quant <- as.factor(pat_meta$cyclo_dose_quant)
+
+patterns <- degPatterns(
+    assay(vsd)[names(clusters), ],
+    meta = pat_meta,
+    time = "cyclo_dose_quant",
+    reduce = TRUE,
+    nClusters = 10,
+)
+
+sign_comp <- list(
+    c(0, 0.125),
+    c(0.125, 0.25),
+    c(0.25, 0.5),
+    c(0.5, 1)
+)
+
+plot_list <- lapply(c(1, 2, 3, 5, 6, 7, 8, 9), function(i) {
+    print(i)
+    return(MyDegPlotCluster(table = filter(patterns$normalize, cluster == i), time = "cyclo_dose_quant", sign_comp = sign_comp, cluster_i = i))
+})
+combined_plot <- wrap_plots(plot_list, ncol = 3)
+ggsave(paste0("results/images/Figure_4/Figure4suppPattern.png"), combined_plot, width = 35, height = 25)
