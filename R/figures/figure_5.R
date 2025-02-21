@@ -76,7 +76,6 @@ umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = ce
     ) +
     scale_color_OkabeIto() +
     custom_theme()
-umap_plot
 ggsave(paste0("results/images/Figure_5/Zeng_week4_celltypes.png"), plot = umap_plot, width = 12, height = 10, dpi = 300)
 
 # genes selection
@@ -84,6 +83,8 @@ marker_genes <- c("SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1", "SHROOM3"
 
 # Plotting UMAP for week4 data colored by marker genes keeping only Forebrain cells
 w4_cellmatch <- filter(sc_meta_week4, celltype_region == "FB" & umap_1 < -2 & umap_2 < -1)
+
+# building dataframe to look for expression and/or co-expression between marker genes and NKX2-1 and PAX6
 w4df <- marker_genes %>%
     lapply(function(gene) {
         if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
@@ -95,9 +96,7 @@ w4df <- marker_genes %>%
     }) %>%
     do.call(cbind, .)
 colnames(w4df) <- marker_genes
-
 w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
-
 w4df <- union(marker_genes, c("NKX2-1", "PAX6")) %>%
     lapply(function(gene) {
         if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
@@ -109,15 +108,13 @@ w4df <- union(marker_genes, c("NKX2-1", "PAX6")) %>%
     }) %>%
     do.call(cbind, .)
 colnames(w4df) <- union(marker_genes, c("NKX2-1", "PAX6"))
-
 w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
-
 pairwise_df <- expand.grid(marker_genes, c("NKX2-1", "PAX6"))
 pairwise_df$Var1 <- as.vector(pairwise_df$Var1)
 pairwise_df$Var2 <- as.vector(pairwise_df$Var2)
 
 
-# execute this !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Plotting UMAP for week4 data colored by marker genes and NKX2-1 and PAX6 expression
 for (i in c(1:nrow(pairwise_df))) {
     gene1 <- pairwise_df$Var1[i]
     gene2 <- pairwise_df$Var2[i]

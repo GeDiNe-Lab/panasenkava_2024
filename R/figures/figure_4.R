@@ -157,6 +157,11 @@ clusters <- cutree(clustering, k = 2)
 # renaming clusters
 clusters <- ifelse(clusters == 1, "Cluster 1", "Cluster 2")
 
+# Making genelist for Figure4B
+fig_genelist_5 <- clusters %>% as.data.frame()
+colnames(fig_genelist_5) <- "Figure4B"
+write.csv(fig_genelist_5, "results/tables/Figure_4/fig_genelist_5.csv")
+
 row_split <- factor(
     clusters[clustering$order],
     levels = c("Cluster 2", "Cluster 1")

@@ -236,6 +236,12 @@ clusters <- cutree(clustering, k = 2)
 # renaming clusters
 clusters <- ifelse(clusters == 1, "vAN", "dAN")
 
+# Getting figure_genelist_1 :
+fig_genelist_1 <- clusters %>% as.data.frame()
+colnames(fig_genelist_1) <- "Figure1E"
+write.csv(fig_genelist_1, "results/tables/Figure_1/fig_genelist_1.csv")
+
+
 row_split <- factor(clusters[clustering$order], levels = c("vAN", "dAN"))
 
 # Colors for each group
@@ -310,6 +316,7 @@ write.csv(DEGs_vAN_vs_dAN, "results/tables/Figure_1/DE_vAN_vs_dAN.csv")
 ######################################
 ######################################
 # FIGURE 1 F : GO term enrichment on DEGs clusters
+source("R/custom_fct.R")
 
 # GO term plot for vAN cluster
 GO_terms_vAN <- plot_go_term(

@@ -123,6 +123,14 @@ row_split <- factor(
     )
 )
 
+# Getting gene list for Figure 2C
+fig_genelist_2 <- row_split %>% as.data.frame()
+colnames(fig_genelist_2) <- "Figure2C"
+fig_genelist_2$Figure2C <- fig_genelist_2$Figure2C %>% sapply(function(x) {
+    str_split(x, "\n")[[1]][1]
+})
+write.csv(fig_genelist_2, "results/tables/Figure_2/fig_genelist_2.csv")
+
 # Colors for each group
 group_colors <- c(
     "Forebrain\nn=428" = "#4d6da5",
@@ -346,10 +354,15 @@ DEGs_day02 <- DESeqDataSetFromMatrix(
     results(alpha = 0.05, contrast = c("type", "ventral", "dorsal")) %>%
     as.data.frame() %>%
     na.omit()
-DEGs_day02$gene <- gene_converter(rownames(DEGs_vAN_vs_dAN_day02), "ENSEMBL", "SYMBOL")
+DEGs_day02$gene <- gene_converter(rownames(DEGs_day02), "ENSEMBL", "SYMBOL")
 DEGs_day02 <- filter(DEGs_day02, !is.na(gene))
 DEGs_day02$f1 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 1 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
 DEGs_day02$f2 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 2 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
+
+# Building gene list for Figure 2D
+fig_genelist_3 <- data.frame(Figure2D = rep("Higly_DE", length(rownames(DEGs_day02)[which(!is.na(DEGs_day02$f2))])))
+rownames(fig_genelist_3) <- rownames(DEGs_day02)[which(!is.na(DEGs_day02$f2))]
+write.csv(fig_genelist_3, "results/tables/Figure_2/fig_genelist_3.csv")
 
 vplot <- ggplot(DEGs_day02, aes(x = log2FoldChange, y = -log10(padj), label = f2)) +
     geom_point(data = filter(DEGs_day02, !is.na(f2)), aes(x = log2FoldChange, y = -log10(padj)), color = "red", size = 4) +
@@ -383,9 +396,9 @@ lp_vsd <- DESeqDataSetFromMatrix(
     design = ~day
 ) %>% vst(blind = FALSE)
 
-genes1 <- c("FOXA2", "PTCH1", "SIX3", "SHH", "GSC", "LRP2", "CHRD")
+genes1 <- c("FOXA2", "PTCH1", "SIX3", "SHH", "GSC", "LRP2", "CHRD", "FREM1")
 genes2 <- c("DKK1", "SOX5", "NKX2-1", "SLIT2", "FGF10", "DDC")
-genes3 <- c("GRM3", "NOG", "SOX6", "NTNG1", "EDN3", "CTNNA3", "NEDD9", "FREM1", "CLSTN2", "SLC8A1", "PITX2", "TMEFF2", "SIM1", "GADL1", "KCND3", "LRRK2")
+genes3 <- c("GRM3", "NOG", "SOX6", "NTNG1", "EDN3", "CTNNA3", "NEDD9", "CLSTN2", "SLC8A1", "PITX2", "TMEFF2", "SIM1", "GADL1", "KCND3", "LRRK2")
 
 symbol_vsd <- assay(lp_vsd)
 rownames(symbol_vsd) <- gene_converter(rownames(symbol_vsd), "ENSEMBL", "SYMBOL")
@@ -448,9 +461,15 @@ clusters <- degPatterns(
     reduce = TRUE,
     nClusters = 10,
 )
-# intervert cluster 2 and 6 for convenience
+# intervert cluster 1 with 2 and 6 with 1 for convenience
 clusters$normalize$cluster <- ifelse(clusters$normalize$cluster == 2, 6, ifelse(clusters$normalize$cluster == 6, 2, clusters$normalize$cluster))
 clusters$df$cluster <- ifelse(clusters$df$cluster == 2, 6, ifelse(clusters$df$cluster == 6, 2, clusters$df$cluster))
+
+fig_genelist_4 <- clusters$df %>%
+    filter(cluster %in% c(1, 2)) %>%
+    dplyr::select(cluster)
+colnames(fig_genelist_4) <- "Figure2H"
+write.csv(fig_genelist_4, "results/tables/Figure_2/fig_genelist_4.csv")
 
 sign_comp <- list(
     c("day02", "day04"),
@@ -470,3 +489,5 @@ ggsave(paste0("results/images/Figure_2/Figure2G3.png"), plot_list[[2]], width = 
 
 clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
 write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)
+
+clusters$df

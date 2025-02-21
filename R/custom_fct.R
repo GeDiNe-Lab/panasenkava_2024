@@ -26,6 +26,8 @@ kinetic_lineplots <- function(data) {
     custom_theme() +
     theme(
       legend.position = "none",
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA),
       axis.title.x = element_blank(),
       axis.title.y = element_text(size = 30),
       axis.text.x = element_text(size = 30),
@@ -120,9 +122,9 @@ plot_go_term <- function(genelist, path, range = c(1:20), cut = 40, textsize = 2
       axis.text.y = element_blank(), # Remove y-axis text
       axis.ticks.y = element_blank(),
       axis.title.y = element_blank(),
-      legend.text = element_text(size = 20), # Adjusts the legend text size
-      legend.title = element_text(size = 30), # Adjusts the legend title size
-      legend.key.size = unit(2, "lines")
+      legend.text = element_text(size = 30), # Adjusts the legend text size
+      legend.title = element_text(size = 40), # Adjusts the legend title size
+      legend.key.size = unit(3, "lines")
     )
   ggsave(paste0(path, ".png"), goplot, width = imgw, height = imgh)
   return(GO_results)
