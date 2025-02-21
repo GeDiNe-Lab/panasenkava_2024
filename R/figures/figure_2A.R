@@ -405,6 +405,8 @@ rownames(symbol_vsd) <- gene_converter(rownames(symbol_vsd), "ENSEMBL", "SYMBOL"
 filtered_vsd <- symbol_vsd[Reduce(union, list(genes1, genes2, genes3)), ]
 scaled_filtered_vsd <- filtered_vsd - min(filtered_vsd)
 
+source("R/custom_fct.R")
+
 genes1_df_long <- scaled_filtered_vsd[genes1, ] %>%
     t() %>%
     cbind(dplyr::select(lp_meta, c("day")), .[lp_meta$sample, ]) %>%
