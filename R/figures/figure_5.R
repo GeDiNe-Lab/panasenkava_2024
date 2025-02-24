@@ -242,3 +242,57 @@ plot2 <- ggplot(w4_cellmatch, aes(x = umap_1, y = umap_2)) +
     )
 
 ggsave("results/images/Figure_5/EMX2_expression.png", plot = plot2, width = 16, height = 12, dpi = 300)
+
+
+WGCNA <- read.table("results/tables/Figure_4/SHH_cluster.csv", sep = ",", header = TRUE)
+WGCNA_genes <- intersect(WGCNA$gene, rownames(seurat_week4@assays$RNA$counts))
+WGCNA_genes
+WGCNA_pos_genes <- filter(WGCNA, cor > 0 & gene %in% WGCNA_genes)$gene
+WGCNA_neg_genes <- c(filter(WGCNA, cor < 0 & gene %in% WGCNA_genes)$gene, "EMX2")
+
+# Filter Forebrain cells
+w4_cellmatch <- sc_meta_week4
+
+# Build dataframe to check expression of marker genes
+w4df <- c(WGCNA_genes, "EMX2", "EPHB1") %>%
+    lapply(function(gene) {
+        if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
+            return(seurat_week4@assays$RNA$counts[gene, ] >= 1)
+        } else {
+            print(paste0(gene, " not in week4"))
+            return(rep(FALSE, ncol(seurat_week4@assays$RNA$data)))
+        }
+    }) %>%
+    do.call(cbind, .)
+colnames(w4df) <- c(WGCNA_genes, "EMX2", "EPHB1")
+w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
+
+
+# Get percentage of expression
+compute_gene_percentages <- function(gene_list, marker) {
+    nkx2_1_cells <- w4_cellmatch[w4_cellmatch[, marker], ]
+    percentages <- sapply(gene_list, function(gene) {
+        if (gene %in% colnames(w4_cellmatch)) {
+            mean(nkx2_1_cells[[gene]]) * 100
+        } else {
+            NA
+        }
+    })
+    return(data.frame(Gene = gene_list, Percentage = percentages))
+}
+
+# Example usage
+percentages_df_NKX <- compute_gene_percentages(c(WGCNA_pos_genes, "EPHB1"), "NKX2-1")
+percentages_df_EMX2 <- compute_gene_percentages(WGCNA_neg_genes, "EMX2")
+
+
+
+ggplot() +
+    geom_jitter(data = percentages_df_EMX2, aes(x = "Negative genes/EMX2", y = Percentage), color = "grey") +
+    geom_jitter(data = percentages_df_NKX, aes(x = "Positive genes/NKX2-1", y = Percentage), color = "grey") +
+    geom_boxplot(data = percentages_df_EMX2, aes(x = "Negative genes/EMX2", y = Percentage)) +
+    geom_boxplot(data = percentages_df_NKX, aes(x = "Positive genes/NKX2-1", y = Percentage)) +
+    custom_theme()
+
+write.csv(percentages_df_NKX, "results/tables/Figure_5/NKX2-1_percentages.csv", row.names = FALSE)
+write.csv(percentages_df_EMX2, "results/tables/Figure_5/EMX2_percentages.csv", row.names = FALSE)
