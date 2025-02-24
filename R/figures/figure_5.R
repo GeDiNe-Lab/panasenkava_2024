@@ -286,13 +286,13 @@ percentages_df_NKX <- compute_gene_percentages(c(WGCNA_pos_genes, "EPHB1"), "NKX
 percentages_df_EMX2 <- compute_gene_percentages(WGCNA_neg_genes, "EMX2")
 
 
-
 ggplot() +
     geom_jitter(data = percentages_df_EMX2, aes(x = "Negative genes/EMX2", y = Percentage), color = "grey") +
     geom_jitter(data = percentages_df_NKX, aes(x = "Positive genes/NKX2-1", y = Percentage), color = "grey") +
-    geom_boxplot(data = percentages_df_EMX2, aes(x = "Negative genes/EMX2", y = Percentage)) +
-    geom_boxplot(data = percentages_df_NKX, aes(x = "Positive genes/NKX2-1", y = Percentage)) +
+    geom_boxplot(data = percentages_df_EMX2, aes(x = "Negative genes/EMX2", y = Percentage), fill = NA) +
+    geom_boxplot(data = percentages_df_NKX, aes(x = "Positive genes/NKX2-1", y = Percentage), fill = NA) +
     custom_theme()
+
 
 write.csv(percentages_df_NKX, "results/tables/Figure_5/NKX2-1_percentages.csv", row.names = FALSE)
 write.csv(percentages_df_EMX2, "results/tables/Figure_5/EMX2_percentages.csv", row.names = FALSE)

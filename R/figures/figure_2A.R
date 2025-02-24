@@ -397,8 +397,8 @@ lp_vsd <- DESeqDataSetFromMatrix(
 ) %>% vst(blind = FALSE)
 
 genes1 <- c("FOXA2", "PTCH1", "SIX3", "SHH", "GSC", "LRP2", "CHRD", "FREM1")
-genes2 <- c("DKK1", "SOX5", "NKX2-1", "SLIT2", "FGF10", "DDC")
-genes3 <- c("GRM3", "NOG", "SOX6", "NTNG1", "EDN3", "CTNNA3", "NEDD9", "CLSTN2", "SLC8A1", "PITX2", "TMEFF2", "SIM1", "GADL1", "KCND3", "LRRK2")
+genes2 <- c("NKX2-1", "SLIT2", "FGF10", "DDC", "NOG")
+genes3 <- c("SOX6", "NTNG1", "NEDD9", "CLSTN2", "PITX2", "TMEFF2", "SIM1", "KCND3", "LRRK2")
 
 symbol_vsd <- assay(lp_vsd)
 rownames(symbol_vsd) <- gene_converter(rownames(symbol_vsd), "ENSEMBL", "SYMBOL")
