@@ -74,7 +74,7 @@ if (length(which(!rownames(retained_row) %in% rownames(counts))) == 1) {
     counts <- rbind(counts, retained_row[which(!rownames(retained_row) %in% rownames(counts)), ])
 }
 
-
+# Creating DESEQ2 dataset object
 dds <- DESeqDataSetFromMatrix(
     countData = counts,
     colData = meta,
@@ -240,7 +240,6 @@ clusters <- ifelse(clusters == 1, "vAN", "dAN")
 fig_genelist_1 <- clusters %>% as.data.frame()
 colnames(fig_genelist_1) <- "Figure1E"
 write.csv(fig_genelist_1, "results/tables/Figure_1/fig_genelist_1.csv")
-
 
 row_split <- factor(clusters[clustering$order], levels = c("vAN", "dAN"))
 

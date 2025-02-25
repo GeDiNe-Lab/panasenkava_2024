@@ -10,7 +10,6 @@ library(DEGreport)
 library(ggsignif)
 library(patchwork)
 library(grid)
-library(Matrix)
 
 # Setting working directory
 rstudioapi::getSourceEditorContext()$path %>%
@@ -42,11 +41,11 @@ dds <- DESeqDataSetFromMatrix(
     design = ~ line + day + type
 )
 
-# Normalization by variance stabilizing transformation
+# Normalization by variance stabilizing transformation with and without covariates
 vsd_blind <- vst(dds, blind = TRUE)
 vsd <- vst(dds, blind = FALSE)
 
-# PCA with 3000 genes
+# PCA with 3000 genes (DESeq2 default = 500)
 pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = 3000)
 percentVar <- round(100 * attr(pca.data, "percentVar"))
 
@@ -99,6 +98,7 @@ hm_genes <- setdiff(union(top_PC1, top_PC2), top_PC3)
 # making matrix for heatmap, clustering and GO enrichment
 vsd_hm <- assay(vsd)[hm_genes, ]
 
+# Scaling matrix
 scaled_mat <- t(apply(vsd_hm, 1, scale))
 colnames(scaled_mat) <- colnames(vsd_hm)
 
@@ -108,10 +108,11 @@ sample_order_WTC <- c(
     filter(meta, type == "dorsal" & line == "WTC")$sample[order(filter(meta, type == "dorsal" & line == "WTC")$day)]
 )
 
+#  Clustering genes
 clustering_WTC <- hclust(dist(scaled_mat[, sample_order_WTC]))
 clusters_WTC <- cutree(clustering_WTC, k = 4)
 
-# Check out cluster sizes and order
+# Change cluster names for better readability
 row_split <- factor(
     clusters_WTC[clustering_WTC$order],
     levels = c(1, 2, 3, 4),
@@ -192,9 +193,12 @@ sample_order_LON <- c(
     filter(meta, type == "dorsal" & line == "LON71")$sample[order(filter(meta, type == "dorsal" & line == "LON71")$day)]
 )
 
+#  Clustering genes
 clustering_LON <- hclust(dist(scaled_mat[, sample_order_LON]))
 clusters_LON <- cutree(clustering_LON, k = 4)
-# Check out cluster sizes and order
+
+
+# Change cluster names for better readability
 row_split <- factor(
     clusters_LON[clustering_LON$order],
     levels = c(1, 2, 3, 4),
@@ -330,14 +334,13 @@ GO_4b <- plot_go_term(
 )
 write.csv(GO_4b, "results/tables/Figure_2/LON_dAN_GO.csv")
 
-# making table of genes used in heatmap with cluster and subcluster annotation
+# making table of genes used in heatmap with cluster annotation
 genes_cluster <- data.frame(
     genes = hm_genes %>% gene_converter("ENSEMBL", "SYMBOL"),
     cluster_LON = clusters_LON[hm_genes],
     cluster_WTC = clusters_WTC[hm_genes],
 )
 rownames(genes_cluster) <- hm_genes
-
 write.csv(genes_cluster, "results/tables/Figure_2/WTC_LON_heatmap_genes.csv")
 
 ######################################
@@ -389,7 +392,6 @@ lp_meta <- filter(rawmeta, sample == "WTC6cipc" | (sample != "LON71_D12_2" & dif
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day0"
 # filtering out lowly expressed genes
 lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
-# lp_counts <- rawcounts[hm_genes, lp_meta$sample]
 lp_vsd <- DESeqDataSetFromMatrix(
     countData = lp_counts,
     colData = lp_meta,
@@ -400,13 +402,13 @@ genes1 <- c("FOXA2", "PTCH1", "SIX3", "SHH", "GSC", "LRP2", "CHRD", "FREM1")
 genes2 <- c("NKX2-1", "SLIT2", "FGF10", "DDC", "NOG")
 genes3 <- c("SOX6", "NTNG1", "NEDD9", "CLSTN2", "PITX2", "TMEFF2", "SIM1", "KCND3", "LRRK2")
 
+# setup matrix for lineplots
 symbol_vsd <- assay(lp_vsd)
 rownames(symbol_vsd) <- gene_converter(rownames(symbol_vsd), "ENSEMBL", "SYMBOL")
 filtered_vsd <- symbol_vsd[Reduce(union, list(genes1, genes2, genes3)), ]
 scaled_filtered_vsd <- filtered_vsd - min(filtered_vsd)
 
-source("R/custom_fct.R")
-
+# reshape matrix as long df for group1 and plotting
 genes1_df_long <- scaled_filtered_vsd[genes1, ] %>%
     t() %>%
     cbind(dplyr::select(lp_meta, c("day")), .[lp_meta$sample, ]) %>%
@@ -417,6 +419,7 @@ genes1_df_long$sd_expression[which(is.na(genes1_df_long$sd_expression))] <- 0
 genes1_plot <- kinetic_lineplots(genes1_df_long)
 ggsave("results/images/Figure_2/Figure2E1.png", genes1_plot, width = 15, height = 10)
 
+# reshape matrix as long df for group2 and plotting
 genes2_df_long <- scaled_filtered_vsd[genes2, ] %>%
     t() %>%
     cbind(dplyr::select(lp_meta, c("day")), .[lp_meta$sample, ]) %>%
@@ -427,6 +430,7 @@ genes2_df_long$sd_expression[which(is.na(genes2_df_long$sd_expression))] <- 0
 genes2_plot <- kinetic_lineplots(genes2_df_long)
 ggsave("results/images/Figure_2/Figure2E2.png", genes2_plot, width = 15, height = 10)
 
+# reshape matrix as long df for group3 and plotting
 genes3_df_long <- scaled_filtered_vsd[genes3, ] %>%
     t() %>%
     cbind(dplyr::select(lp_meta, c("day")), .[lp_meta$sample, ]) %>%
@@ -456,6 +460,7 @@ lp_vsd <- DESeqDataSetFromMatrix(
     design = ~day
 ) %>% vst(blind = FALSE)
 
+#  running degPatterns
 clusters <- degPatterns(
     assay(lp_vsd)[rownames(lp_vsd) %in% DEGs, ],
     meta = lp_meta,
@@ -463,10 +468,12 @@ clusters <- degPatterns(
     reduce = TRUE,
     nClusters = 10,
 )
-# intervert cluster 1 with 2 and 6 with 1 for convenience
+
+# intervert cluster 6 with 2 for convenience
 clusters$normalize$cluster <- ifelse(clusters$normalize$cluster == 2, 6, ifelse(clusters$normalize$cluster == 6, 2, clusters$normalize$cluster))
 clusters$df$cluster <- ifelse(clusters$df$cluster == 2, 6, ifelse(clusters$df$cluster == 6, 2, clusters$df$cluster))
 
+# Building gene list for Figure 2GH
 fig_genelist_4 <- clusters$df %>%
     filter(cluster %in% c(1, 2)) %>%
     dplyr::select(cluster)

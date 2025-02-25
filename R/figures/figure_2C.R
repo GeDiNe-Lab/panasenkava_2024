@@ -20,12 +20,13 @@ source("R/custom_fct.R")
 
 # loading single cell data from Zeng et al from week3,week4 and week5
 sc_counts <- readMM("scdata/week345_wholebody.mtx") %>% t()
+authors_meta <- read.csv("scdata/week345_wholebody_metadata.csv")
 
-# keeping only cells related to Central Nervous System (SNC)
 cell_ids <- read.table("scdata/indices_week345_wholebody.csv", header = TRUE, sep = ",")
 genes <- read.table("scdata/genes_week345_wholebody.tsv", header = FALSE)$V1
 rownames(sc_counts) <- genes
 
+# Formating cell ids for convenience
 formated_ids <- c(1:nrow(cell_ids)) %>% sapply(function(i) {
     c(str_split(cell_ids[i, ]$index, "-")[[1]][1:2], cell_ids[i, ]$week_stage) %>%
         paste(collapse = "-") %>%
@@ -33,10 +34,12 @@ formated_ids <- c(1:nrow(cell_ids)) %>% sapply(function(i) {
 })
 colnames(sc_counts) <- formated_ids
 
-authors_meta <- read.csv("scdata/week345_wholebody_metadata.csv")
+# keeping only cells tagged as Forebrain progenitor (FB) and Brain Neuron
 authors_meta_f <- filter(authors_meta, celltype_region_num %in% c(1:8))
 
+# keeping cells in the filtered metadata
 sc_counts_f_int <- sc_counts[, authors_meta_f$barcode]
+# keeping genes with at least 20 cells expressing it
 gene_filter <- apply(sc_counts_f_int, 1, function(row) sum(row > 0) >= 20)
 sc_counts_f <- sc_counts_f_int[names(which(gene_filter == TRUE)), ]
 
@@ -44,19 +47,20 @@ rm(sc_counts_f_int)
 rm(sc_counts)
 
 # SPON1 and SMIM32 not in it
-#  DLK1 too much expressed ?
 genes1 <- c("FOXA2", "PTCH1", "SIX3", "SHH", "GSC", "LRP2", "FREM1", "CHRD")
 genes2 <- c("NKX2-1", "FGF10", "SLIT2", "DDC", "NOG")
-genes3 <- c("NTNG1", "PITX2", "SOX6", "TMEFF2", "CLSTN2", "NEDD9", "SLC8A1", "SIM1", "KCND3", "LRRK2")
+genes3 <- c("NTNG1", "PITX2", "SOX6", "TMEFF2", "CLSTN2", "NEDD9", "SIM1", "KCND3", "LRRK2")
 genes <- c(genes1, genes2, genes3) %>% rev()
 
 genes %in% rownames(sc_counts_f)
 
+# Keeping only cells related to FB and Brain Neuron
 fb_bn_meta <- filter(authors_meta_f, celltype_region %in% c("FB", "Brain Neuron"))
 
 # Saving cell counts for each celltypes and weeks
 table(fb_bn_meta$week_stage, fb_bn_meta$celltype_region) %>% write.csv("results/tables/Figure2F_cellcounts.csv")
 
+# Normalize counts to CPM, filter for genes and build dataframe
 sc_norm <- sc_counts_f[, fb_bn_meta$barcode] / colSums(sc_counts_f[, fb_bn_meta$barcode]) * 1e6
 sc_df <- sc_norm[genes, ] %>%
     t() %>%
@@ -64,6 +68,7 @@ sc_df <- sc_norm[genes, ] %>%
 sc_df$week <- fb_bn_meta$week_stage
 sc_df$celltype <- fb_bn_meta$celltype_region
 
+# turn dataframe into long
 sc_df_long <- sc_df %>%
     pivot_longer(cols = -c(week, celltype), names_to = "gene", values_to = "expression") %>%
     as.data.frame()
