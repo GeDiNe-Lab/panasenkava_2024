@@ -468,7 +468,7 @@ clusters <- degPatterns(
     reduce = TRUE,
     nClusters = 10,
 )
-
+View(clusters$normalize)
 # intervert cluster 6 with 2 for convenience
 clusters$normalize$cluster <- ifelse(clusters$normalize$cluster == 2, 6, ifelse(clusters$normalize$cluster == 6, 2, clusters$normalize$cluster))
 clusters$df$cluster <- ifelse(clusters$df$cluster == 2, 6, ifelse(clusters$df$cluster == 6, 2, clusters$df$cluster))

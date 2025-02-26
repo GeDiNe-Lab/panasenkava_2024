@@ -174,15 +174,6 @@ group_colors <- c(
 )
 
 # Block annotation for color blocks (without outline)
-sc_percent <- read.csv("results/tables/Figure_4/sc_percent.csv", header = TRUE)
-
-sc_percent$gene <- gene_converter(sc_percent$gene, "SYMBOL", "ENSEMBL")
-missing <- setdiff(rownames(scaled_mat), sc_percent$gene)
-
-sc_percent <- sc_percent <- rbind(sc_percent, data.frame(gene = missing, `W3-1` = 0, `W4-1` = 0, `W5-1` = 0))
-rownames(sc_percent) <- sc_percent$gene
-sc_percent <- sc_percent[names(clusters[clustering$order]), ]
-
 clusters_ha <- rowAnnotation(
     clusters = anno_block(
         gp = gpar(fill = group_colors[levels(row_split)], col = NA), # Remove outline with `col = NA`
@@ -195,10 +186,7 @@ clusters_ha <- rowAnnotation(
         labels_gp = gpar(fontsize = 10, fontface = "bold"), # Customize label appearance
         labels_rot = -90, # Horizontal labels
         labels_just = "center"
-    ),
-    W3 = sc_percent$W3.1,
-    W4 = sc_percent$W4.1,
-    W5 = sc_percent$W5.1
+    )
 )
 
 WGCNA_ht_plot <- Heatmap(
@@ -416,8 +404,6 @@ venn.plot
 png("results/images/Figure_4/Figure4supp_VennDiagram.png", width = 1800, height = 1800, res = 250)
 grid.draw(venn.plot)
 dev.off()
-
-
 
 ################
 ################
