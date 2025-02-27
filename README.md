@@ -1,6 +1,6 @@
 # Install the conda environement :
 ```bash
-conda env create -f condatest.yaml
+mamba env create -f condatest.yaml
 ```
 
 # Install the supplementary R package
