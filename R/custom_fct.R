@@ -1,3 +1,22 @@
+library(ggrepel)
+library(DEGreport)
+library(ggsignif)
+library(patchwork)
+library(grid)
+library(ggplot2)
+library(WGCNA)
+library(tibble)
+library(paletteer)
+library(Matrix)
+library(tidyverse)
+library(ComplexHeatmap)
+library(org.Hs.eg.db)
+library(DESeq2)
+library(Seurat)
+library(colorblindr)
+library(ggpubr)
+
+
 kinetic_lineplots <- function(data) {
   plot <- ggplot(data, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
     geom_point(size = 2) +
