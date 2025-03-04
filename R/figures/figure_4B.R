@@ -39,7 +39,7 @@ authors_meta$celltype_region %>% unique()
 authors_meta_f <- filter(
     authors_meta,
     (celltype_region == "FB" & week_stage == "W3-1") |
-        (celltype_region == "FB" & week_stage == "W4-1") |
+        (celltype_region %in% c("Brain Neuron", "FB") & week_stage == "W4-1") |
         (celltype_region == "Brain Neuron" & week_stage == "W5-1")
 )
 table(authors_meta_f$week_stage, authors_meta_f$celltype_region)
@@ -48,18 +48,12 @@ table(authors_meta_f$week_stage, authors_meta_f$celltype_region)
 # gene_filter <- apply(sc_counts_f_int, 1, function(row) sum(row > 0) >= 20)
 # sc_counts_f <- sc_counts_f_int[names(which(gene_filter == TRUE)), ]
 
-rm(sc_counts_f_int)
-
 SHH_cluster <- read.csv("results/tables/Figure_4/SHH_cluster.csv", header = TRUE)
-SHH_cluster %>% head()
-SHH_cluster %>% nrow()
 
 setdiff(SHH_cluster$gene, rownames(sc_counts))
 genes <- intersect(rownames(sc_counts), SHH_cluster$gene)
-
 gene_long <- melt(as.matrix(sc_counts[genes, authors_meta_f$barcode]))
 
-rm(sc_counts)
 
 colnames(gene_long) <- c("gene", "barcode", "expression")
 gene_long %>% head()
@@ -74,4 +68,67 @@ week_gene_df <- merged_data %>%
     as.data.frame()
 
 week_gene_df %>% nrow()
+week_gene_df %>% head()
 write.csv(week_gene_df, "results/tables/Figure_4/sc_percent.csv", row.names = FALSE)
+
+#  just not in it
+mouse_genes <- c(
+    "SFTA3",
+    "CAPN6",
+    "EPHB1",
+    "AFF2",
+    "SFRP1",
+    "FRZB",
+    "SPON1",
+    "PDZRN3",
+    "RGMA",
+    "QKI",
+    "SLIT1",
+    "TRIM9",
+    "ZFHX4",
+    "GJA1",
+    "EPHA4",
+    "SALL1",
+    "SHROOM3",
+    "NUAK2",
+    "CNTNAP2",
+    "ZIC5"
+)
+
+sc_counts_genes <- sc_counts[mouse_genes[mouse_genes %in% rownames(sc_counts)], authors_meta_f$barcode]
+sc_meta_genes <- authors_meta_f %>% filter(barcode %in% colnames(sc_counts_genes))
+sc_meta_genes <- cbind(sc_meta_genes, t(sc_counts_genes))
+
+# summary_by_week <- sc_meta_genes %>%
+#     group_by(c(week_stage)) %>%
+#     summarise(across(all_of(mouse_genes),
+#         list(
+#             mean_expr = ~ mean(.),
+#             pct_expr = ~ mean(. > 0) * 100
+#         ),
+#         .names = "{.col}_{.fn}"
+#     )) %>%
+#     pivot_longer(
+#         cols = -week_stage,
+#         names_to = c("gene", ".value"),
+#         names_sep = "_"
+#     )
+
+# View the result
+
+
+# ggplot(filter(summary_by_week,week_stage == "W3-1"), aes(x =))
+
+sc_counts %>% nrow()
+figure_genes <- read.csv("results/tables/Figure_genelist.csv", header = TRUE)
+fig_genes_counts <- sc_counts[, filter(authors_meta_f, week_stage %in% c("W3-1", "W5-1"))$barcode]
+fig_genes_counts <- fig_genes_counts[which(rowSums(fig_genes_counts) > 0), ]
+
+
+
+figure_genes$sc_w3_w4 <- ifelse(figure_genes$genes %in% rownames(fig_genes_counts), "expressed", "NA")
+
+figure_genes$mouse <- ifelse(figure_genes$genes %in% mouse_genes, "tested", "NA")
+
+figure_genes %>% View()
+write.csv(figure_genes, file = "results/tables/Figure_genelist.csv", row.names = FALSE,quote=FALSE)
