@@ -16,7 +16,6 @@ library(Seurat)
 library(colorblindr)
 library(ggpubr)
 
-
 kinetic_lineplots <- function(data) {
   plot <- ggplot(data, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
     geom_point(size = 2) +

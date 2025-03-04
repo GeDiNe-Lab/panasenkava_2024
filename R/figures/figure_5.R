@@ -78,81 +78,6 @@ umap_plot <- ggplot(data = sc_meta_week4, aes(x = umap_1, y = umap_2, color = ce
     custom_theme()
 ggsave(paste0("results/images/Figure_5/Zeng_week4_celltypes.png"), plot = umap_plot, width = 12, height = 10, dpi = 300)
 
-# genes selection
-marker_genes <- c("SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
-NKX2_1_genes <- c("SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1")
-PAX6_genes <- c("SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
-# Plotting UMAP for week4 data colored by marker genes keeping only Forebrain cells
-w4_cellmatch <- filter(sc_meta_week4, celltype_region == "FB" & umap_1 < -2 & umap_2 < -1)
-
-# building dataframe to look for expression and/or co-expression between marker genes and NKX2-1 and PAX6
-w4df <- marker_genes %>%
-    lapply(function(gene) {
-        if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
-            return(seurat_week4@assays$RNA$counts[gene, ] >= 1)
-        } else {
-            print(paste0(gene, " not in week4"))
-            return(rep(FALSE, ncol(seurat_week4@assays$RNA$data)))
-        }
-    }) %>%
-    do.call(cbind, .)
-colnames(w4df) <- marker_genes
-w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
-w4df <- union(marker_genes, c("NKX2-1", "PAX6")) %>%
-    lapply(function(gene) {
-        if (gene %in% rownames(seurat_week4@assays$RNA$counts)) {
-            return(seurat_week4@assays$RNA$counts[gene, ] > 1)
-        } else {
-            print(paste0(gene, " not in week4"))
-            return(rep(FALSE, ncol(seurat_week4@assays$RNA$data)))
-        }
-    }) %>%
-    do.call(cbind, .)
-colnames(w4df) <- union(marker_genes, c("NKX2-1", "PAX6"))
-w4_cellmatch <- cbind(w4_cellmatch, w4df[w4_cellmatch$barcode, ])
-pairwise_df <- expand.grid(marker_genes, c("NKX2-1", "PAX6"))
-pairwise_df$Var1 <- as.vector(pairwise_df$Var1)
-pairwise_df$Var2 <- as.vector(pairwise_df$Var2)
-
-
-# Plotting UMAP for week4 data colored by marker genes and NKX2-1 and PAX6 expression
-for (i in c(1:nrow(pairwise_df))) {
-    gene1 <- pairwise_df$Var1[i]
-    gene2 <- pairwise_df$Var2[i]
-    w4_cellmatch$gene1 <- w4_cellmatch[, pairwise_df$Var1[i]]
-    w4_cellmatch$gene2 <- w4_cellmatch[, pairwise_df$Var2[i]]
-    w4_cellmatch$duo <- sapply(c(1:nrow(w4_cellmatch)), function(i) {
-        if (w4_cellmatch$gene1[i] == TRUE & w4_cellmatch$gene2[i] == TRUE) {
-            return("1-both")
-        } else if (w4_cellmatch$gene1[i] == TRUE) {
-            return(paste0("2-", gene1))
-        } else if (w4_cellmatch$gene2[i] == TRUE) {
-            return(paste0("3-", gene2))
-        } else {
-            return("4-none")
-        }
-    })
-    w4_cellmatch$expression <- w4_cellmatch$duo
-    w4_cellmatch <- w4_cellmatch[order(w4_cellmatch$expression, decreasing = TRUE), ]
-
-    # w4_cellmatch[, c("umap1", "umap2", "expression")] %>% head()
-    colors <- c(palette_OkabeIto[1], "grey", palette_OkabeIto[2], palette_OkabeIto[4])
-    names(colors) <- c("1-both", "4-none", paste0("2-", pairwise_df$Var1[i]), paste0("3-", pairwise_df$Var2[i]))
-    plot <- ggplot(data = w4_cellmatch[, c("umap_1", "umap_2", "expression", "gene1", "gene2")], aes(x = umap_1, y = umap_2, color = expression)) +
-        geom_point(size = 4) +
-        ggtitle(paste0("Week4: gene1 = ", gene1, " and gene2 = ", gene2)) +
-        scale_color_manual(values = colors) +
-        custom_theme() +
-        theme(
-            legend.text = element_text(size = 15), # Change legend text size
-            legend.title = element_text(size = 20), # Change legend title size
-            axis.text.x = element_text(size = 20),
-            axis.text.y = element_text(size = 20)
-        )
-    ggsave(paste0("results/images/Figure_5/", gene1, "_", gene2, ".png"), plot = plot, width = 8, height = 7, dpi = 300)
-}
-
-
 # Expression by group of genes
 # Define marker gene sets
 marker_genes <- c("NKX2-1", "EMX2", "PAX6", "SFTA3", "CAPN6", "EPHB1", "AFF2", "SFRP1", "SALL1", "SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
@@ -199,10 +124,15 @@ plot1 <- ggplot(w4_cellmatch, aes(x = umap_1, y = umap_2)) +
     theme(
         legend.text = element_text(size = 15),
         legend.title = element_text(size = 20),
-        axis.text.x = element_text(size = 20),
-        axis.text.y = element_text(size = 20)
+        panel.background = element_blank(), # Remove background
+        plot.background = element_blank(), # Transparent background
+        panel.grid = element_blank(), # Remove grid
+        axis.line = element_blank(), # Remove axis lines
+        axis.text = element_blank(), # Remove axis text
+        axis.ticks = element_blank(), # Remove axis ticks
+        axis.title = element_blank() # Remove axis labels
     )
-
+plot1
 ggsave("results/images/Figure_5/NKX2-1_expression.png", plot = plot1, width = 16, height = 12, dpi = 300)
 
 # Define UMAP for PAX6 genes
@@ -218,8 +148,13 @@ plot2 <- ggplot(w4_cellmatch, aes(x = umap_1, y = umap_2)) +
     theme(
         legend.text = element_text(size = 15),
         legend.title = element_text(size = 20),
-        axis.text.x = element_text(size = 20),
-        axis.text.y = element_text(size = 20)
+        panel.background = element_blank(), # Remove background
+        plot.background = element_blank(), # Transparent background
+        panel.grid = element_blank(), # Remove grid
+        axis.line = element_blank(), # Remove axis lines
+        axis.text = element_blank(), # Remove axis text
+        axis.ticks = element_blank(), # Remove axis ticks
+        axis.title = element_blank() # Remove axis labels
     )
 
 ggsave("results/images/Figure_5/PAX6_expression.png", plot = plot2, width = 16, height = 12, dpi = 300)
@@ -237,8 +172,13 @@ plot2 <- ggplot(w4_cellmatch, aes(x = umap_1, y = umap_2)) +
     theme(
         legend.text = element_text(size = 15),
         legend.title = element_text(size = 20),
-        axis.text.x = element_text(size = 20),
-        axis.text.y = element_text(size = 20)
+        panel.background = element_blank(), # Remove background
+        plot.background = element_blank(), # Transparent background
+        panel.grid = element_blank(), # Remove grid
+        axis.line = element_blank(), # Remove axis lines
+        axis.text = element_blank(), # Remove axis text
+        axis.ticks = element_blank(), # Remove axis ticks
+        axis.title = element_blank() # Remove axis labels
     )
 
 ggsave("results/images/Figure_5/EMX2_expression.png", plot = plot2, width = 16, height = 12, dpi = 300)

@@ -5,6 +5,7 @@ library(ComplexHeatmap)
 library(org.Hs.eg.db)
 library(DESeq2)
 library(Seurat)
+library(reshape2)
 
 # Setting working directory
 rstudioapi::getSourceEditorContext()$path %>%
@@ -48,7 +49,6 @@ table(authors_meta_f$week_stage, authors_meta_f$celltype_region)
 # sc_counts_f <- sc_counts_f_int[names(which(gene_filter == TRUE)), ]
 
 rm(sc_counts_f_int)
-rm(sc_counts)
 
 SHH_cluster <- read.csv("results/tables/Figure_4/SHH_cluster.csv", header = TRUE)
 SHH_cluster %>% head()
@@ -56,12 +56,13 @@ SHH_cluster %>% nrow()
 
 setdiff(SHH_cluster$gene, rownames(sc_counts))
 genes <- intersect(rownames(sc_counts), SHH_cluster$gene)
-genes
 
 gene_long <- melt(as.matrix(sc_counts[genes, authors_meta_f$barcode]))
-gene_long
+
+rm(sc_counts)
+
 colnames(gene_long) <- c("gene", "barcode", "expression")
-gene_long
+gene_long %>% head()
 # Merge with week_stage information
 merged_data <- merge(gene_long, dplyr::select(authors_meta_f, c("barcode", "week_stage")), by = "barcode")
 merged_data
