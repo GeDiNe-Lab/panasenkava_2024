@@ -127,12 +127,13 @@ summary_by_week_region <- sc_meta_genes %>%
         cols = -week_stage,
         names_to = c("gene", ".value"),
         names_sep = "_"
-    )
+    ) %>%
+    as.data.frame()
 # View the result
 View(summary_by_week_region)
 
 ventral_genes <- ggplot(
-    filter(summary_by_week_region, gene %in% ventral_genes),
+    filter(summary_by_week_region, gene %in% ventral_genes & percent > 0),
     aes(x = week_stage, y = gene, size = percent, color = expression)
 ) +
     geom_point() +
@@ -150,7 +151,7 @@ ventral_genes <- ggplot(
     labs(size = "Percent\nexpresed", color = "Average\nexpression") # Add legend labels
 
 dorsal_genes <- ggplot(
-    filter(summary_by_week_region, gene %in% dorsal_genes),
+    filter(summary_by_week_region, gene %in% dorsal_genes & percent > 0),
     aes(x = week_stage, y = gene, size = percent, color = expression)
 ) +
     geom_point() +
@@ -168,7 +169,7 @@ dorsal_genes <- ggplot(
     labs(size = "Percent\nexpresed", color = "Average\nexpression") # Add legend labels
 
 ggsave("results/images/Figure_4/Figure1C_v.png", ventral_genes, width = 3.5, height = 5.5)
-ggsave("results/images/Figure_4/Figure1C_d.png", dorsal_genes, width = 3.5, height = 6)
+ggsave("results/images/Figure_4/Figure1C_d.png", dorsal_genes, width = 3.5, height = 6.5)
 
 
 
