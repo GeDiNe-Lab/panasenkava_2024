@@ -71,64 +71,115 @@ week_gene_df %>% nrow()
 week_gene_df %>% head()
 write.csv(week_gene_df, "results/tables/Figure_4/sc_percent.csv", row.names = FALSE)
 
-#  just not in it
-mouse_genes <- c(
-    "SFTA3",
-    "CAPN6",
-    "EPHB1",
-    "AFF2",
-    "SFRP1",
-    "FRZB",
-    "SPON1",
-    "PDZRN3",
-    "RGMA",
-    "QKI",
-    "SLIT1",
-    "TRIM9",
-    "ZFHX4",
-    "GJA1",
-    "EPHA4",
-    "SALL1",
-    "SHROOM3",
-    "NUAK2",
-    "CNTNAP2",
-    "ZIC5"
+#  SPON1 just not in it
+ventral_genes <- c(
+    "GLI1",
+    "FOXA2",
+    "NKX2-2",
+    "NKX2-1",
+    "HEY1",
+    "SHH",
+    "FREM1",
+    "PTCH1",
+    "NES",
+    "IFT88",
+    "CAMK2B",
+    "FGFR3",
+    "PTCH2",
+    "NCAM1",
+    "FOXB1"
 )
-
-sc_counts_genes <- sc_counts[mouse_genes[mouse_genes %in% rownames(sc_counts)], authors_meta_f$barcode]
+dorsal_genes <- c(
+    "PAX6",
+    "CDON",
+    "ZIC2",
+    "GLI2",
+    "GLI3",
+    "LHX2",
+    "FGF2",
+    "BOC",
+    "ZIC1",
+    "ZIC3",
+    "OTX2",
+    "SP8",
+    "FOXG1",
+    "FOS",
+    "GAS1",
+    "SOX1",
+    "KLF7",
+    "SMOC1"
+)
+selected_genes <- c(ventral_genes, dorsal_genes)
+sc_counts_genes <- sc_counts[selected_genes[selected_genes %in% rownames(sc_counts)], authors_meta_f$barcode]
 sc_meta_genes <- authors_meta_f %>% filter(barcode %in% colnames(sc_counts_genes))
 sc_meta_genes <- cbind(sc_meta_genes, t(sc_counts_genes))
 
-# summary_by_week <- sc_meta_genes %>%
-#     group_by(c(week_stage)) %>%
-#     summarise(across(all_of(mouse_genes),
-#         list(
-#             mean_expr = ~ mean(.),
-#             pct_expr = ~ mean(. > 0) * 100
-#         ),
-#         .names = "{.col}_{.fn}"
-#     )) %>%
-#     pivot_longer(
-#         cols = -week_stage,
-#         names_to = c("gene", ".value"),
-#         names_sep = "_"
-#     )
-
+summary_by_week_region <- sc_meta_genes %>%
+    group_by(week_stage) %>%
+    summarise(across(all_of(selected_genes),
+        list(
+            expression = ~ mean(.),
+            percent = ~ mean(. > 0) * 100
+        ),
+        .names = "{.col}_{.fn}"
+    )) %>%
+    pivot_longer(
+        cols = -week_stage,
+        names_to = c("gene", ".value"),
+        names_sep = "_"
+    )
 # View the result
+View(summary_by_week_region)
+
+ventral_genes <- ggplot(
+    filter(summary_by_week_region, gene %in% ventral_genes),
+    aes(x = week_stage, y = gene, size = percent, color = expression)
+) +
+    geom_point() +
+    scale_size_continuous(range = c(1, 10), limits = c(0, 100)) + # Ensure percent scale from 0 to 100
+    scale_color_gradientn(colors = c("grey", "#cd7dff", "#312eff")) +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line = element_line(color = "black"),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()
+    ) +
+    labs(size = "Percent\nexpresed", color = "Average\nexpression") # Add legend labels
+
+dorsal_genes <- ggplot(
+    filter(summary_by_week_region, gene %in% dorsal_genes),
+    aes(x = week_stage, y = gene, size = percent, color = expression)
+) +
+    geom_point() +
+    scale_size_continuous(range = c(1, 10), limits = c(0, 100)) + # Ensure percent scale from 0 to 100
+    scale_color_gradientn(colors = c("grey", "#cd7dff", "#312eff")) +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.line = element_line(color = "black"),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank()
+    ) +
+    labs(size = "Percent\nexpresed", color = "Average\nexpression") # Add legend labels
+
+ggsave("results/images/Figure_4/Figure1C_v.png", ventral_genes, width = 3.5, height = 5.5)
+ggsave("results/images/Figure_4/Figure1C_d.png", dorsal_genes, width = 3.5, height = 6)
 
 
-# ggplot(filter(summary_by_week,week_stage == "W3-1"), aes(x =))
 
-sc_counts %>% nrow()
+
+
+
+
 figure_genes <- read.csv("results/tables/Figure_genelist.csv", header = TRUE)
 fig_genes_counts <- sc_counts[, filter(authors_meta_f, week_stage %in% c("W3-1", "W5-1"))$barcode]
 fig_genes_counts <- fig_genes_counts[which(rowSums(fig_genes_counts) > 0), ]
-
-
-
 figure_genes$sc_w3_w4 <- ifelse(figure_genes$genes %in% rownames(fig_genes_counts), "expressed", "NA")
-
 figure_genes$mouse <- ifelse(figure_genes$genes %in% mouse_genes, "tested", "NA")
-
 figure_genes %>% View()
-write.csv(figure_genes, file = "results/tables/Figure_genelist.csv", row.names = FALSE,quote=FALSE)
+write.csv(figure_genes, file = "results/tables/Figure_genelist.csv", row.names = FALSE, quote = FALSE)
