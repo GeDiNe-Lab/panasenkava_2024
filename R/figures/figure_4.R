@@ -107,6 +107,8 @@ dynamic.modules <- cutreeDynamic(
 )
 dynamic.colors <- labels2colors(dynamic.modules)
 
+
+
 # merging similar modules
 MEList <- moduleEigengenes(t(vsd_var),
     colors = dynamic.colors
@@ -143,6 +145,9 @@ blue_clust_df_f$cor <- sapply(c(1:nrow(blue_clust_df_f)), function(x) {
 # get get the top 500 genes most co-expressed with SHH in the WGCNA modules to show on the STRINGdb plot
 write.csv(blue_clust_df_f[order(blue_clust_df_f$cor_abs, decreasing = TRUE), ] %>% head(500), "results/tables/Figure_3/SHH_cluster_500.csv")
 write.csv(blue_clust_df_f[order(blue_clust_df_f$cor_abs, decreasing = TRUE), ], "results/tables/Figure_3/SHH_cluster.csv")
+
+# Saving correlation matrix for the SHH module :
+write.csv(adj[blue_clust_df_f$ENSEMBLE, blue_clust_df_f$ENSEMBLE], "results/tables/Figure_4/SHH_module_adj_mat.csv", row.names = TRUE)
 
 # Heatmap of the genes in the blue cluster
 # Preparation for heatmap, clustering and GO enrichment
@@ -338,7 +343,6 @@ cyclo_genes_df$genes <- gene_converter(rownames(cyclo_genes_df), "ENSEMBL", "SYM
 # Saving heatmap genes annotation table
 write.csv(cyclo_genes_df, "results/tables/Figure_4/cyclo_genes_df.csv")
 save(cyclo_genes_df, file = "results/tables/Figure_4/cyclo_genes_df.RData")
-
 
 ####################################
 ####################################
