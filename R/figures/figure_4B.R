@@ -42,11 +42,10 @@ authors_meta_f <- filter(
         (celltype_region %in% c("Brain Neuron", "FB") & week_stage == "W4-1") |
         (celltype_region == "Brain Neuron" & week_stage == "W5-1")
 )
-table(authors_meta_f$week_stage, authors_meta_f$celltype_region)
 
-# sc_counts_f_int <- sc_counts[, authors_meta_f$barcode]
-# gene_filter <- apply(sc_counts_f_int, 1, function(row) sum(row > 0) >= 20)
-# sc_counts_f <- sc_counts_f_int[names(which(gene_filter == TRUE)), ]
+######################
+######################
+# Percentages of cells expresing WGCNA modules genes in human single cell data
 
 SHH_cluster <- read.csv("results/tables/Figure_4/SHH_cluster.csv", header = TRUE)
 
@@ -54,12 +53,11 @@ setdiff(SHH_cluster$gene, rownames(sc_counts))
 genes <- intersect(rownames(sc_counts), SHH_cluster$gene)
 gene_long <- melt(as.matrix(sc_counts[genes, authors_meta_f$barcode]))
 
-
 colnames(gene_long) <- c("gene", "barcode", "expression")
-gene_long %>% head()
+
 # Merge with week_stage information
 merged_data <- merge(gene_long, dplyr::select(authors_meta_f, c("barcode", "week_stage")), by = "barcode")
-merged_data
+
 # Calculate percentage of cells with expression > 0 per week_stage and gene
 week_gene_df <- merged_data %>%
     group_by(week_stage, gene) %>%
@@ -67,9 +65,11 @@ week_gene_df <- merged_data %>%
     tidyr::spread(key = week_stage, value = percent_expressed) %>%
     as.data.frame()
 
-week_gene_df %>% nrow()
-week_gene_df %>% head()
 write.csv(week_gene_df, "results/tables/Figure_4/sc_percent.csv", row.names = FALSE)
+
+######################
+######################
+# Figure 4C : Expression in human single cell for key genes from WGCNA
 
 #  SPON1 just not in it
 ventral_genes <- c(
@@ -129,8 +129,6 @@ summary_by_week_region <- sc_meta_genes %>%
         names_sep = "_"
     ) %>%
     as.data.frame()
-# View the result
-View(summary_by_week_region)
 
 ventral_genes <- ggplot(
     filter(summary_by_week_region, gene %in% ventral_genes & percent > 0),
@@ -168,19 +166,5 @@ dorsal_genes <- ggplot(
     ) +
     labs(size = "Percent\nexpresed", color = "Average\nexpression") # Add legend labels
 
-ggsave("results/images/Figure_4/Figure1C_v.png", ventral_genes, width = 3.5, height = 5.5)
-ggsave("results/images/Figure_4/Figure1C_d.png", dorsal_genes, width = 3.5, height = 6.5)
-
-
-
-
-
-
-
-figure_genes <- read.csv("results/tables/Figure_genelist.csv", header = TRUE)
-fig_genes_counts <- sc_counts[, filter(authors_meta_f, week_stage %in% c("W3-1", "W5-1"))$barcode]
-fig_genes_counts <- fig_genes_counts[which(rowSums(fig_genes_counts) > 0), ]
-figure_genes$sc_w3_w4 <- ifelse(figure_genes$genes %in% rownames(fig_genes_counts), "expressed", "NA")
-figure_genes$mouse <- ifelse(figure_genes$genes %in% mouse_genes, "tested", "NA")
-figure_genes %>% View()
-write.csv(figure_genes, file = "results/tables/Figure_genelist.csv", row.names = FALSE, quote = FALSE)
+ggsave("results/images/Figure_4/Figure4C_v.png", ventral_genes, width = 3.5, height = 5.5)
+ggsave("results/images/Figure_4/Figure4C_d.png", dorsal_genes, width = 3.5, height = 6.5)

@@ -107,8 +107,6 @@ dynamic.modules <- cutreeDynamic(
 )
 dynamic.colors <- labels2colors(dynamic.modules)
 
-
-
 # merging similar modules
 MEList <- moduleEigengenes(t(vsd_var),
     colors = dynamic.colors
@@ -123,7 +121,6 @@ merge <- mergeCloseModules(t(vsd_var),
     verbose = 3
 )
 mergedColors <- merge$colors
-
 
 # get cluster into a dataframe
 merged_clusters <- rownames(vsd_var)
@@ -226,27 +223,6 @@ png_save(
     height = 1600
 )
 
-# GO term plot for Cluster 1
-GO_terms_Clust1 <- plot_go_term(
-    names(clusters[which(clusters %in% "Cluster 1")]),
-    path = "results/images/Figure_4/Figure4B_Clust1",
-    range = c(1:10),
-    imgw = 22,
-    imgh = 16,
-    cut = 45
-)
-write.csv(GO_terms_Clust1, "results/tables/Figure_4/GO_terms_Clust1.csv")
-
-GO_terms_Clust2 <- plot_go_term(
-    names(clusters[which(clusters %in% "Cluster 2")]),
-    path = "results/images/Figure_4/Figure4B_Clust2",
-    range = c(1, 2, 3, 4, 5, 6, 7, 9, 10, 11),
-    imgw = 22,
-    imgh = 16,
-    cut = 45
-)
-write.csv(GO_terms_Clust2, "results/tables/Figure_4/GO_terms_Clust2.csv")
-
 ####################################
 ####################################
 # FIGURE SUPP : Cyclopamine differential expression
@@ -263,8 +239,6 @@ DE_WGCNA <- dds_WGCNA %>%
     as.data.frame()
 DE_WGCNA$cluster <- clusters[rownames(DE_WGCNA)]
 
-
-DE_WGCNA %>% View()
 DE_WGCNA$gene <- gene_converter(rownames(DE_WGCNA), "ENSEMBL", "SYMBOL")
 DE_WGCNA_f <- filter(DE_WGCNA, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
@@ -281,7 +255,6 @@ DE_cyclo <- dds_quant %>%
 DE_cyclo %>% View()
 DE_cyclo$gene <- gene_converter(rownames(DE_cyclo), "ENSEMBL", "SYMBOL")
 DE_cyclo_f <- filter(DE_cyclo, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
-
 
 # DEGs high vs no cyclo, high vs low cyclo, low vs no cyclo
 DE_high_vs_no <- dds %>%
@@ -337,81 +310,14 @@ cyclo_genes_df$sub_cluster <- rownames(cyclo_genes_df) %>% sapply(function(gene)
         return("no")
     }
 })
-cyclo_genes_df %>% View()
 cyclo_genes_df$genes <- gene_converter(rownames(cyclo_genes_df), "ENSEMBL", "SYMBOL")
 
 # Saving heatmap genes annotation table
 write.csv(cyclo_genes_df, "results/tables/Figure_4/cyclo_genes_df.csv")
-save(cyclo_genes_df, file = "results/tables/Figure_4/cyclo_genes_df.RData")
-
-####################################
-####################################
-# FIGURE SUPP : comparisons with kinetic
-shh_cluster <- read.table("results/tables/Figure_4/SHH_cluster.csv", sep = ",", header = TRUE)
-kinetic_genes_df <- read.table("results/tables/Figure_2/DEGpattern_WTC.csv", sep = ",", header = TRUE)
-
-cyclo_ventral_genes <- filter(shh_cluster, cor > 0)$gene
-kinetic_genes <- filter(kinetic_genes_df, cluster %in% c(1, 2))$symbol
-
-# Create a dataframe with unique genes and their category
-unique_genes <- unique(c(cyclo_ventral_genes, kinetic_genes))
-gene_category <- sapply(unique_genes, function(gene) {
-    if (gene %in% cyclo_ventral_genes & gene %in% kinetic_genes) {
-        return("both")
-    } else if (gene %in% cyclo_ventral_genes) {
-        return("cyclo")
-    } else {
-        return("kinetic")
-    }
-})
-
-gene_df <- data.frame(
-    gene = unique_genes,
-    category = gene_category
-)
-
-# Save the dataframe
-write.csv(gene_df, "results/tables/Figure_4/intersect_genes.csv")
-
-# Venn diagram of cyclo_ventral_genes and kinetic_genes
-library(VennDiagram)
-venn.plot <- venn.diagram(
-    x = list(
-        CycloVentral = cyclo_ventral_genes,
-        Kinetic = kinetic_genes
-    ),
-    category.names = c("Cyclo Ventral Genes", "Kinetic Genes"),
-    filename = NULL,
-    output = TRUE,
-    imagetype = "png",
-    height = 800,
-    width = 800,
-    resolution = 300,
-    compression = "lzw",
-    lwd = 2,
-    col = c("red", "blue"),
-    fill = c("red", "blue"),
-    alpha = 0.5,
-    cex = 1.5,
-    fontface = "bold",
-    fontfamily = "sans",
-    cat.cex = 1.5,
-    cat.fontface = "bold",
-    cat.default.pos = "outer",
-    cat.pos = c(-20, 20),
-    cat.dist = c(0.05, 0.05),
-    cat.fontfamily = "sans",
-    cat.col = c("red", "blue")
-)
-venn.plot
-# Save Venn diagram
-png("results/images/Figure_4/Figure4supp_VennDiagram.png", width = 1800, height = 1800, res = 250)
-grid.draw(venn.plot)
-dev.off()
 
 ################
 ################
-# FIGURE SUPP : DE pattern
+# FIGURE S5 : LON71 WGCNA DE pattern
 pat_meta <- meta
 rownames(pat_meta) <- meta$sample
 pat_meta$cyclo_dose_quant <- as.factor(pat_meta$cyclo_dose_quant)
@@ -436,4 +342,153 @@ plot_list <- lapply(c(1, 2, 3, 5, 6, 7, 8, 9), function(i) {
     return(MyDegPlotCluster(table = filter(patterns$normalize, cluster == i), time = "cyclo_dose_quant", sign_comp = sign_comp, cluster_i = i))
 })
 combined_plot <- wrap_plots(plot_list, ncol = 3)
-ggsave(paste0("results/images/Figure_4/Figure4suppPattern.png"), combined_plot, width = 35, height = 25)
+ggsave(paste0("results/images/Figure_S5/FigureS5suppPattern.png"), combined_plot, width = 35, height = 25)
+
+################
+################
+# FIGURE S4 D : WGCNA analysis, Heatmap
+meta_WTC <- filter(rawmeta, type %in% c("cyclo", "ventral") & line == "WTC" & CRISPR == "control")
+rownames(meta_WTC) <- meta_WTC$sample
+counts_WTC <- rawcounts[, meta_WTC$sample][which(rowSums(rawcounts[, meta_WTC$sample]) >= 25), ]
+meta_WTC$`Cyclopamine dose` <- as.factor(meta_WTC$cyclo_dose_quant)
+
+dds_WTC <- DESeqDataSetFromMatrix(
+    countData = counts_WTC,
+    colData = meta_WTC,
+    design = ~cyclo_dose_qual
+)
+
+vsd_WTC <- vst(dds_WTC, blind = FALSE)
+
+# keeping only genes with higher variance (50% quantile)
+vsd_var_WTC <- assay(vsd_WTC)[which(rowVars(assay(vsd_WTC)) >= quantile(apply(assay(vsd_WTC), 1, var), 0.5)), ]
+
+# WGCNA analysis
+# soft thresholding
+sft <- pickSoftThreshold(t(vsd_var_WTC),
+    powerVector = c(1:20),
+    verbose = 5
+)
+# taking a soft trehsold of 13 :
+# highest SFT.R.sq and mean.k. < 100
+sft$fitIndices
+
+#  perform WGCNA
+adj_WTC <- adjacency(t(vsd_var_WTC), power = 13)
+TOM_WTC <- TOMsimilarity(adj_WTC)
+dissTOM_WTC <- 1 - TOM_WTC
+gene.tree_WTC <- hclust(as.dist(dissTOM_WTC), method = "average")
+dynamic.modules_WTC <- cutreeDynamic(
+    dendro = gene.tree_WTC,
+    distM = dissTOM_WTC,
+    deepSplit = 2,
+    pamRespectsDendro = FALSE,
+    minClusterSize = 30
+)
+dynamic.colors_WTC <- labels2colors(dynamic.modules_WTC)
+
+# merging similar modules
+MEList_WTC <- moduleEigengenes(t(vsd_var_WTC),
+    colors = dynamic.colors_WTC
+)
+MEs_WTC <- MEList_WTC$eigengenes
+ME.diss_WTC <- 1 - cor(MEs_WTC)
+
+merge_WTC <- mergeCloseModules(t(vsd_var_WTC),
+    dynamic.colors_WTC,
+    cutHeight = 0.25,
+    iterate = TRUE,
+    verbose = 3
+)
+mergedColors_WTC <- merge_WTC$colors
+
+# get cluster into a dataframe
+merged_clusters_WTC <- rownames(vsd_var_WTC)
+merged_clusters_sym_WTC <- gene_converter(merged_clusters_WTC, "ENSEMBL", "SYMBOL")
+cluster_df_WTC <- data.frame(ENSEMBLE = merged_clusters_WTC, gene = merged_clusters_sym_WTC, module = dynamic.colors_WTC, merged_module = mergedColors_WTC)
+
+# get blue module (SHH modules) dataframe with weighted correlation values
+blue_clust_df_f_WTC <- filter(cluster_df_WTC, merged_module == "blue", !is.na(gene))
+blue_clust_df_f_WTC$cor_abs <- adj_WTC["ENSG00000164690", blue_clust_df_f_WTC$ENSEMBLE]
+# get back the sign of the correlation
+blue_clust_df_f_WTC$cor <- sapply(c(1:nrow(blue_clust_df_f_WTC)), function(x) {
+    if (cor(assay(vsd_WTC)["ENSG00000164690", ], assay(vsd_WTC)[blue_clust_df_f_WTC$ENSEMBLE[x], ]) > 0) {
+        return(blue_clust_df_f_WTC$cor_abs[x])
+    } else {
+        return(-blue_clust_df_f_WTC$cor_abs[x])
+    }
+})
+
+write.csv(blue_clust_df_f_WTC[order(blue_clust_df_f_WTC$cor_abs, decreasing = TRUE), ], "results/tables/Figure_4/SHH_module_WTC.csv")
+
+# Heatmap of the genes in the blue cluster
+# Preparation for heatmap, clustering and GO enrichment
+sample_order_WTC <- meta_WTC$sample[order(meta_WTC$cyclo_dose_quant)]
+scaled_mat_WTC <- t(apply(assay(vsd_WTC)[filter(cluster_df_WTC, merged_module == "blue", !is.na(gene))$ENSEMBLE, sample_order_WTC], 1, scale))
+colnames(scaled_mat_WTC) <- colnames(assay(vsd_WTC)[, sample_order_WTC])
+
+# hierarchical clustering using euclidian distance and "complete" method
+clustering_WTC <- hclust(dist(scaled_mat_WTC))
+clusters_WTC <- cutree(clustering_WTC, k = 2)
+
+# renaming clusters
+clusters_WTC <- ifelse(clusters_WTC == 1, "Cluster 1", "Cluster 2")
+
+row_split_WTC <- factor(
+    clusters_WTC[clustering_WTC$order],
+    levels = c("Cluster 2", "Cluster 1")
+)
+row_split_WTC
+# Colors for each group
+group_colors_WTC <- c(
+    "Cluster 2" = "#4d6da5",
+    "Cluster 1" = "#b16060"
+)
+
+# Block annotation for color blocks (without outline)
+clusters_ha_WTC <- rowAnnotation(
+    clusters = anno_block(
+        gp = gpar(fill = group_colors_WTC[levels(row_split_WTC)], col = NA), # Remove outline with `col = NA`
+        which = "row",
+        width = unit(2, "mm") # Thinner blocks
+    ),
+    labels = anno_block(
+        gp = gpar(fill = "white", col = "white"), # Remove outline with `col = NA`
+        labels = levels(row_split_WTC), # Add group labels
+        labels_gp = gpar(fontsize = 10, fontface = "bold"), # Customize label appearance
+        labels_rot = -90, # Horizontal labels
+        labels_just = "center"
+    )
+)
+
+WGCNA_ht_plot_WTC <- Heatmap(
+    scaled_mat_WTC[clustering_WTC$order, sample_order_WTC],
+    name = "Normalized expression",
+    column_names_gp = gpar(fontsize = 6),
+    row_split = row_split_WTC,
+    row_title = NULL,
+    cluster_rows = FALSE,
+    cluster_columns = TRUE,
+    right_annotation = clusters_ha_WTC,
+    show_row_names = FALSE,
+    row_names_side = "left",
+    show_column_names = TRUE,
+    show_row_dend = FALSE,
+    show_column_dend = FALSE,
+    show_heatmap_legend = TRUE,
+    width = ncol(scaled_mat_WTC) * unit(4, "mm"),
+    # height = nrow(mat) * unit(5, "mm"),
+    col = colorRampPalette(c(
+        "black",
+        "purple",
+        "orange",
+        "yellow"
+    ))(1000),
+)
+
+png_save(
+    plot = WGCNA_ht_plot_WTC,
+    path = "results/images/Figure_S4/FigureS4D.png",
+    width = 1800,
+    height = 1600
+)

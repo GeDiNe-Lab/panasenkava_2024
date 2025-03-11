@@ -23,6 +23,9 @@ rstudioapi::getSourceEditorContext()$path %>%
 # Loading custom functions
 source("R/custom_fct.R")
 
+######################################
+######################################
+#  Data loading, cleaning and normalization
 # Loading data (path to change later)
 rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
 rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
@@ -44,6 +47,10 @@ dds <- DESeqDataSetFromMatrix(
 # Normalization by variance stabilizing transformation with and without covariates
 vsd_blind <- vst(dds, blind = TRUE)
 vsd <- vst(dds, blind = FALSE)
+
+######################################
+######################################
+# FIGURE 2B : PCA, variance percentage and covariates ANOVA
 
 # PCA with 3000 genes (DESeq2 default = 500)
 pca.data <- plotPCA.DESeqTransform(vsd_blind, intgroup = c("type", "day", "line"), returnData = TRUE, ntop = 3000)
@@ -77,7 +84,7 @@ ggsave("results/images/Figure_2/Figure2_percentVar.png", pca_plot, width = 8, he
 
 ######################################
 ######################################
-# FIGURE 2 C : PC1-2 correlated genes heatmap
+# FIGURE 2C,S2A,S2B : Get genes associated with first principal components
 
 # PC3 is associated with lineage difference, we want genes higlhy correlated with PC1 and PC2 but not PC3
 top_PC1 <- cor(pca.data$PC1, t(assay(vsd_blind))) %>% as.vector()
@@ -102,6 +109,10 @@ vsd_hm <- assay(vsd)[hm_genes, ]
 scaled_mat <- t(apply(vsd_hm, 1, scale))
 colnames(scaled_mat) <- colnames(vsd_hm)
 
+######################################
+######################################
+# FIGURE 2C : PC1-2 correlated genes heatmap for WTC lineage
+
 #  Making heatmap for WTC lineage only
 sample_order_WTC <- c(
     filter(meta, type == "ventral" & line == "WTC")$sample[order(filter(meta, type == "ventral" & line == "WTC")$day, decreasing = TRUE)],
@@ -123,14 +134,6 @@ row_split <- factor(
         "Dorsal forebrain\nn=463"
     )
 )
-
-# Getting gene list for Figure 2C
-fig_genelist_2 <- row_split %>% as.data.frame()
-colnames(fig_genelist_2) <- "Figure2C"
-fig_genelist_2$Figure2C <- fig_genelist_2$Figure2C %>% sapply(function(x) {
-    str_split(x, "\n")[[1]][1]
-})
-write.csv(fig_genelist_2, "results/tables/Figure_2/fig_genelist_2.csv")
 
 # Colors for each group
 group_colors <- c(
@@ -171,7 +174,6 @@ WTC_ht_plot <- Heatmap(
     show_row_dend = FALSE,
     show_heatmap_legend = TRUE,
     width = ncol(scaled_mat[, sample_order_WTC]) * unit(2, "mm"),
-    # height = nrow(mat) * unit(5, "mm"),
     col = colorRampPalette(c(
         "black",
         "purple",
@@ -187,7 +189,11 @@ png_save(
     height = 1800
 )
 
-#  Making heatmap for WTC lineage only
+######################################
+######################################
+# FIGURE S2 A : LON PC1-2 correlated genes heatmap
+
+#  Making heatmap for LON lineage only
 sample_order_LON <- c(
     filter(meta, type == "ventral" & line == "LON71")$sample[order(filter(meta, type == "ventral" & line == "LON71")$day, decreasing = TRUE)],
     filter(meta, type == "dorsal" & line == "LON71")$sample[order(filter(meta, type == "dorsal" & line == "LON71")$day)]
@@ -249,7 +255,6 @@ LON_ht_plot <- Heatmap(
     show_row_dend = FALSE,
     show_heatmap_legend = TRUE,
     width = ncol(scaled_mat[, sample_order_LON]) * unit(2, "mm"),
-    # height = nrow(mat) * unit(5, "mm"),
     col = colorRampPalette(c(
         "black",
         "purple",
@@ -260,46 +265,40 @@ LON_ht_plot <- Heatmap(
 
 png_save(
     plot = LON_ht_plot,
-    path = "results/images/Figure_2/Figure2suppB.png",
+    path = "results/images/Figure_S2/Figure_S2A.png",
     width = 2000,
     height = 1800
 )
 
-row_split <- factor(
-    clusters_WTC[clustering_WTC$order],
-    levels = c(1, 2, 3, 4),
-    labels = c(
-        "Early differentiation\nn=585",
-        "Forebrain\nn=428",
-        "Ventral forebrain\nn=524",
-        "Dorsal forebrain\nn=463"
-    )
-)
+######################################
+######################################
+# FIGURE S2B : LON/WTC heatmap clusters GO enrichment
+
 # GO enrichment for WTC lineage only
 GO_1 <- plot_go_term(
     names(clusters_WTC[which(clusters_WTC == 1)]),
-    path = "results/images/Figure_2/Figure2supp_WTC_earlydiff.png",
+    path = "results/images/Figure_S2/Figure2supp_WTC_earlydiff.png",
     range = c(1:5),
     imgh = 8,
 )
 write.csv(GO_1, "results/tables/Figure_2/WTC_earlydiff_GO.csv")
 GO_2 <- plot_go_term(
     names(clusters_WTC[which(clusters_WTC == 2)]),
-    path = "results/images/Figure_2/Figure2supp_WTC_forebrain.png",
+    path = "results/images/Figure_S2/Figure2supp_WTC_forebrain.png",
     range = c(1:5),
     imgh = 8,
 )
 write.csv(GO_2, "results/tables/Figure_2/WTC_forebrain_GO.csv")
 GO_3 <- plot_go_term(
     names(clusters_WTC[which(clusters_WTC == 3)]),
-    path = "results/images/Figure_2/Figure2supp_WTC_vAN.png",
+    path = "results/images/Figure_S2/Figure2supp_WTC_vAN.png",
     range = c(1:5),
     imgh = 8,
 )
 write.csv(GO_3, "results/tables/Figure_2/WTC_vAN_GO.csv")
 GO_4 <- plot_go_term(
     names(clusters_WTC[which(clusters_WTC == 4)]),
-    path = "results/images/Figure_2/Figure2supp_WTC_dAN.png",
+    path = "results/images/Figure_S2/Figure2supp_WTC_dAN.png",
     range = c(1:5),
     imgh = 8,
 )
@@ -307,28 +306,28 @@ write.csv(GO_4, "results/tables/Figure_2/WTC_dAN_GO.csv")
 # GO enrichment for LON lineage only
 GO_1b <- plot_go_term(
     names(clusters_LON[which(clusters_LON == 1)]),
-    path = "results/images/Figure_2/Figure2supp_LON_earlydiff.png",
+    path = "results/images/Figure_S2/Figure2supp_LON_earlydiff.png",
     range = c(1:5),
     imgh = 8,
 )
 write.csv(GO_1b, "results/tables/Figure_2/LON_earlydiff_GO.csv")
 GO_2b <- plot_go_term(
     names(clusters_LON[which(clusters_LON == 2)]),
-    path = "results/images/Figure_2/Figure2supp_LON_forebrain.png",
+    path = "results/images/Figure_S2/Figure2supp_LON_forebrain.png",
     range = c(1:5),
     imgh = 8,
 )
 write.csv(GO_2b, "results/tables/Figure_2/LON_forebrain_GO.csv")
 GO_3b <- plot_go_term(
     names(clusters_LON[which(clusters_LON == 3)]),
-    path = "results/images/Figure_2/Figure2supp_LON_vAN.png",
+    path = "results/images/Figure_S2/Figure2supp_LON_vAN.png",
     range = c(1:5),
     imgh = 8,
 )
 write.csv(GO_3b, "results/tables/Figure_2/LON_vAN_GO.csv")
 GO_4b <- plot_go_term(
     names(clusters_LON[which(clusters_LON == 4)]),
-    path = "results/images/Figure_2/Figure2supp_LON_dAN.png",
+    path = "results/images/Figure_S2/Figure2supp_LON_dAN.png",
     range = c(1:5),
     imgh = 8,
 )
@@ -362,11 +361,6 @@ DEGs_day02 <- filter(DEGs_day02, !is.na(gene))
 DEGs_day02$f1 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 1 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
 DEGs_day02$f2 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 2 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
 
-# Building gene list for Figure 2D
-fig_genelist_3 <- data.frame(Figure2D = rep("Higly_DE", length(rownames(DEGs_day02)[which(!is.na(DEGs_day02$f2))])))
-rownames(fig_genelist_3) <- rownames(DEGs_day02)[which(!is.na(DEGs_day02$f2))]
-write.csv(fig_genelist_3, "results/tables/Figure_2/fig_genelist_3.csv")
-
 vplot <- ggplot(DEGs_day02, aes(x = log2FoldChange, y = -log10(padj), label = f2)) +
     geom_point(data = filter(DEGs_day02, !is.na(f2)), aes(x = log2FoldChange, y = -log10(padj)), color = "red", size = 4) +
     geom_point(data = filter(DEGs_day02, is.na(f2)), aes(x = log2FoldChange, y = -log10(padj)), alpha = 0.5, color = "grey", size = 4) +
@@ -387,7 +381,7 @@ ggsave("results/images/Figure_2/Figure2D.png", plot = vplot, width = 12, height 
 ######################################
 ######################################
 # FIGURE 2 E : lineplots for selected genes
-
+# adding non differentiated IPSC (day 0) samples
 lp_meta <- filter(rawmeta, sample == "WTC6cipc" | (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
 lp_meta[which(lp_meta$sample == "WTC6cipc"), "day"] <- "day0"
 # filtering out lowly expressed genes
@@ -443,8 +437,7 @@ ggsave("results/images/Figure_2/Figure2E3.png", genes3_plot, width = 15, height 
 
 ######################################
 ######################################
-# FIGURE 2 G : Expression pattern plots
-
+# FIGURE 2 G : Expression pattern plots WTC lineage
 DEGs <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/Volcano_DEG_dbd_ventral.csv", header = TRUE)$gene %>% gene_converter("SYMBOL", "ENSEMBL")
 
 lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "WTC" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
@@ -466,19 +459,11 @@ clusters <- degPatterns(
     meta = lp_meta,
     time = "day",
     reduce = TRUE,
-    nClusters = 10,
+    nClusters = 10
 )
-View(clusters$normalize)
 # intervert cluster 6 with 2 for convenience
 clusters$normalize$cluster <- ifelse(clusters$normalize$cluster == 2, 6, ifelse(clusters$normalize$cluster == 6, 2, clusters$normalize$cluster))
 clusters$df$cluster <- ifelse(clusters$df$cluster == 2, 6, ifelse(clusters$df$cluster == 6, 2, clusters$df$cluster))
-
-# Building gene list for Figure 2GH
-fig_genelist_4 <- clusters$df %>%
-    filter(cluster %in% c(1, 2)) %>%
-    dplyr::select(cluster)
-colnames(fig_genelist_4) <- "Figure2H"
-write.csv(fig_genelist_4, "results/tables/Figure_2/fig_genelist_4.csv")
 
 sign_comp <- list(
     c("day02", "day04"),
@@ -499,4 +484,50 @@ ggsave(paste0("results/images/Figure_2/Figure2G3.png"), plot_list[[2]], width = 
 clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
 write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/DEGpattern_WTC.csv", quote = FALSE, row.names = FALSE)
 
-clusters$df
+######################################
+######################################
+# FIGURE S2 C : Expression pattern plots LON lineage
+DEGs <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/Volcano_DEG_dbd_ventral.csv", header = TRUE)$gene %>% gene_converter("SYMBOL", "ENSEMBL")
+
+lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
+rownames(lp_meta) <- lp_meta$sample
+lp_meta$day <- as.factor(lp_meta$day)
+
+# filtering out lowly expressed genes
+lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
+
+# making DESeq object with days as covariate
+lp_vsd <- DESeqDataSetFromMatrix(
+    countData = lp_counts,
+    colData = lp_meta,
+    design = ~day
+) %>% vst(blind = FALSE)
+
+#  running degPatterns
+clusters <- DEGreport::degPatterns(
+    assay(lp_vsd)[rownames(lp_vsd) %in% DEGs, ],
+    meta = lp_meta,
+    time = "day",
+    reduce = TRUE,
+    nClusters = 10
+)
+# intervert cluster 6 with 2 for convenience
+clusters$normalize$cluster <- ifelse(clusters$normalize$cluster == 2, 6, ifelse(clusters$normalize$cluster == 6, 2, clusters$normalize$cluster))
+clusters$df$cluster <- ifelse(clusters$df$cluster == 2, 6, ifelse(clusters$df$cluster == 6, 2, clusters$df$cluster))
+
+sign_comp <- list(
+    c("day02", "day04"),
+    c("day04", "day06"),
+    c("day06", "day08"),
+    c("day08", "day10"),
+    c("day10", "day12")
+)
+
+plot_list <- lapply(1:9, function(i) {
+    return(MyDegPlotCluster(table = filter(clusters$normalize, cluster == i), time = "day", sign_comp = sign_comp, cluster_i = i))
+})
+combined_plot <- wrap_plots(plot_list, ncol = 3)
+ggsave(paste0("results/images/Figure_S2/FigureS2C.png"), combined_plot, width = 35, height = 25)
+
+clusters$df$symbol <- clusters$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/DEGpattern_LON.csv", quote = FALSE, row.names = FALSE)

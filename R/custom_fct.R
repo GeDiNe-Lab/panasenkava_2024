@@ -1,3 +1,4 @@
+# Here are all necessary packages (without dependancies)
 library(ggrepel)
 library(DEGreport)
 library(ggsignif)
@@ -17,6 +18,39 @@ library(colorblindr)
 library(ggpubr)
 
 kinetic_lineplots <- function(data) {
+  #' Generate Kinetic Line Plots
+  #'
+  #' This function creates a kinetic line plot using ggplot2 for the given data.
+  #' The plot displays the mean expression levels of genes over time with error bars
+  #' representing the standard deviation. Gene labels are added to the plot for the
+  #' data points corresponding to "day12".
+  #'
+  #' @param data A data frame containing the following columns:
+  #'   \itemize{
+  #'     \item \code{day}: A factor or character vector representing the time points.
+  #'     \item \code{mean_expression}: A numeric vector representing the mean expression levels.
+  #'     \item \code{sd_expression}: A numeric vector representing the standard deviation of the expression levels.
+  #'     \item \code{gene}: A factor or character vector representing the gene names.
+  #'   }
+  #'
+  #' @return A ggplot object representing the kinetic line plot.
+  #'
+  #' @import ggplot2
+  #' @import ggrepel
+  #' @import dplyr
+  #'
+  #' @examples
+  #' \dontrun{
+  #' data <- data.frame(
+  #'   day = rep(c("day0", "day02", "day04", "day06", "day08", "day10", "day12"), each = 3),
+  #'   mean_expression = runif(21, 0, 5),
+  #'   sd_expression = runif(21, 0, 1),
+  #'   gene = rep(c("gene1", "gene2", "gene3"), 7)
+  #' )
+  #' plot <- kinetic_lineplots(data)
+  #' print(plot)
+  #' }
+  #'
   plot <- ggplot(data, aes(x = day, y = mean_expression, color = gene, group = gene, label = gene)) +
     geom_point(size = 2) +
     geom_line(size = 2) +
@@ -54,6 +88,7 @@ kinetic_lineplots <- function(data) {
     )
   return(plot)
 }
+
 png_save <- function(plot, path, width, height, res = 250) {
   #' Save a plot as a PNG file
   #'
@@ -84,6 +119,24 @@ png_save <- function(plot, path, width, height, res = 250) {
 }
 
 pca_anova <- function(pca_data, metadata, covariates) {
+  #' Perform ANOVA on Principal Component Analysis (PCA) Data
+  #'
+  #' This function computes the correlation and ANOVA between the first five principal components (PCs)
+  #' of the PCA data and specified covariates from the metadata.
+  #'
+  #' @param pca_data A data frame or matrix containing the PCA results, with samples in rows and PCs in columns.
+  #' @param metadata A data frame containing the metadata for the samples, with samples in rows and covariates in columns.
+  #' @param covariates A character vector specifying the names of the covariates in the metadata to be included in the analysis.
+  #'
+  #' @return A matrix containing the p-values from the ANOVA tests between each of the first five PCs and the specified covariates.
+  #'
+  #' @details The function first constructs a combined data frame with the first five PCs and the specified covariates.
+  #' The covariates are converted to numeric factors. It then computes the absolute correlation between the PCs and the covariates.
+  #' Finally, it performs ANOVA tests to assess the relationship between each PC and each covariate, returning the p-values of these tests.
+  #'
+  #' @import dplyr
+  #' @importFrom stats cor aov summary
+  #' @export
   # Building dataframe with first 5 PC and covariates
   PC_covariate <- cbind(pca_data[, 1:5], metadata %>%
     dplyr::select(all_of(covariates)) %>%
@@ -109,6 +162,26 @@ pca_anova <- function(pca_data, metadata, covariates) {
 
 
 plot_go_term <- function(genelist, path, range = c(1:20), cut = 40, textsize = 20, imgw = 17, imgh = 10) {
+  #' Plot GO Term Enrichment
+  #'
+  #' This function generates a bar plot of Gene Ontology (GO) term enrichment results.
+  #'
+  #' @param genelist A vector of gene identifiers.
+  #' @param path A string specifying the file path to save the plot.
+  #' @param range A numeric vector specifying the range of GO terms to display in the plot. Default is c(1:20).
+  #' @param cut An integer specifying the width to wrap the GO term descriptions. Default is 40.
+  #' @param textsize An integer specifying the size of the text in the plot. Default is 20.
+  #' @param imgw A numeric value specifying the width of the saved plot image. Default is 17.
+  #' @param imgh A numeric value specifying the height of the saved plot image. Default is 10.
+  #'
+  #' @return A data frame containing the GO enrichment results.
+  #' @export
+  #'
+  #' @examples
+  #' \dontrun{
+  #' genelist <- c("ENSG00000141510", "ENSG00000171862", "ENSG00000139618")
+  #' plot_go_term(genelist, "output/go_plot")
+  #' }
   GO_enrichment <- clusterProfiler::enrichGO(genelist,
     OrgDb = "org.Hs.eg.db",
     keyType = "ENSEMBL",
@@ -153,6 +226,34 @@ MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
                              process = FALSE,
                              cluster_column = "cluster",
                              prefix_title = "Group: ") {
+  #' Plot Differential Gene Expression for a Specific Cluster
+  #'
+  #' This function generates a plot to visualize the differential gene expression for a specified cluster.
+  #'
+  #' @param table A data frame containing gene expression data.
+  #' @param time A string representing the column name for time points in the data frame.
+  #' @param sign_comp A list of comparisons for significance testing.
+  #' @param cluster_i An integer specifying the cluster index to be plotted.
+  #' @param color An optional string representing the column name for color grouping. Default is NULL.
+  #' @param min_genes An integer specifying the minimum number of genes required in a cluster. Default is 10.
+  #' @param process A logical value indicating whether to process the data before plotting. Default is FALSE.
+  #' @param cluster_column A string representing the column name for clusters in the data frame. Default is "cluster".
+  #' @param prefix_title A string to prefix the title of each cluster plot. Default is "Group: ".
+  #'
+  #' @return A ggplot object representing the differential gene expression plot for the specified cluster.
+  #'
+  #' @examples
+  #' \dontrun{
+  #' MyDegPlotCluster(table = my_data, time = "timepoint", sign_comp = list(c("A", "B")), cluster_i = 1)
+  #' }
+  #'
+  #' @import ggplot2
+  #' @import dplyr
+  #' @importFrom stringi stri_extract_first
+  #' @importFrom ggpubr geom_signif
+  #' @importFrom stats poly
+  #' @importFrom magrittr %>%
+  #' @export
   stopifnot(class(table)[1] == "data.frame")
 
   if (cluster_column %in% colnames(table)) {
@@ -249,63 +350,38 @@ MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
   plot
 }
 
-
-
-#' Perform Principal Component Analysis (PCA) using FactoMineR package
-#'
-#' This function performs Principal Component Analysis (PCA) using the FactoMineR package.
-#' It calculates the PCA scores for individuals and variables, as well as the eigenvalues
-#' and percentages of variance explained by each principal component.
-#'
-#' @param X The data matrix or data frame containing the variables to be analyzed.
-#' @param scale.unit Logical value indicating whether the variables should be scaled to have unit variance.
-#' @param ncp The number of dimensions to keep in the PCA analysis.
-#' @param ind.sup Optional matrix or data frame containing supplementary individuals.
-#' @param quanti.sup Optional matrix or data frame containing quantitative supplementary variables.
-#' @param quali.sup Optional matrix or data frame containing qualitative supplementary variables.
-#' @param row.w Optional vector of weights for the individuals.
-#' @param col.w Optional vector of weights for the variables.
-#' @param graph Logical value indicating whether to display the PCA graph.
-#' @param axes Numeric vector indicating the dimensions to display in the PCA graph.
-#'
-#' @return A list containing the following components:
-#'   \item{ind}{A data frame with the PCA scores for individuals.}
-#'   \item{var}{A data frame with the PCA scores for variables.}
-#'   \item{eig}{A data frame with the eigenvalues (variances) of the principal components.}
-#'   \item{gg.ind}{A data frame with the PCA scores for individuals, including supplementary individuals.}
-#'   \item{gg.var}{A data frame with the PCA scores for variables, including supplementary variables.}
-#'   \item{gg.prct}{A list with the percentages of variance explained by each principal component.}
-#'
-#' @examples
-#' # Load the data
-#' data(iris)
-#'
-#' # Perform PCA
-#' result <- ggPCA(iris[, 1:4])
-#'
-#' # Access the PCA scores for individuals
-#' result$ind
-#'
-#' # Access the PCA scores for variables
-#' result$var
-#'
-#' # Access the eigenvalues (variances) of the principal components
-#' result$eig
-#'
-#' # Access the percentages of variance explained by each principal component
-#' result$gg.prct
-#'
-#' @import FactoMineR
-#' @importFrom dplyr round
-#' @importFrom purrr sapply
-#' @importFrom stats as.data.frame
-#' @importFrom stats rbind
-#' @importFrom stats scale
-#' @importFrom stats sum
-#' @importFrom utils data
-
 plotPCA.DESeqTransform <- function(object, intgroup = "condition",
                                    ntop = 500, returnData = FALSE, pcsToUse = 1:15, batch = NULL) {
+  #' Plot PCA for DESeqTransform Object
+  #'
+  #' This function performs Principal Component Analysis (PCA) on a DESeqTransform object and returns the PCA results.
+  #'
+  #' @param object A DESeqTransform object.
+  #' @param intgroup A character vector specifying the columns of colData(object) to use for grouping.
+  #' @param ntop An integer specifying the number of top features by variance to use for PCA. Default is 500.
+  #' @param returnData A logical indicating whether to return the PCA data. Default is FALSE.
+  #' @param pcsToUse A numeric vector specifying which principal components to use. Default is 1:15.
+  #' @param batch A parameter for batch effect correction (currently not used).
+  #'
+  #' @return A data frame containing the PCA results, with additional attributes:
+  #' \itemize{
+  #'   \item \code{percentVar}: The contribution to the total variance for each component.
+  #'   \item \code{factoextra}: PCA variable results from the factoextra package.
+  #'   \item \code{pca_var}: PCA results from the prcomp function.
+  #' }
+  #'
+  #' @examples
+  #' \dontrun{
+  #'   dds <- DESeqDataSetFromMatrix(countData = count_matrix, colData = col_data, design = ~ condition)
+  #'   vsd <- vst(dds)
+  #'   pca_data <- plotPCA.DESeqTransform(vsd, intgroup = "condition")
+  #' }
+  #'
+  #' @importFrom MatrixGenerics rowVars
+  #' @importFrom factoextra get_pca_var
+  #' @importFrom stats prcomp
+  #' @importFrom utils head
+  #' @export
   message(paste0("using ntop=", ntop, " top features by variance"))
 
   # calculate the variance for each gene
@@ -353,24 +429,23 @@ plotPCA.DESeqTransform <- function(object, intgroup = "condition",
   return(d)
 }
 
-
-#' Custom Theme Function
-#'
-#' This function creates a custom theme for plots.
-#'
-#' @param diag_text A logical value indicating whether to display diagonal text on the x-axis labels. Default is \code{FALSE}.
-#' @param hide_x_lab A logical value indicating whether to hide the x-axis labels. Default is \code{FALSE}.
-#' @param hide_legend A logical value indicating whether to hide the legend. Default is \code{FALSE}.
-#'
-#' @return A \code{theme} object with customized settings for plot elements.
-#'
-#' @details This function allows you to create a custom theme for your plots by specifying various settings for plot elements such as title, background, grid lines, axis lines, axis labels, legend text, and legend title.
-#'
-#' @examples
-#' custom_theme(diag_text = TRUE, hide_x_lab = FALSE, hide_legend = FALSE)
-#'
-#' @export
 custom_theme <- function(diag_text = FALSE, hide_legend = FALSE, hide_x_lab = FALSE) {
+  #' Custom ggplot2 Theme
+  #'
+  #' This function creates a custom ggplot2 theme with options to hide the legend,
+  #' rotate diagonal text, and hide the x-axis label.
+  #'
+  #' @param diag_text Logical. If TRUE, the x-axis text will be rotated by 45 degrees. Default is FALSE.
+  #' @param hide_legend Logical. If TRUE, the legend will be hidden. Default is FALSE.
+  #' @param hide_x_lab Logical. If TRUE, the x-axis label will be hidden. Default is FALSE.
+  #'
+  #' @return A ggplot2 theme object with the specified customizations.
+  #'
+  #' @examples
+  #' library(ggplot2)
+  #' ggplot(mtcars, aes(x = wt, y = mpg)) +
+  #'   geom_point() +
+  #'   custom_theme(diag_text = TRUE, hide_legend = TRUE, hide_x_lab = TRUE)
   if (hide_legend == TRUE) {
     hide_legend <- "none"
   } else {
@@ -396,74 +471,33 @@ custom_theme <- function(diag_text = FALSE, hide_legend = FALSE, hide_x_lab = FA
   ))
 }
 
-
-
-normalize_ctmat <- function(ctmat) {
-  # Convert the count expression matrix into a cpm matrix
-  #
-  # Args:
-  #   ctmat : count expression matrix
-  #
-  # Return:
-  #   ctmat : count per million expression matrix
-  print("Calc libsize...")
-  lib_sizes <- ctmat %>% colSums()
-
-  print("Getting Intervals...")
-  # Retrieve columns as intervals in non zero values vector
-  intervals <- c(1:(length(ctmat@p) - 1)) %>% lapply(function(i) {
-    c(ctmat@p[i] + 1, ctmat@p[i + 1])
-  })
-
-  print("Normalize Values...")
-  # Normalized the values
-  ctmat@x <- c(1:length(lib_sizes)) %>%
-    lapply(function(i) {
-      ctmat@x[unlist(intervals[i])[1]:unlist(intervals[i])[2]] / lib_sizes[i] * 1e6
-    }) %>%
-    unlist()
-
-  return(ctmat)
-}
-
-clean_ctmat <- function(ctmat, gene_thr = 0.1, sample_thr = 2) {
-  # Filter out Genes and Cells from ctmat that do not pass given treshold
-  #
-  # Args:
-  #   ctmat : expression matrix
-  #   gene_thr : % of cells in which a gene need to be expressed to be kept
-  #   sample_thr : standard deviation of n_genes beyond which cells are filtered out
-  #
-  # Return:
-  #   ctmat : cleaned expression matrix
-
-  # Filter out Genes
-  genes <- rownames(ctmat)
-  genes <- genes[
-    rowSums(ctmat > 0) %>% sapply(function(row_count) row_count > ncol(ctmat) * gene_thr) == T
-  ]
-
-  ctmat <- ctmat[rownames(ctmat) %in% genes, ]
-  gc()
-
-  # Filter out Cells
-  valid_cells <- tibble(cell = colnames(ctmat), n_gene = colSums(ctmat > 0))
-
-  n_genes <- list(m = mean(valid_cells$n_gene), sd = sd(valid_cells$n_gene))
-
-  valid_cells <- valid_cells %>%
-    filter(
-      n_gene > (n_genes$m - (n_genes$sd * sample_thr)),
-      n_gene < (n_genes$m + (n_genes$sd * sample_thr))
-    )
-
-  ctmat <- ctmat[, valid_cells$cell]
-
-  return(ctmat)
-}
-
-
 gene_converter <- function(gene_vec, from, to, species = "human") {
+  #' Convert Gene Identifiers
+  #'
+  #' This function converts a vector of gene identifiers from one type to another for a specified species.
+  #'
+  #' @param gene_vec A character vector of gene identifiers to be converted.
+  #' @param from A character string specifying the type of the input gene identifiers (e.g., "ENSEMBL", "SYMBOL").
+  #' @param to A character string specifying the type of the output gene identifiers (e.g., "SYMBOL", "ENTREZID").
+  #' @param species A character string specifying the species of the genes. Default is "human". Other option is "mouse".
+  #'
+  #' @return A character vector of converted gene identifiers.
+  #'
+  #' @details
+  #' The function uses the `org.Hs.eg.db` database for human genes and the `org.Mm.eg.db` database for mouse genes.
+  #' If the input gene vector contains the gene "ENSG00000229415", it will be manually converted to "SFTA3".
+  #'
+  #' @examples
+  #' \dontrun{
+  #' gene_vec <- c("ENSG00000229415", "ENSG00000139618")
+  #' converted_genes <- gene_converter(gene_vec, from = "ENSEMBL", to = "SYMBOL", species = "human")
+  #' }
+  #'
+  #' @importFrom AnnotationDbi mapIds
+  #' @importFrom magrittr %>%
+  #' @import org.Hs.eg.db
+  #' @import org.Mm.eg.db
+  #' @export
   if (species == "human") {
     db <- org.Hs.eg.db
   } else if (species == "mouse") {
@@ -480,7 +514,22 @@ gene_converter <- function(gene_vec, from, to, species = "human") {
   return(sym)
 }
 
-
 readcounts <- function(file, sep = ",", header = T, row.names = 1) {
+  #' Read Counts from a File
+  #'
+  #' This function reads a file and returns its contents as a matrix.
+  #'
+  #' @param file A character string specifying the path to the file to be read.
+  #' @param sep A character string specifying the field separator character. Default is ",".
+  #' @param header A logical value indicating whether the file contains the names of the variables as its first line. Default is TRUE.
+  #' @param row.names A specification of the column to be used as row names. Default is 1.
+  #'
+  #' @return A matrix containing the data from the file.
+  #' @export
+  #'
+  #' @examples
+  #' \dontrun{
+  #'   data_matrix <- readcounts("data.csv")
+  #' }
   return(as.matrix(read.table(file, sep = sep, header = header, row.names = row.names)))
 }

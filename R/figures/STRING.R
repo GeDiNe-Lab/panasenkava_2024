@@ -20,10 +20,15 @@ rstudioapi::getSourceEditorContext()$path %>%
 # Loading custom functions
 source("R/custom_fct.R")
 
+##############
+##############
+# Formating STRINGdb network outpout for Cytoscape
+
 WGCNA_genes <- read.csv("results/tables/Figure_4/SHH_cluster.csv", header = TRUE)
 rownames(WGCNA_genes) <- WGCNA_genes$gene
 
 figure_genes <- read.csv("results/tables/Figure_genelist.csv", header = TRUE)
+#  Got a doublet symbol for CKMT1B
 figure_genes$gene[which(figure_genes$X == "ENSG00000223572")] <- "CKMT1B_b"
 figure_genes <- filter(figure_genes, !is.na(gene))
 rownames(figure_genes) <- figure_genes$gene
