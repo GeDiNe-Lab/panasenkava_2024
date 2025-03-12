@@ -252,3 +252,43 @@ for (gene in NKX2_1_related_genes) {
         plot = umap_plot, width = 12, height = 10, dpi = 300
     )
 }
+
+#########################
+#########################
+#  Computing percent of WGCNA modules genes expressed in FB cells
+
+WGCNA_genes <- read.csv("results/tables/Figure_4/SHH_cluster.csv", header = TRUE)
+
+sc_meta_week4_FB <- filter(sc_meta, week_stage == "W4-1", celltype_region == "FB")
+seurat_week4_FB <- CreateSeuratObject(counts = sc_counts[, sc_meta_week4_FB$barcode], meta.data = sc_meta_week4_FB)
+
+FB_genes <- which(rowSums(seurat_week4_FB@assays$RNA$counts > 0) >= nrow(sc_meta_week4_FB) * 0.05) %>% names()
+FB_WGCNA_genes <- intersect(FB_genes, WGCNA_genes$gene)
+
+seurat_week4@meta.data$FB_DE <- ifelse(seurat_week4@meta.data$celltype_region == "FB", "FB", "Other")
+Idents(seurat_week4) <- "FB_DE"
+DE <- FindMarkers(seurat_week4, ident.1 = "FB", ident.2 = "Other")
+
+DE_WGCNA_genes <- intersect(rownames(filter(DE, p_val_adj < 0.05, avg_log2FC >= 0)), FB_WGCNA_genes)
+
+WGCNA_genes$sc_forebrain <- ifelse(WGCNA_genes$gene %in% FB_WGCNA_genes, "expressed", NA)
+WGCNA_genes$sc_forebrain_DE <- ifelse(WGCNA_genes$gene %in% DE_WGCNA_genes, "DE", NA)
+
+# percent of genes expressed and DE in Forebrain
+## Among all genes
+### expressed : 56.88 %
+nrow(filter(WGCNA_genes, !is.na(sc_forebrain))) / nrow(WGCNA_genes) * 100
+### DE 12.05 %
+nrow(filter(WGCNA_genes, !is.na(sc_forebrain_DE))) / nrow(WGCNA_genes) * 100
+## Among positively correlated genes with SHH
+### expressed 48.08 %
+nrow(filter(WGCNA_genes, !is.na(sc_forebrain), cor > 0)) / nrow(filter(WGCNA_genes, cor > 0)) * 100
+### DE 5.75 %
+nrow(filter(WGCNA_genes, !is.na(sc_forebrain_DE), cor > 0)) / nrow(filter(WGCNA_genes, cor > 0)) * 100
+## Among negatively correlated genes with SHH
+### expressed 65.10 %
+nrow(filter(WGCNA_genes, !is.na(sc_forebrain), cor < 0)) / nrow(filter(WGCNA_genes, cor < 0)) * 100
+### DE 17.93 %
+nrow(filter(WGCNA_genes, !is.na(sc_forebrain_DE), cor < 0)) / nrow(filter(WGCNA_genes, cor < 0)) * 100
+
+write.csv(WGCNA_genes, "results/tables/Figure_4/SHH_cluster.csv", row.names = FALSE)
