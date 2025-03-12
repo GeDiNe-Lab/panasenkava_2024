@@ -292,3 +292,14 @@ nrow(filter(WGCNA_genes, !is.na(sc_forebrain), cor < 0)) / nrow(filter(WGCNA_gen
 nrow(filter(WGCNA_genes, !is.na(sc_forebrain_DE), cor < 0)) / nrow(filter(WGCNA_genes, cor < 0)) * 100
 
 write.csv(WGCNA_genes, "results/tables/Figure_4/SHH_cluster.csv", row.names = FALSE)
+
+#########################
+#########################
+#  Number of cells for each region in week 4
+sc_week4_cellcount <- sc_meta_week4$celltype_region %>%
+    table() %>%
+    as.data.frame()
+sc_week4_cellcount <- rbind(sc_week4_cellcount, data.frame("." = c("Total"), "Freq" = c(nrow(sc_meta_week4))))
+colnames(sc_week4_cellcount) <- c("Region", "Number of cells")
+
+write.csv(sc_week4_cellcount, "results/tables/Figure_4/week4_cellcount.csv", row.names = FALSE)
