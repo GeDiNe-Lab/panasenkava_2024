@@ -78,6 +78,57 @@ ggsave("results/images/Figure_4/Figure4supp_percentVar.png", plot = percentVar_p
 
 ######################################
 ######################################
+# FIGURE S4? : PCA for WTC ventral and cyclopamine samples
+# L9C1_2 is an outlier and is removed
+meta_WTC <- filter(rawmeta, type %in% c("cyclo", "ventral") & line == "WTC" & CRISPR == "control")
+rownames(meta_WTC) <- meta_WTC$sample
+counts_WTC <- rawcounts[, meta_WTC$sample][which(rowSums(rawcounts[, meta_WTC$sample]) >= 25), ]
+meta_WTC$`Cyclopamine dose` <- as.factor(meta_WTC$cyclo_dose_quant)
+
+# Normalizing data using DESeq2 variance stabilizing transformation
+# Making DESeq object with lineage and type as covariates for design
+dds_WTC <- DESeqDataSetFromMatrix(
+    countData = counts_WTC,
+    colData = meta_WTC,
+    design = ~cyclo_dose_qual
+)
+
+# Normalization by variance stabilizing transformation with and without covariates
+vsd_WTC_blind <- vst(dds_WTC, blind = TRUE)
+
+# PCA plot of top 3000 most variable genes (DESeq2 default = 500)
+pca.data <- plotPCA.DESeqTransform(vsd_WTC_blind, intgroup = c("type", "cyclo_dose_qual", "Cyclopamine dose"), returnData = TRUE, ntop = 3000)
+percentVar <- round(100 * attr(pca.data, "percentVar"))
+
+pca_plot <- ggplot(pca.data, aes(PC1, PC2, color = type, shape = Cyclopamine.dose)) +
+    geom_point(size = 3, stroke = 2) +
+    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    scale_color_manual(values = c("#ecb039", "#80AD3C")) +
+    scale_shape_manual(values = c(0, 1, 2, 3, 4, 5, 6)) +
+    custom_theme()
+ggsave("results/images/Figure_S4/FigureS4_PCA_WTC.png", plot = pca_plot, width = 1600, height = 1200, units = "px", dpi = 250)
+
+# Get PCA/covariates ANOVA results
+PC_covariate_ANOVA <- pca_anova(
+    pca_data = pca.data,
+    metadata = meta_WTC,
+    covariates = c("cyclo_dose_qual", "type")
+)
+#  Saving ANOVA results
+write.csv(PC_covariate_ANOVA, "results/tables/Figure_4/FigureS4_ANOVA_WTC.csv")
+
+# PCs variation percentages :
+percentVar_plot <- ggplot(data.frame(perc = percentVar, PC = factor(colnames(pca.data[1:15]), levels = colnames(pca.data[1:15]))), aes(x = PC, y = perc)) +
+    geom_bar(stat = "identity") +
+    custom_theme(diag_text = TRUE) +
+    ylim(0, 100) +
+    ylab("% of variance explained") +
+    xlab("Principal Components")
+ggsave("results/images/Figure_4/FigureS4_percentVar_WTC.png", plot = percentVar_plot, width = 10, height = 5)
+
+######################################
+######################################
 # FIGURE 4 B/C : WGCNA analysis, Heatmap and GO enrichment
 
 # keeping only genes with higher variance (50% quantile)
