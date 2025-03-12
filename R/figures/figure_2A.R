@@ -487,12 +487,11 @@ write.csv(clusters$df, file = "/home/jules/Documents/phd/projects/panasenkava_20
 ######################################
 ######################################
 # FIGURE S2 C : Expression pattern plots LON lineage
-DEGs <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/Volcano_DEG_dbd_ventral.csv", header = TRUE)$gene %>% gene_converter("SYMBOL", "ENSEMBL")
+DEGs <- read.csv("/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_2/Highly_DEG_dbd_ventral.csv", header = TRUE)$gene %>% gene_converter("SYMBOL", "ENSEMBL")
 
 lp_meta <- filter(rawmeta, (sample != "LON71_D12_2" & diff == "diff13" & line == "LON71" & type == "ventral" & ((manip == "veranika" & day != "day12") | (manip == "lauryane" & day == "day12"))))
 rownames(lp_meta) <- lp_meta$sample
 lp_meta$day <- as.factor(lp_meta$day)
-
 # filtering out lowly expressed genes
 lp_counts <- rawcounts[, lp_meta$sample][which(rowSums(rawcounts[, lp_meta$sample]) >= 25), ]
 
@@ -511,9 +510,6 @@ clusters <- DEGreport::degPatterns(
     reduce = TRUE,
     nClusters = 10
 )
-# intervert cluster 6 with 2 for convenience
-clusters$normalize$cluster <- ifelse(clusters$normalize$cluster == 2, 6, ifelse(clusters$normalize$cluster == 6, 2, clusters$normalize$cluster))
-clusters$df$cluster <- ifelse(clusters$df$cluster == 2, 6, ifelse(clusters$df$cluster == 6, 2, clusters$df$cluster))
 
 sign_comp <- list(
     c("day02", "day04"),
