@@ -45,30 +45,6 @@ authors_meta_f <- filter(
 
 ######################
 ######################
-# Percentages of cells expresing WGCNA modules genes in human single cell data
-
-SHH_cluster <- read.csv("results/tables/Figure_4/SHH_cluster.csv", header = TRUE)
-
-setdiff(SHH_cluster$gene, rownames(sc_counts))
-genes <- intersect(rownames(sc_counts), SHH_cluster$gene)
-gene_long <- melt(as.matrix(sc_counts[genes, authors_meta_f$barcode]))
-
-colnames(gene_long) <- c("gene", "barcode", "expression")
-
-# Merge with week_stage information
-merged_data <- merge(gene_long, dplyr::select(authors_meta_f, c("barcode", "week_stage")), by = "barcode")
-
-# Calculate percentage of cells with expression > 0 per week_stage and gene
-week_gene_df <- merged_data %>%
-    group_by(week_stage, gene) %>%
-    summarise(percent_expressed = mean(expression > 0) * 100, .groups = "drop") %>%
-    tidyr::spread(key = week_stage, value = percent_expressed) %>%
-    as.data.frame()
-
-write.csv(week_gene_df, "results/tables/Figure_4/sc_percent.csv", row.names = FALSE)
-
-######################
-######################
 # Figure 4C : Expression in human single cell for key genes from WGCNA
 
 #  SPON1 just not in it
