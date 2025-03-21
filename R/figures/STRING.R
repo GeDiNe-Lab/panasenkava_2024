@@ -35,6 +35,11 @@ rownames(figure_genes) <- figure_genes$gene
 
 STRING_res <- read.table("results/tables/Figure_4/STRING_short_tab_output.tsv", header = TRUE, sep = "\t", quote = "\"", dec = ".", fill = TRUE, comment.char = "")
 
+c(STRING_res$X.node1, STRING_res$node2) %>%
+    unique() %>%
+    length()
+
+
 STRING_formated <- STRING_res %>% dplyr::select(X.node1, node2, combined_score)
 colnames(STRING_formated) <- c("gene1", "gene2", "STRING_score")
 STRING_formated$double <- rep("keep", nrow(STRING_formated))

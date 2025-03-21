@@ -189,6 +189,17 @@ png_save(
     height = 1800
 )
 
+data.frame(
+    ENSEMBL = names(row_split),
+    gene = gene_converter(names(row_split), "ENSEMBL", "SYMBOL"),
+    cluster = row_split %>%
+        as.vector() %>%
+        sapply(function(x) {
+            str_split_1(x, "\\n")[1]
+        }) %>%
+        unname()
+) %>%
+    write.csv("results/tables/Figure_2/WTC_heatmap_genes.csv", row.names = FALSE)
 ######################################
 ######################################
 # FIGURE S2 A : LON PC1-2 correlated genes heatmap
