@@ -303,3 +303,108 @@ sc_week4_cellcount <- rbind(sc_week4_cellcount, data.frame("." = c("Total"), "Fr
 colnames(sc_week4_cellcount) <- c("Region", "Number of cells")
 
 write.csv(sc_week4_cellcount, "results/tables/Figure_4/week4_cellcount.csv", row.names = FALSE)
+
+
+
+
+library(data.table)
+auroc <- function(ranking, links) {
+    # Compute the AUROC for the given ranked genes_pair and list of true positive links
+    #
+    # Args:
+    #   ranking: pair of genes ranked by correlation (descending) for network 1
+    #   links: list of true positive pair of genes (top 1% of correlation) for network 2
+    #
+    # Return:
+    #   (vector):
+    #     n_true : number of true positives
+    #     n_full : number of ranked genes pair
+    #     auroc : Fraction of the area under the ROC curve
+    #     p_value : p_value of the mann-whitney test
+    #
+    rank_len <- length(ranking)
+    links_len <- length(links)
+    rank <- c(1:rank_len)
+    in_set <- c(ranking %chin% links)
+    setStatus <- tibble(item = ranking, rank = rank, in_set = in_set)
+    rm(ranking)
+    rm(links)
+    gc()
+    result <- wilcox.test(rank ~ in_set, data = setStatus)
+    ns <- setStatus %>%
+        group_by(in_set) %>%
+        summarize(n = n()) %>%
+        arrange(in_set)
+    rm(setStatus)
+    gc()
+
+    # auc
+    auc <- result$statistic / (as.double(ns$n[1]) * as.double(ns$n[2]))
+    return(auc)
+    # return(c(n_true = links_len, n_full = rank_len, auroc = auc, pvalue = result$p.value))
+}
+
+# test test test
+ctmat <- seurat_week4@assays$RNA$counts
+
+
+ventral_genes <- c("CAPN6", "EPHB1", "QKI", "SLIT1", "RGMA", "PDZRN3", "FRZB", "SFRP1", "SALL1") #
+dorsal_genes <- c("SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
+# Add cell type metadata from sc_meta_week4
+
+ctmat_v <- ctmat[ventral_genes, ]
+sc_meta_week4$ventral_counts <- ctmat_v %>%
+    apply(2, function(x) {
+        return(x >= 5)
+    }) %>%
+    colSums()
+
+ctmat_d <- ctmat[dorsal_genes, ]
+sc_meta_week4$dorsal_counts <- ctmat_d %>%
+    apply(2, function(x) {
+        return(x >= 3)
+    }) %>%
+    colSums()
+
+sc_meta_week4$isFB <- ifelse(sc_meta_week4$celltype_region == "FB", "FB", "other")
+df <- sc_meta_week4
+
+df <- df %>% arrange(ventral_counts)
+ggplot(df, aes(x = umap_1, y = umap_2, fill = ventral_counts)) +
+    geom_point(shape = 21, size = 2.5, color = "#1d1d1d", stroke = 0.1) +
+    scale_fill_gradientn(
+        colors = c("white", "#e9ffca", "#80AD3C", "#162500"), # 4-color gradient
+        name = "Number of genes\n expressed (total 9)",
+        guide = guide_colorbar(
+            frame.colour = "black", # Adds a black border
+            frame.linewidth = 0.5 # Thickness of the border
+        )
+    ) +
+    custom_theme() +
+    theme(
+        panel.grid = element_blank(),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA)
+    )
+ggsave("results/images/Figure_4/ventral_UMAP.png", width = 10, height = 8, dpi = 300)
+
+df <- df %>% arrange(dorsal_counts)
+ggplot(df, aes(x = umap_1, y = umap_2, fill = dorsal_counts)) +
+    geom_point(shape = 21, size = 2.5, color = "#1d1d1d", stroke = 0.1) +
+    scale_fill_gradientn(
+        colors = c("white", "#ceceff", "#7676c2", "#191971"), # 4-color gradient
+        name = "Number of genes\n expressed (total 4)",
+        guide = guide_colorbar(
+            frame.colour = "black", # Adds a black border
+            frame.linewidth = 0.5 # Thickness of the border
+        )
+    ) +
+    custom_theme() +
+    theme(
+        panel.grid = element_blank(),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA)
+    )
+ggsave("results/images/Figure_4/dorsal_UMAP.png", width = 10, height = 8, dpi = 300)
