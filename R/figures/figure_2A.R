@@ -372,10 +372,10 @@ DEGs_day02 <- filter(DEGs_day02, !is.na(gene))
 DEGs_day02$f1 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 1 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
 DEGs_day02$f2 <- ifelse((abs(DEGs_day02$log2FoldChange) >= 2 & DEGs_day02$padj < 0.01), DEGs_day02$gene, NA)
 
-vplot <- ggplot(DEGs_day02, aes(x = log2FoldChange, y = -log10(padj), label = f2)) +
+vplot <- ggplot(DEGs_day02, aes(x = log2FoldChange, y = -log10(padj), label = f2, fontface = "bold.italic")) +
     geom_point(data = filter(DEGs_day02, !is.na(f2)), aes(x = log2FoldChange, y = -log10(padj)), color = "red", size = 4) +
     geom_point(data = filter(DEGs_day02, is.na(f2)), aes(x = log2FoldChange, y = -log10(padj)), alpha = 0.5, color = "grey", size = 4) +
-    geom_text_repel(size = 9, fontface = "bold") +
+    geom_text_repel(size = 9) +
     xlab("log2(FoldChange)") +
     ylab("-log10(adjusted pvalue)") +
     geom_hline(yintercept = -log10(0.01), linetype = "dashed") +
@@ -387,8 +387,13 @@ vplot <- ggplot(DEGs_day02, aes(x = log2FoldChange, y = -log10(padj), label = f2
         axis.text.y = element_text(size = 20),
     ) +
     custom_theme()
-ggsave("results/images/Figure_2/Figure2D.png", plot = vplot, width = 12, height = 10)
-
+png_save(
+    plot = vplot,
+    path = "results/images/Figure_2/Figure2D.png",
+    width = 2600,
+    height = 2100,
+    gg = TRUE
+)
 ######################################
 ######################################
 # FIGURE 2 E : lineplots for selected genes
@@ -405,7 +410,7 @@ lp_vsd <- DESeqDataSetFromMatrix(
 
 genes1 <- c("FOXA2", "PTCH1", "SIX3", "SHH", "GSC", "LRP2", "CHRD", "FREM1")
 genes2 <- c("NKX2-1", "SLIT2", "FGF10", "DDC", "NOG")
-genes3 <- c("SOX6", "NTNG1", "NEDD9", "CLSTN2", "PITX2", "TMEFF2", "SIM1", "KCND3", "LRRK2")
+genes3 <- c("NTNG1", "PITX2", "TMEFF2", "CLSTN2", "NEDD9", "SIM1", "KCND3", "LRRK2")
 
 # setup matrix for lineplots
 symbol_vsd <- assay(lp_vsd)
@@ -422,7 +427,13 @@ genes1_df_long <- scaled_filtered_vsd[genes1, ] %>%
     summarise(., mean_expression = mean(expression), sd_expression = sd(expression))
 genes1_df_long$sd_expression[which(is.na(genes1_df_long$sd_expression))] <- 0
 genes1_plot <- kinetic_lineplots(genes1_df_long)
-ggsave("results/images/Figure_2/Figure2E1.png", genes1_plot, width = 15, height = 10)
+png_save(
+    plot = genes1_plot,
+    path = "results/images/Figure_2/Figure2E1.png",
+    width = 3200,
+    height = 2200,
+    gg = TRUE
+)
 
 # reshape matrix as long df for group2 and plotting
 genes2_df_long <- scaled_filtered_vsd[genes2, ] %>%
@@ -433,7 +444,13 @@ genes2_df_long <- scaled_filtered_vsd[genes2, ] %>%
     summarise(., mean_expression = mean(expression), sd_expression = sd(expression))
 genes2_df_long$sd_expression[which(is.na(genes2_df_long$sd_expression))] <- 0
 genes2_plot <- kinetic_lineplots(genes2_df_long)
-ggsave("results/images/Figure_2/Figure2E2.png", genes2_plot, width = 15, height = 10)
+png_save(
+    plot = genes2_plot,
+    path = "results/images/Figure_2/Figure2E2.png",
+    width = 3200,
+    height = 2200,
+    gg = TRUE
+)
 
 # reshape matrix as long df for group3 and plotting
 genes3_df_long <- scaled_filtered_vsd[genes3, ] %>%
@@ -444,7 +461,13 @@ genes3_df_long <- scaled_filtered_vsd[genes3, ] %>%
     summarise(., mean_expression = mean(expression), sd_expression = sd(expression))
 genes3_df_long$sd_expression[which(is.na(genes3_df_long$sd_expression))] <- 0
 genes3_plot <- kinetic_lineplots(genes3_df_long)
-ggsave("results/images/Figure_2/Figure2E3.png", genes3_plot, width = 15, height = 10)
+png_save(
+    plot = genes3_plot,
+    path = "results/images/Figure_2/Figure2E3.png",
+    width = 3200,
+    height = 2200,
+    gg = TRUE
+)
 
 ######################################
 ######################################

@@ -185,6 +185,7 @@ marker_ht_plot <- Heatmap(
     cluster_columns = FALSE,
     show_row_names = TRUE,
     row_names_side = "left",
+    row_names_gp = gpar(fontface = "italic"), # Italicize row names
     show_column_names = FALSE,
     bottom_annotation = sample_ha,
     right_annotation = marker_ha,

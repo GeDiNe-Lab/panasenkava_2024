@@ -69,6 +69,7 @@ kinetic_lineplots <- function(data) {
       nudge_y = 0.1,
       direction = "y",
       size = 10,
+      fontface = "italic",
       segment.color = NA,
       max.overlaps = Inf
     ) +
@@ -89,7 +90,7 @@ kinetic_lineplots <- function(data) {
   return(plot)
 }
 
-png_save <- function(plot, path, width, height, res = 250) {
+png_save <- function(plot, path, width, height, gg = FALSE, res = 250) {
   #' Save a plot as a PNG file
   #'
   #' This function saves a given plot to a specified file path in PNG format.
@@ -108,14 +109,15 @@ png_save <- function(plot, path, width, height, res = 250) {
   #'   p <- ggplot(mtcars, aes(x = wt, y = mpg)) + geom_point()
   #'   png_save(p, "plot.png", width = 800, height = 600)
   #' }
-  png_save <- function(plot, path, width, height, res = 250) {
-    png(filename = path, width = width, height = height, res = res)
+  if (gg == TRUE) {
+    png(filename = path, width = width, height = height, res = res, bg = "transparent")
+    print(plot)
+    dev.off()
+  } else {
+    png(filename = path, width = width, height = height, res = res, bg = "transparent")
     draw(plot)
     dev.off()
   }
-  png(filename = path, width = width, height = height, res = res)
-  draw(plot)
-  dev.off()
 }
 
 pca_anova <- function(pca_data, metadata, covariates) {
@@ -310,13 +312,13 @@ MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
       alpha = 0,
       outlier.size = 0,
       outlier.shape = NA,
-      color = "#80AD3C", # Fixed color for boxplot outline
-      fill = "#80AD3C"
+      color = "#ff9718", # Fixed color for boxplot outline
+      fill = "#ff9718"
     ) +
     geom_jitter(
       alpha = 0.4, size = 1,
-      color = "#80AD3C",
-      fill = "#80AD3C"
+      color = "#ff9718",
+      fill = "#ff9718"
     ) +
     stat_smooth(
       aes_string(
@@ -327,7 +329,7 @@ MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
       method = "lm", formula = y ~ poly(x, splan),
       color = "black"
     ) +
-    geom_line(aes_string(group = "line_group"), alpha = 0.1, color = "#80AD3C") +
+    geom_line(aes_string(group = "line_group"), alpha = 0.1, color = "#ff9718") +
     geom_signif(
       comparisons = sign_comp, # Groups being compared
       map_signif_level = TRUE, # Automatically converts p-values to significance stars

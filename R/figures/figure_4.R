@@ -210,11 +210,6 @@ clusters <- cutree(clustering, k = 2)
 # renaming clusters
 clusters <- ifelse(clusters == 1, "Cluster 1", "Cluster 2")
 
-# Making genelist for Figure4B
-fig_genelist_5 <- clusters %>% as.data.frame()
-colnames(fig_genelist_5) <- "Figure4B"
-write.csv(fig_genelist_5, "results/tables/Figure_4/fig_genelist_5.csv")
-
 row_split <- factor(
     clusters[clustering$order],
     levels = c("Cluster 2", "Cluster 1")
@@ -273,6 +268,22 @@ png_save(
     width = 1800,
     height = 1600
 )
+
+# GO enrichment
+GO_1 <- plot_go_term(
+    names(clusters[which(clusters == "Cluster 1")]),
+    path = "results/images/Figure_S4/WGCNA_LON_Cluster_1_GO_terms.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_1, "results/tables/Figure_4/WGCNA_LON_Cluster_1_GO_terms.csv")
+GO_2 <- plot_go_term(
+    names(clusters[which(clusters == "Cluster 2")]),
+    path = "results/images/Figure_S4/WGCNA_LON_Cluster_2_GO_terms.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_2, "results/tables/Figure_4/WGCNA_LON_Cluster_2_GO_terms.csv")
 
 ####################################
 ####################################
@@ -395,9 +406,12 @@ plot_list <- lapply(c(1, 2, 3, 5, 6, 7, 8, 9), function(i) {
 combined_plot <- wrap_plots(plot_list, ncol = 3)
 ggsave(paste0("results/images/Figure_S5/FigureS5suppPattern.png"), combined_plot, width = 35, height = 25)
 
+patterns$df$symbol <- patterns$df$genes %>% gene_converter("ENSEMBL", "SYMBOL")
+write.csv(patterns$df, file = "/home/jules/Documents/phd/projects/panasenkava_2024/results/tables/Figure_4/DEGpattern_Cyclo_LON.csv", quote = FALSE, row.names = FALSE)
+
 ################
 ################
-# FIGURE S4 D : WGCNA analysis, Heatmap
+# FIGURE S4 D : WTC WGCNA analysis, Heatmap
 meta_WTC <- filter(rawmeta, type %in% c("cyclo", "ventral") & line == "WTC" & CRISPR == "control")
 rownames(meta_WTC) <- meta_WTC$sample
 counts_WTC <- rawcounts[, meta_WTC$sample][which(rowSums(rawcounts[, meta_WTC$sample]) >= 25), ]
@@ -519,7 +533,7 @@ WGCNA_ht_plot_WTC <- Heatmap(
     row_split = row_split_WTC,
     row_title = NULL,
     cluster_rows = FALSE,
-    cluster_columns = TRUE,
+    cluster_columns = FALSE,
     right_annotation = clusters_ha_WTC,
     show_row_names = FALSE,
     row_names_side = "left",
@@ -543,3 +557,18 @@ png_save(
     width = 1800,
     height = 1600
 )
+
+GO_1 <- plot_go_term(
+    names(clusters_WTC[which(clusters_WTC == "Cluster 1")]),
+    path = "results/images/Figure_S4/WGCNA_WTC_Cluster_1_GO_terms.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_1, "results/tables/Figure_4/WGCNA_WTC_Cluster_1_GO_terms.csv")
+GO_2 <- plot_go_term(
+    names(clusters_WTC[which(clusters_WTC == "Cluster 2")]),
+    path = "results/images/Figure_S4/WGCNA_WTC_Cluster_2_GO_terms.png",
+    range = c(1:5),
+    imgh = 8,
+)
+write.csv(GO_2, "results/tables/Figure_4/WGCNA_WTC_Cluster_2_GO_terms.csv")

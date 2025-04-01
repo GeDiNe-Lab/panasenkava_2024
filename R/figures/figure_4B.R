@@ -90,6 +90,7 @@ sc_counts_genes <- sc_counts[selected_genes[selected_genes %in% rownames(sc_coun
 sc_meta_genes <- authors_meta_f %>% filter(barcode %in% colnames(sc_counts_genes))
 sc_meta_genes <- cbind(sc_meta_genes, t(sc_counts_genes))
 
+table(sc_meta_genes$week_stage, sc_meta_genes$celltype_region) %>% write.csv("results/tables/Figure_4/Figure4C_cellcounts.csv")
 summary_by_week_region <- sc_meta_genes %>%
     group_by(week_stage) %>%
     summarise(across(all_of(selected_genes),
@@ -115,7 +116,7 @@ ventral_genes <- ggplot(
     scale_color_gradientn(colors = c("grey", "#cd7dff", "#312eff")) +
     theme(
         axis.text.x = element_text(angle = 45, hjust = 1, size = 12, face = "bold"),
-        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold.italic"),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.line = element_line(color = "black"),
@@ -133,7 +134,7 @@ dorsal_genes <- ggplot(
     scale_color_gradientn(colors = c("grey", "#cd7dff", "#312eff")) +
     theme(
         axis.text.x = element_text(angle = 45, hjust = 1, size = 12, face = "bold"),
-        axis.text.y = element_text(size = 12, face = "bold"),
+        axis.text.y = element_text(size = 12, face = "bold.italic"),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         axis.line = element_line(color = "black"),
@@ -142,5 +143,17 @@ dorsal_genes <- ggplot(
     ) +
     labs(size = "Percent\nexpresed", color = "Average\nexpression") # Add legend labels
 
-ggsave("results/images/Figure_4/Figure4C_v.png", ventral_genes, width = 3.5, height = 5.5)
-ggsave("results/images/Figure_4/Figure4C_d.png", dorsal_genes, width = 3.5, height = 6.5)
+png_save(
+    plot = ventral_genes,
+    path = "results/images/Figure_4/Figure4C_v.png",
+    width = 800,
+    height = 1800,
+    gg = TRUE
+)
+png_save(
+    plot = dorsal_genes,
+    path = "results/images/Figure_4/Figure4C_d.png",
+    width = 800,
+    height = 1800,
+    gg = TRUE
+)
