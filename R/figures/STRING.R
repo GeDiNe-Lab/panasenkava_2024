@@ -20,38 +20,11 @@ rstudioapi::getSourceEditorContext()$path %>%
 # Loading custom functions
 source("R/custom_fct.R")
 
-rawcounts <- readcounts("data/rawcounts.csv", sep = ",", header = TRUE)
-rawmeta <- read.table("data/meta.csv", sep = ",", header = TRUE)
 
-# L9C1_2 is an outlier and is removed
-meta <- filter(rawmeta, type %in% c("cyclo", "ventral") & sample != "L9C1_2" & sequencing == "batch1")
-rownames(meta) <- meta$sample
-counts <- rawcounts[, meta$sample][which(rowSums(rawcounts[, meta$sample]) >= 25), ]
-meta$`Cyclopamine dose` <- as.factor(meta$cyclo_dose_quant)
-
-# Normalizing data using DESeq2 variance stabilizing transformation
-# Making DESeq object with lineage and type as covariates for design
-dds <- DESeqDataSetFromMatrix(
-    countData = counts,
-    colData = meta,
-    design = ~cyclo_dose_qual
-)
-
-# Normalization by variance stabilizing transformation with and without covariates
-vsd_blind <- vst(dds, blind = TRUE)
-vsd <- vst(dds, blind = FALSE)
-norm <- assay(vsd)
-rownames(norm) <- rownames(norm) %>% gene_converter("ENSEMBL", "SYMBOL")
 ##############
 ##############
 # Formating STRINGdb network outpout for Cytoscape
-ventral_genes <- c("CAPN6", "EPHB1", "QKI", "SLIT1", "RGMA", "PDZRN3", "FRZB", "SFRP1", "SALL1") #
-dorsal_genes <- c("SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
-other <- c("SFTA3P", "TRIM9", "ZFHX4", "EPHA4", "AFF2", "SPON1", "GJA1")
 
-mouse_genes <- c(ventral_genes, dorsal_genes, other)
-
-setdiff(ventral_genes, rownames(norm))
 
 WGCNA_genes <- read.csv("results/tables/Figure_4/SHH_cluster.csv", header = TRUE)
 rownames(WGCNA_genes) <- WGCNA_genes$gene
@@ -62,40 +35,64 @@ figure_genes$gene[which(figure_genes$X == "ENSG00000223572")] <- "CKMT1B_b"
 figure_genes <- filter(figure_genes, !is.na(gene))
 rownames(figure_genes) <- figure_genes$gene
 
-STRING_res <- read.table("results/tables/Figure_4/STRING_short_tab_output.tsv", header = TRUE, sep = "\t", quote = "\"", dec = ".", fill = TRUE, comment.char = "")
+STRING_res <- read.table("results/tables/Figure_4/string_interactions_short.tsv", header = TRUE, sep = "\t", quote = "\"", dec = ".", fill = TRUE, comment.char = "")
 
-c(STRING_res$X.node1, STRING_res$node2) %>%
-    unique() %>%
-    length()
+
 
 
 STRING_formated <- STRING_res %>% dplyr::select(X.node1, node2, combined_score)
 colnames(STRING_formated) <- c("gene1", "gene2", "STRING_score")
 STRING_formated$double <- rep("keep", nrow(STRING_formated))
-
+STRING_formated$double
 STRING_formated_rev <- data.frame(gene1 = STRING_formated$gene2, gene2 = STRING_formated$gene1, STRING_score = STRING_formated$STRING_score, double = rep("exclude", nrow(STRING_formated)))
 STRING_formated <- rbind(STRING_formated, STRING_formated_rev)
 
+# Retaking mouse genes without any STRING_connection (they are linked to themselves) in the network
+retake_genes <- setdiff(filter(figure_genes, mouse == "tested")$gene, c(STRING_formated$gene1, STRING_formated$gene2) %>% unique()) %>%
+    lapply(function(gene) {
+        return(data.frame(gene1 = gene, gene2 = gene, STRING_score = 0.4, double = "exclude"))
+    }) %>%
+    Reduce(rbind, .)
+STRING_formated <- rbind(STRING_formated, retake_genes)
+
 STRING_formated$gene_mouse <- STRING_formated$gene1 %>% sapply(function(gene) {
     return(ifelse(gene == "SHH", "SHH", figure_genes[gene, "mouse"]))
+})
+
+STRING_formated$scRNA <- STRING_formated$gene1 %>% sapply(function(gene) {
+    return(figure_genes[gene, "sc_w3_w4"])
 })
 
 STRING_formated$gene_SHH_link <- c(1:nrow(STRING_formated)) %>% sapply(function(i) {
     return(ifelse(STRING_formated$gene2[i] == "SHH", TRUE, FALSE))
 })
 
-STRING_formated$gene_SHH_corr <- STRING_formated$gene1 %>% sapply(function(gene) {
-    return(WGCNA_genes[gene, "cor"])
+# to modify
+mouse_genes_cor <- read.csv("results/tables/Figure_4/mouse_genes_cor.csv", header = TRUE)
+rownames(mouse_genes_cor) <- mouse_genes_cor$X %>% gene_converter("ENSEMBL", "SYMBOL")
+
+STRING_formated$gene1_SHH_corr <- STRING_formated$gene1 %>% sapply(function(gene) {
+    if (gene %in% rownames(mouse_genes_cor)) {
+        return(mouse_genes_cor[gene, "cor"])
+    } else {
+        return(WGCNA_genes[gene, "cor"])
+    }
 })
 
-setdiff(mouse_genes, c(STRING_formated$gene1, STRING_formated$gene2) %>% unique())
+STRING_formated$gene2_SHH_corr <- STRING_formated$gene2 %>% sapply(function(gene) {
+    if (gene %in% rownames(mouse_genes_cor)) {
+        return(mouse_genes_cor[gene, "cor"])
+    } else {
+        return(WGCNA_genes[gene, "cor"])
+    }
+})
 
 
 
 write.csv(
     filter(
         STRING_formated,
-        ((gene1 %in% filter(WGCNA_genes, cor > 0)$gene & gene2 %in% filter(WGCNA_genes, cor > 0)$gene) & (gene1 %in% filter(figure_genes, sc_w3_w4 == "expressed")$gene & gene2 %in% filter(figure_genes, sc_w3_w4 == "expressed")$gene))
+        (gene1_SHH_corr > 0 & gene2_SHH_corr > 0)
     ),
     file = "results/tables/Figure_4/STRING_formated_ventral.csv", row.names = FALSE, quote = FALSE
 )
@@ -103,7 +100,11 @@ write.csv(
 write.csv(
     filter(
         STRING_formated,
-        (((gene1 %in% filter(WGCNA_genes, cor < 0)$gene & gene2 %in% filter(WGCNA_genes, cor < 0)$gene) | (gene1 == "SHH" & gene2 %in% filter(WGCNA_genes, cor < 0)$gene) | (gene1 %in% filter(WGCNA_genes, cor < 0)$gene & gene2 == "SHH")) & (gene1 %in% filter(figure_genes, sc_w3_w4 == "expressed")$gene & gene2 %in% filter(figure_genes, sc_w3_w4 == "expressed")$gene))
+        (
+            (gene1_SHH_corr < 0 & gene2_SHH_corr < 0) |
+                (gene1_SHH_corr < 0 & gene2 == "SHH") |
+                (gene1 == "SHH" & gene2_SHH_corr < 0)
+        )
     ),
     file = "results/tables/Figure_4/STRING_formated_dorsal.csv", row.names = FALSE, quote = FALSE
 )

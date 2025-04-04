@@ -194,6 +194,22 @@ blue_clust_df_f$cor <- sapply(c(1:nrow(blue_clust_df_f)), function(x) {
 write.csv(blue_clust_df_f[order(blue_clust_df_f$cor_abs, decreasing = TRUE), ] %>% head(500), "results/tables/Figure_3/SHH_cluster_500.csv")
 write.csv(blue_clust_df_f[order(blue_clust_df_f$cor_abs, decreasing = TRUE), ], "results/tables/Figure_3/SHH_cluster.csv")
 
+# saving mice tested genes correlation to SHH
+# get mice tested genes :
+mouse_genes <- filter(read.csv("results/tables/Figure_genelist.csv"), mouse == "tested")
+mouse_genes_cor <- adj[mouse_genes$X, "ENSG00000164690"] %>% as.data.frame()
+mouse_genes_cor <- sapply(mouse_genes$X, function(gene) {
+    if (cor(assay(vsd)["ENSG00000164690", ], assay(vsd)[gene, ]) > 0) {
+        return(adj[gene, "ENSG00000164690"])
+    } else {
+        return(-adj[gene, "ENSG00000164690"])
+    }
+}) %>% as.data.frame()
+
+colnames(mouse_genes_cor) <- "cor"
+write.csv(mouse_genes_cor, "results/tables/Figure_4/mouse_genes_cor.csv")
+
+
 # Saving correlation matrix for the SHH module :
 write.csv(adj[blue_clust_df_f$ENSEMBLE, blue_clust_df_f$ENSEMBLE], "results/tables/Figure_4/SHH_module_adj_mat.csv", row.names = TRUE)
 
