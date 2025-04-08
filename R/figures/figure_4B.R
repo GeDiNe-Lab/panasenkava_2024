@@ -34,6 +34,7 @@ formated_ids <- c(1:nrow(cell_ids)) %>% sapply(function(i) {
 })
 colnames(sc_counts) <- formated_ids
 
+# keeping only cells tagged as Forebrain progenitor (FB) and/or Brain Neureon depending on the week
 authors_meta <- read.csv("scdata/week345_wholebody_metadata.csv")
 authors_meta$celltype_region %>% unique()
 authors_meta_f <- filter(
@@ -85,12 +86,16 @@ dorsal_genes <- c(
     "KLF7",
     "SMOC1"
 )
+# Keeping only genes that are in the list, filter cells not expressing any of them
 selected_genes <- c(ventral_genes, dorsal_genes)
 sc_counts_genes <- sc_counts[selected_genes[selected_genes %in% rownames(sc_counts)], authors_meta_f$barcode]
 sc_meta_genes <- authors_meta_f %>% filter(barcode %in% colnames(sc_counts_genes))
 sc_meta_genes <- cbind(sc_meta_genes, t(sc_counts_genes))
 
+#  saving number of cells by region and week
 table(sc_meta_genes$week_stage, sc_meta_genes$celltype_region) %>% write.csv("results/tables/Figure_4/Figure4C_cellcounts.csv")
+
+#  making expression/percent of cell expressing data frame
 summary_by_week_region <- sc_meta_genes %>%
     group_by(week_stage) %>%
     summarise(across(all_of(selected_genes),
@@ -107,6 +112,7 @@ summary_by_week_region <- sc_meta_genes %>%
     ) %>%
     as.data.frame()
 
+# Plotting ventral genes
 ventral_genes <- ggplot(
     filter(summary_by_week_region, gene %in% ventral_genes & percent > 0),
     aes(x = week_stage, y = gene, size = percent, color = expression)
@@ -125,6 +131,7 @@ ventral_genes <- ggplot(
     ) +
     labs(size = "Percent\nexpresed", color = "Average\nexpression") # Add legend labels
 
+# Plotting dorsal genes
 dorsal_genes <- ggplot(
     filter(summary_by_week_region, gene %in% dorsal_genes & percent > 0),
     aes(x = week_stage, y = gene, size = percent, color = expression)

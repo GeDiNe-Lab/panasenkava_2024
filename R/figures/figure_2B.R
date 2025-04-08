@@ -46,7 +46,7 @@ sc_counts_f <- sc_counts_f_int[names(which(gene_filter == TRUE)), ]
 rm(sc_counts_f_int)
 rm(sc_counts)
 
-# SPON1 and SMIM32 not in it
+# SPON1 and SMIM32 not expressed at all
 genes1 <- c("FOXA2", "PTCH1", "SIX3", "SHH", "GSC", "LRP2", "FREM1", "CHRD")
 genes2 <- c("NKX2-1", "FGF10", "SLIT2", "DDC", "NOG")
 genes3 <- c("NTNG1", "PITX2", "TMEFF2", "CLSTN2", "NEDD9", "SIM1", "KCND3", "LRRK2")

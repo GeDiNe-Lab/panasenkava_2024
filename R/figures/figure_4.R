@@ -330,7 +330,6 @@ DE_cyclo <- dds_quant %>%
     DESeq() %>%
     results(alpha = 0.01, name = "cyclo_dose_quant") %>%
     as.data.frame()
-DE_cyclo %>% View()
 DE_cyclo$gene <- gene_converter(rownames(DE_cyclo), "ENSEMBL", "SYMBOL")
 DE_cyclo_f <- filter(DE_cyclo, padj < 0.05 & abs(log2FoldChange) >= 2 & !is.na(gene))
 
@@ -443,6 +442,7 @@ vsd_WTC <- vst(dds_WTC, blind = FALSE)
 
 # keeping only genes with higher variance (50% quantile)
 vsd_var_WTC <- assay(vsd_WTC)[which(rowVars(assay(vsd_WTC)) >= quantile(apply(assay(vsd_WTC), 1, var), 0.5)), ]
+nrow(vsd_var_WTC)
 
 # WGCNA analysis
 # soft thresholding

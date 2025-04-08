@@ -136,6 +136,7 @@ write.csv(sc_week4_cellcount, "results/tables/Figure_4/week4_cellcount.csv", row
 ventral_genes <- c("CAPN6", "EPHB1", "QKI", "SLIT1", "RGMA", "PDZRN3", "FRZB", "SFRP1", "SALL1") #
 dorsal_genes <- c("SHROOM3", "NUAK2", "CNTNAP2", "ZIC5")
 
+#  Buidling binary expressed/not expressed matrix for ventral genes
 ctmat_v <- seurat_week4@assays$RNA$counts[ventral_genes, ]
 sc_meta_week4$ventral_counts <- ctmat_v %>%
     apply(2, function(x) {
@@ -143,6 +144,7 @@ sc_meta_week4$ventral_counts <- ctmat_v %>%
     }) %>%
     colSums()
 
+#  Buidling binary expressed/not expressed matrix for dorsal genes
 ctmat_d <- seurat_week4@assays$RNA$counts[dorsal_genes, ]
 sc_meta_week4$dorsal_counts <- ctmat_d %>%
     apply(2, function(x) {
@@ -152,6 +154,7 @@ sc_meta_week4$dorsal_counts <- ctmat_d %>%
 
 df <- sc_meta_week4
 
+# plotting UMAP for week4 data colored by number of genes expressed (ventral)
 df <- df %>% arrange(ventral_counts)
 ggplot(df, aes(x = umap_1, y = umap_2, fill = ventral_counts)) +
     geom_point(shape = 21, size = 2.5, color = "#1d1d1d", stroke = 0.1) +
@@ -172,6 +175,7 @@ ggplot(df, aes(x = umap_1, y = umap_2, fill = ventral_counts)) +
     )
 ggsave("results/images/Figure_4/ventral_UMAP.png", width = 10, height = 8, dpi = 300)
 
+# plotting UMAP for week4 data colored by number of genes expressed (dorsal)
 df <- df %>% arrange(dorsal_counts)
 ggplot(df, aes(x = umap_1, y = umap_2, fill = dorsal_counts)) +
     geom_point(shape = 21, size = 2.5, color = "#1d1d1d", stroke = 0.1) +

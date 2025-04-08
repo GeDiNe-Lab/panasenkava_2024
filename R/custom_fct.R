@@ -184,22 +184,25 @@ plot_go_term <- function(genelist, path, range = c(1:20), cut = 40, textsize = 2
   #' genelist <- c("ENSG00000141510", "ENSG00000171862", "ENSG00000139618")
   #' plot_go_term(genelist, "output/go_plot")
   #' }
+
+  # performing GO enrichment
   GO_enrichment <- clusterProfiler::enrichGO(genelist,
     OrgDb = "org.Hs.eg.db",
     keyType = "ENSEMBL",
     ont = "BP"
   )
+
+  #  formating GO results
   GO_results <- GO_enrichment@result
   GO_results$GeneRatio <- sapply(GO_enrichment@result$GeneRatio, function(x) {
     eval(parse(text = x))
   }) %>% unname()
   GO_results$rank <- rank(-GO_results$GeneRatio, ties.method = "first")
-
   GO_results_f <- GO_results[order(GO_results$GeneRatio, decreasing = TRUE)[range], ]
-
   GO_results_f$Description <- str_wrap(GO_results_f$Description, width = cut) %>% str_to_upper()
   GO_results_f$Description <- factor(GO_results_f$Description, levels = rev(GO_results_f$Description))
 
+  # plottinh
   goplot <- ggplot(GO_results_f, aes(x = GeneRatio, y = reorder(Description, GeneRatio), fill = p.adjust)) +
     geom_bar(stat = "identity") +
     geom_text(aes(label = Description),
@@ -223,13 +226,14 @@ plot_go_term <- function(genelist, path, range = c(1:20), cut = 40, textsize = 2
   return(GO_results)
 }
 
+
 MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
                              min_genes = 10,
                              process = FALSE,
                              cluster_column = "cluster",
                              prefix_title = "Group: ") {
   #' Plot Differential Gene Expression for a Specific Cluster
-  #'
+  #' adapted from DegPlotCluster function from DEGReport package
   #' This function generates a plot to visualize the differential gene expression for a specified cluster.
   #'
   #' @param table A data frame containing gene expression data.
@@ -355,7 +359,7 @@ MyDegPlotCluster <- function(table, time, sign_comp, cluster_i, color = NULL,
 plotPCA.DESeqTransform <- function(object, intgroup = "condition",
                                    ntop = 500, returnData = FALSE, pcsToUse = 1:15, batch = NULL) {
   #' Plot PCA for DESeqTransform Object
-  #'
+  #' adapted from DESeq2 pca function
   #' This function performs Principal Component Analysis (PCA) on a DESeqTransform object and returns the PCA results.
   #'
   #' @param object A DESeqTransform object.
