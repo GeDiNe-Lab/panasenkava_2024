@@ -211,7 +211,7 @@ plot_go_term <- function(genelist, path, range = c(1:20), cut = 40, textsize = 2
       size = 13
     ) + # Adjust size to fit the text inside the bar
     custom_theme() +
-    scale_fill_gradient(name = "p-value", low = "#e06663", high = "#327eba") +
+    scale_fill_gradient(name = "p-value\n", low = "#e06663", high = "#327eba") +
     theme(
       axis.title.x = element_text(size = 30), # Adjusts the x-axis title size
       axis.text.x = element_text(size = textsize),
