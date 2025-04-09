@@ -65,8 +65,8 @@ kinetic_lineplots <- function(data) {
     geom_text_repel(
       data = filter(data, day == "day12"),
       aes(x = 7.75),
-      nudge_x = 0,
-      nudge_y = 0.1,
+      nudge_x = 0.25,
+      hjust = 0,
       direction = "y",
       size = 10,
       fontface = "italic",
