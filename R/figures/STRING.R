@@ -106,3 +106,40 @@ write.csv(
     ),
     file = "results/tables/Figure_4/STRING_formated_dorsal.csv", row.names = FALSE, quote = FALSE
 )
+
+
+
+fgl <- read.csv("results/tables/Figure_genelist.csv")
+
+nd1 <- read.table("results/tables/string_node_degrees.tsv", header = FALSE)
+nd2 <- read.table("results/tables/string_node_degrees(1).tsv", header = FALSE)
+nd3 <- read.table("results/tables/string_node_degrees(2).tsv", header = FALSE)
+
+nd <- rbind(nd1, nd2, nd3)
+
+STRING_gene <- unique(nd$V1)
+
+sn1 <- read.table("results/tables/string_interactions_short.tsv", header = FALSE)
+sn2 <- read.table("results/tables/string_interactions_short(1).tsv", header = FALSE)
+sn3 <- read.table("results/tables/string_interactions_short(2).tsv", header = FALSE)
+
+sn <- rbind(sn1, sn2, sn3)
+
+sn_SHH <- filter(sn, V1 == "SHH" | V2 == "SHH")
+
+
+fgl$STRINGdb <- fgl$genes %>% sapply(function(gene) {
+    if (is.na(gene)) {
+        return("non_coding")
+    } else if (gene == "SHH") {
+        return("SHH")
+    } else if (gene %in% sn$V1 | gene %in% sn$V2) {
+        return("coding_SHH_linked")
+    } else if (gene %in% STRING_gene) {
+        return("coding")
+    } else {
+        return("non_coding")
+    }
+})
+
+write.csv(fgl, file = "results/tables/Figure_genelist_complete.csv", row.names = FALSE, quote = FALSE)
