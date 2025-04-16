@@ -4,6 +4,7 @@ Contact :
  - veranika.panasenkava@univ-rennes.fr
  - valerie.dupe@univ-rennes.fr
  - jules.garreau@univ-rennes.fr
+ - marie.detayrac@univ-rennes.fr
 
 ## Install the conda environement :
 ```bash
