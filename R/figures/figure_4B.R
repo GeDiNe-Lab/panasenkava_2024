@@ -78,13 +78,13 @@ dorsal_genes <- c(
     "ZIC1",
     "ZIC3",
     "OTX2",
-    "SP8",
+    # "SP8",
     "FOXG1",
-    "FOS",
+    # "FOS",
     "GAS1",
     "SOX1",
-    "KLF7",
-    "SMOC1"
+    "KLF7"
+    # "SMOC1"
 )
 # Keeping only genes that are in the list, filter cells not expressing any of them
 selected_genes <- c(ventral_genes, dorsal_genes)

@@ -237,11 +237,6 @@ clusters <- cutree(clustering, k = 2)
 # renaming clusters
 clusters <- ifelse(clusters == 1, "vAN", "dAN")
 
-# Getting figure_genelist_1 :
-fig_genelist_1 <- clusters %>% as.data.frame()
-colnames(fig_genelist_1) <- "Figure1E"
-write.csv(fig_genelist_1, "results/tables/Figure_1/fig_genelist_1.csv")
-
 row_split <- factor(clusters[clustering$order], levels = c("vAN", "dAN"))
 
 # Colors for each group
